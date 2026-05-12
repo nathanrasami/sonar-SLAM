@@ -2,3 +2,12 @@
 *.pyc
 bruce_slam/src/bruce_slam/__pycache__/
 bruce_slam/utils/__pycache__/
+# Fichiers lourds spécifiques à ROS, Python et SLAM
+devel/
+install/
+__pycache__/
+*.bag
+*.pcd
+*.csv
+.ros/
+*.bag

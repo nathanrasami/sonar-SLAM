@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.git/
+*.log
+vendor/
+images/
+
+# Fichiers lourds spécifiques à ROS, Python et SLAM
+devel/
+install/
+__pycache__/
+*.pyc
+*.bag
+*.pcd
+*.csv
+.ros/
