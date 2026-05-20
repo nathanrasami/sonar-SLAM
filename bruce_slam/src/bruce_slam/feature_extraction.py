@@ -297,6 +297,9 @@ class FeatureExtraction(object):
 
         # Remap polar → cartesian using existing generate_map_xy logic
         self.generate_map_xy(fake)
+        vis_img = cv2.remap(img, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        vis_img = cv2.applyColorMap(vis_img, 2)
+        self.feature_img_pub.publish(ros_numpy.image.numpy_to_image(vis_img, "bgr8"))
         peaks = cv2.remap(peaks, self.map_x, self.map_y, cv2.INTER_LINEAR)
         locs = np.c_[np.nonzero(peaks)]
 
