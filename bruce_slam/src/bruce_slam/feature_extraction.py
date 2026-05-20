@@ -281,6 +281,9 @@ class FeatureExtraction(object):
         if img is None:
             return
 
+        # Flip vertically: origin goes from top-center to bottom-center (near range at row 0)
+        img = cv2.flip(img, 0)
+
         h, w = img.shape
 
         # Build a synthetic OculusPing-like object for generate_map_xy
