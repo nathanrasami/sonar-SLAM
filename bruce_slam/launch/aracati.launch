@@ -14,7 +14,7 @@
 
     <!-- rosbag playback -->
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
-          args="$(arg bag_file) --clock -r 1.0 -q"/>
+          args="$(arg bag_file) --clock -r 0.5 -q"/>
 
     <group ns="bruce">
         <group ns="slam">
