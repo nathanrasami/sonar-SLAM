@@ -258,8 +258,15 @@ class FeatureExtraction(object):
         #publish the feature message
         self.publish_features(sonar_msg, points)
 
+    def _get_synthetic_bearings(self, num_cols):
+        """Generate synthetic bearing array (in centidegrees) for a polar sonar image."""
+        half_fov = self.sonar_fov_deg / 2.0
+        bearings_deg = np.linspace(-half_fov, half_fov, num_cols)
+        # OculusPing bearings are in centidegrees (1/100 degree)
+        return (bearings_deg * 100).astype(np.int16).tolist()
+
     def callback_cartesian(self, msg):
-        """Feature extraction on cartesian sonar images (aracati2017 / CompressedImage PNG)."""
+        """Feature extraction on polar sonar images from aracati2017 (CompressedImage PNG)."""
         if not hasattr(self, "_cart_seq"):
             self._cart_seq = 0
         self._cart_seq += 1
@@ -276,19 +283,26 @@ class FeatureExtraction(object):
 
         h, w = img.shape
 
-        # CFAR + threshold in cartesian space
+        # Build a synthetic OculusPing-like object for generate_map_xy
+        class FakePing:
+            pass
+        fake = FakePing()
+        fake.range_resolution = self.sonar_max_range / float(h)
+        fake.num_ranges = h
+        fake.bearings = self._get_synthetic_bearings(w)
+
+        # CFAR + threshold in polar space
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold
 
-        locs = np.c_[np.nonzero(peaks)]  # (row, col)
+        # Remap polar → cartesian using existing generate_map_xy logic
+        self.generate_map_xy(fake)
+        peaks = cv2.remap(peaks, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        locs = np.c_[np.nonzero(peaks)]
 
-        # pixel → meters: col maps to cross-range, row maps to range
-        fov_rad = np.deg2rad(self.sonar_fov_deg)
-        half_fov = fov_rad / 2.0
-        # cross-range: col 0 = -half_width, col w = +half_width
-        x = (locs[:, 1] / float(w) - 0.5) * 2.0 * self.sonar_max_range * np.tan(half_fov)
-        # range: row 0 = max_range (top of image), row h = 0
-        y = (1.0 - locs[:, 0] / float(h)) * self.sonar_max_range
+        x = locs[:, 1] - self.cols / 2.
+        x = (-1 * ((x / float(self.cols / 2.)) * (self.width / 2.)))
+        y = (-1 * (locs[:, 0] / float(self.rows)) * self.height) + self.height
         points = np.column_stack((y, x))
 
         if len(points) and self.resolution > 0:
