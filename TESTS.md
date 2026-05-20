@@ -1,0 +1,233 @@
+# Tests & Expériences — Bruce-SLAM
+
+Fichier de suivi des modifications de paramètres et observations.
+Référence : configs `bruce_slam/config/feature.yaml`, `icp.yaml`, `slam.yaml`
+
+---
+
+## Baseline
+
+Paramètres par défaut (`feature.yaml`) :
+- `Pfa: 0.1` — taux de fausse alarme CFAR (filtre relatif au voisinage local)
+- `threshold: 65` — seuil minimum d'intensité brute sonar (0-255), filtre absolu post-CFAR
+- `resolution: 0.5` — taille du voxel downsampling (mètres), 1 point conservé par cellule
+- `radius: 1.0` / `min_points: 5` — outlier rejection : point gardé si ≥5 voisins dans 1m
+
+**Résultat :** trajectoire cohérente, loop closures visibles (traits rouges), nuage de points dense.
+
+![Baseline](TESTS_image/base.png)
+---
+
+## Test 1 — Pfa réduit (0.01)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| Pfa | 0.1 | 0.01 |
+
+**Observation :**
+- Moins de points détectés (nuage orange moins dense)
+- Trajectoire globale identique
+- Légères différences locales → ICP a moins de correspondances
+- Loop closures inchangés globalement
+
+**Conclusion :** Pfa impacte la précision locale mais iSAM2 + loop closure corrigent globalement.
+
+---
+
+## Test 2 — Pfa très réduit (0.001)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| Pfa | 0.1 | 0.01 |
+
+![Pfa 0.01](TESTS_image/pfa0_001.png)
+
+**Observation :**
+- Beaucoup moins de points détectés
+- Trajectoire globale inchangée malgré la très faible densité
+- Loop closures toujours présents
+
+**Conclusion :** Même avec très peu de points, ICP + iSAM2 maintiennent une trajectoire cohérente. Le système est robuste à la réduction de features.
+
+---
+
+## Test 3 — Threshold bas (30)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| threshold | 65 | 30 |
+
+![Threshold 30](TESTS_image/threshold30.png)
+
+**Observation :**
+- Beaucoup de points (nuage dense, bleu/vert/orange/jaune) → beaucoup de faux positifs acceptés
+- Moins de loop closures que la baseline
+- Début de drift visible, zigzags sur la trajectoire
+
+**Conclusion :** Un threshold trop bas inonde ICP de faux positifs → recalage bruité → drift local. Paradoxalement moins de loop closures car les scans bruités se ressemblent moins.
+
+---
+
+## Test 4 — Threshold élevé (90)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| threshold | 65 | 90 |
+
+![Threshold 90](TESTS_image/threshold90.png)
+
+**Observation :**
+- Moins de points détectés
+- Moins de loop closures
+- Trajectoire propre, similaire à la baseline
+
+**Conclusion :** threshold (filtre absolu) a plus d'impact que Pfa (filtre relatif). À 90, on garde seulement les réflexions fortes → ICP propre → bonne trajectoire mais moins de loop closures.
+
+---
+
+## Test 5 — Resolution fine (0.1)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| resolution | 0.5 | 0.1 |
+
+**Définition :** Plus la valeur est basse, plus le nuage de points est dense (voxels plus petits).
+
+![Resolution 0.1](TESTS_image/resolution01.png)
+
+**Observation :**
+- Beaucoup plus de points dans le nuage
+- Trajectoire plus géométrique (angles nets, formes précises)
+- Beaucoup de loop closures, y compris entre le début et la fin du parcours
+
+**Conclusion :** Plus de points → ICP plus précis → meilleure géométrie et plus de loop closures. Coût : temps de calcul plus élevé.
+
+---
+
+## Test 6 — Resolution grossière (2.0)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| resolution | 0.5 | 2.0 |
+
+**Définition :** Plus la valeur est haute, moins il y a de points conservés (voxels plus grands).
+
+![Resolution 2.0](TESTS_image/resolution2.png)
+
+**Observation :**
+- Presque aucun point dans le nuage
+- Trajectoire pourtant cohérente
+- Loop closures uniquement au tout début du parcours
+
+**Conclusion :** ICP fonctionne encore avec très peu de points grâce au dead reckoning (DVL/IMU), mais perd la capacité de détecter des loop closures tardifs.
+
+---
+
+## Test 7 — Radius bas (0.3)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| radius | 1.0 | 0.3 |
+
+**Définition :** radius = rayon de recherche pour l'outlier rejection. Un point est supprimé s'il n'a pas assez de voisins dans ce rayon. Valeur basse → zone de recherche réduite → plus de points supprimés.
+
+![Radius 0.3](TESTS_image/radius0_3.png)
+
+**Observation :**
+- Peu de points (beaucoup supprimés car zone trop petite)
+- Trajectoire décalée par rapport à la baseline
+- Pas de loop closure
+
+**Conclusion :** Trop peu de points → ICP perd en précision → drift. Sans loop closure, pas de correction globale.
+
+---
+
+## Test 8 — Radius élevé (3.0)
+
+| Paramètre | Valeur baseline | Valeur testée |
+|-----------|----------------|---------------|
+| radius | 1.0 | 3.0 |
+
+**Définition :** Valeur haute → zone de recherche large → points isolés conservés, moins de suppression.
+
+![Radius 3](TESTS_image/radius3.png)
+
+**Observation :**
+- Nombre de points normal
+- Trajectoire décalée par rapport à la baseline
+- Loop closure visibles et actifs (correction visible en temps réel)
+- Nombre de loop closures normal
+
+**Conclusion :** Avec un radius trop grand, des faux points (outliers) sont conservés → ICP bruité → trajectoire décalée. Les loop closures compensent partiellement mais ne suffisent pas à corriger complètement.
+
+---
+
+## Test 9 — ICP maxDist outlier bas (1.0)
+
+| Paramètre | Fichier | Valeur baseline | Valeur testée |
+|-----------|---------|----------------|---------------|
+| MaxDistOutlierFilter maxDist | icp.yaml | 3.0 | 1.0 |
+
+**Définition :** distance max acceptée entre deux points associés par ICP. Au-delà → paire rejetée comme outlier.
+
+![Outlier 1.0](TESTS_image/outlier1.png)
+
+**Observation :**
+- Nombre de points similaire à la baseline
+- Plus de loop closures détectés
+- Trajectoire similaire à la baseline
+
+**Conclusion :** Seuil plus strict → ICP garde seulement les correspondances très proches → recalage plus précis → meilleure détection de loop closures.
+
+---
+
+## Test 10 — ICP maxDist outlier élevé (6.0)
+
+| Paramètre | Fichier | Valeur baseline | Valeur testée |
+|-----------|---------|----------------|---------------|
+| MaxDistOutlierFilter maxDist | icp.yaml | 3.0 | 6.0 |
+
+![Outlier 6.0](TESTS_image/outlier6.png)
+
+**Observation :**
+- Nombre de points similaire à la baseline
+- Trajectoire similaire à la baseline
+- Résultat global peu différent de la baseline
+
+**Conclusion :** À 6m le filtre est permissif mais ICP converge quand même grâce au TrimmedDist qui filtre les 20% pires correspondances.
+
+---
+
+## Test 11 — ICP ratio TrimmedDist bas (0.5)
+
+| Paramètre | Fichier | Valeur baseline | Valeur testée |
+|-----------|---------|----------------|---------------|
+| TrimmedDistOutlierFilter ratio | icp.yaml | 0.8 | 0.5 |
+
+**Définition :** garde seulement les X% meilleures correspondances ICP. 0.5 = garde 50%.
+
+![Ratio 0.5](TESTS_image/ratio05.png)
+
+**Observation :** Peu de différences par rapport à la baseline.
+
+**Conclusion :** ICP est robuste à ce paramètre — les 50% meilleures correspondances suffisent à converger correctement.
+
+---
+
+## Test 12 — ICP ratio TrimmedDist élevé (0.95)
+
+| Paramètre | Fichier | Valeur baseline | Valeur testée |
+|-----------|---------|----------------|---------------|
+| TrimmedDistOutlierFilter ratio | icp.yaml | 0.8 | 0.95 |
+
+![Ratio 0.95](TESTS_image/ratio0_95.png)
+
+**Observation :** Peu de différences par rapport à la baseline.
+
+**Conclusion :** Garder 95% des correspondances n'introduit pas assez de bruit supplémentaire pour dégrader ICP — MaxDistOutlierFilter filtre déjà les pires cas en amont.
+
+---
+
+## À tester
+
+- [ ] Paramètres loop closure / iSAM2 (`slam.yaml`)

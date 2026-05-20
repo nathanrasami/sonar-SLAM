@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(find /tmp/aracati2017_repo/src -type f -name \"*.py\" -o -name \"*.cpp\" -o -name \"*.h\" 2>/dev/null)",
+      "Read(//tmp/aracati2017_repo/src/**)",
+      "Read(//tmp/aracati2017_repo/**)"
+    ]
+  }
+}

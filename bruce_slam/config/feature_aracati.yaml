@@ -1,0 +1,27 @@
+# Feature extraction config for Aracati2017 dataset (BlueView P900-130, cartesian PNG)
+CFAR:
+  Ntc: 40
+  Ngc: 10
+  Pfa: 0.1
+  rank: 10
+  alg: 'SOCA'
+
+filter:
+  threshold: 50
+  resolution: 0.5
+  radius: 1.0
+  min_points: 5
+  skip: 1
+
+visualization:
+  coordinates: 'cartesian'
+  radius: 2
+  color: [0, 165, 255]
+
+compressed_images: False
+
+# Aracati2017 cartesian mode
+cartesian_mode: True
+cartesian:
+  fov_deg: 130.0
+  max_range: 50.0

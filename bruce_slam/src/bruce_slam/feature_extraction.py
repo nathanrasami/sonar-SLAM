@@ -14,6 +14,7 @@ from bruce_slam.utils.visualization import apply_custom_colormap
 from bruce_slam import pcl
 import matplotlib.pyplot as plt
 from sonar_oculus.msg import OculusPing, OculusPingUncompressed
+from sensor_msgs.msg import CompressedImage
 from scipy.interpolate import interp1d
 
 from .utils import *
@@ -114,7 +115,13 @@ class FeatureExtraction(object):
         self.color = rospy.get_param(ns + "visualization/color")
 
         #sonar subsciber
-        if self.compressed_images:
+        self.cartesian_mode = rospy.get_param(ns + "cartesian_mode", False)
+        if self.cartesian_mode:
+            self.sonar_fov_deg = rospy.get_param(ns + "cartesian/fov_deg", 130.0)
+            self.sonar_max_range = rospy.get_param(ns + "cartesian/max_range", 50.0)
+            self.sonar_sub = rospy.Subscriber(
+                SONAR_TOPIC_CARTESIAN, CompressedImage, self.callback_cartesian, queue_size=10)
+        elif self.compressed_images:
             self.sonar_sub = rospy.Subscriber(
                 SONAR_TOPIC, OculusPing, self.callback, queue_size=10)
         else:
@@ -250,3 +257,54 @@ class FeatureExtraction(object):
 
         #publish the feature message
         self.publish_features(sonar_msg, points)
+
+    def callback_cartesian(self, msg):
+        """Feature extraction on cartesian sonar images (aracati2017 / CompressedImage PNG)."""
+        if not hasattr(self, "_cart_seq"):
+            self._cart_seq = 0
+        self._cart_seq += 1
+        if self._cart_seq % self.skip != 0:
+            self.feature_img = None
+            nan = np.array([[np.nan, np.nan]])
+            self._publish_features_stamped(msg.header, nan)
+            return
+
+        img = np.frombuffer(msg.data, np.uint8)
+        img = cv2.imdecode(img, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return
+
+        h, w = img.shape
+
+        # CFAR + threshold in cartesian space
+        peaks = self.detector.detect(img, self.alg)
+        peaks &= img > self.threshold
+
+        locs = np.c_[np.nonzero(peaks)]  # (row, col)
+
+        # pixel → meters: col maps to cross-range, row maps to range
+        fov_rad = np.deg2rad(self.sonar_fov_deg)
+        half_fov = fov_rad / 2.0
+        # cross-range: col 0 = -half_width, col w = +half_width
+        x = (locs[:, 1] / float(w) - 0.5) * 2.0 * self.sonar_max_range * np.tan(half_fov)
+        # range: row 0 = max_range (top of image), row h = 0
+        y = (1.0 - locs[:, 0] / float(h)) * self.sonar_max_range
+        points = np.column_stack((y, x))
+
+        if len(points) and self.resolution > 0:
+            points = pcl.downsample(points, self.resolution)
+
+        if self.outlier_filter_min_points > 1 and len(points) > 0:
+            points = pcl.remove_outlier(
+                points, self.outlier_filter_radius, self.outlier_filter_min_points
+            )
+
+        self._publish_features_stamped(msg.header, points)
+
+    def _publish_features_stamped(self, header, points):
+        """Publish features using a raw header (for cartesian mode)."""
+        points3d = np.c_[points[:, 0], np.zeros(len(points)), points[:, 1]]
+        feature_msg = n2r(points3d, "PointCloudXYZ")
+        feature_msg.header.stamp = header.stamp
+        feature_msg.header.frame_id = "base_link"
+        self.feature_pub.publish(feature_msg)

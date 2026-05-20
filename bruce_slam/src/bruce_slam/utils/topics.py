@@ -13,8 +13,10 @@ DVL_TOPIC = "/rti/body_velocity/raw"
 DEPTH_TOPIC = "/bar30/depth/raw"
 SONAR_TOPIC = "/sonar_oculus_node/M750d/ping"
 SONAR_TOPIC_UNCOMPRESSED = "/sonar_oculus_node/ping"
+SONAR_TOPIC_CARTESIAN = "/son/compressed"
 SONAR_VERTICAL_TOPIC = "/sonar_oculus_node/M1200d/ping"
 GYRO_TOPIC = "/gyro"
+ODOM_BRIDGE_INPUT_TOPIC = "/odom_pose"
 
 
 SLAM_NS = "/bruce/slam/"

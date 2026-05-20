@@ -4,6 +4,34 @@
 **Sujet :** Topic 1 — Sonar-Inertial Odometry System
 **Dépôt de référence :** [jake3991/sonar-SLAM](https://github.com/jake3991/sonar-SLAM)
 **Article de référence :** `Bruce-SLAM_260511_085801.pdf` — *Virtual Maps for Autonomous Exploration of Cluttered Underwater Environments* (Wang et al., 2022)
+**Durée du stage :** 4 mois (~17 semaines) — Mai à Septembre 2026
+**Présentations :** mini-présentation hebdomadaire + diapo de compréhension du sujet (semaine 3)
+
+---
+
+## Timeline sur 4 mois
+
+L'objectif est de **diluer** le travail sur toute la durée du stage, même si la compréhension technique avance vite. Chaque semaine doit produire quelque chose de présentable.
+
+| Semaine | Période | Activité principale | Livrable hebdo |
+|---------|---------|---------------------|----------------|
+| S1 | 12–16 mai | Prise en main : lire l'article, explorer le code | Résumé oral du sujet |
+| S2 | 19–23 mai | Installation environnement (VM Ubuntu + ROS) | Env fonctionnel, premier roslaunch |
+| S3 | 26–30 mai | **Diapo présentation sujet** + reproduction résultats | Diaporama + RViz qui tourne |
+| S4 | 02–06 juin | Analyse des résultats obtenus vs article | Comparaison cartes/trajectoires |
+| S5 | 09–13 juin | Compréhension front-end : SOCA-CFAR en détail | Notes annotées sur CFAR.py |
+| S6 | 16–20 juin | Compréhension front-end : ICP et scan matching | Notes annotées sur pcl.cpp |
+| S7 | 23–27 juin | Compréhension back-end : graphe de facteurs + iSAM2 | Schéma annoté slam.py |
+| S8 | 30 juin–04 juil | Compréhension back-end : loop closure (PCM) | Schéma annoté loop closure |
+| S9 | 07–11 juil | Compréhension cartographie : submaps + occupancy grid | Notes annotées mapping.py |
+| S10 | 14–18 juil | Analyse des limitations du système | Rapport d'analyse |
+| S11 | 21–25 juil | Recherche bibliographique : pistes d'amélioration | Liste de pistes priorisées |
+| S12 | 28 juil–01 août | Choix + prototypage de l'amélioration | Prototype initial |
+| S13 | 04–08 août | Implémentation de l'amélioration | Code fonctionnel |
+| S14 | 11–15 août | Tests et validation quantitative | Résultats comparatifs |
+| S15 | 18–22 août | Rédaction rapport : intro + état de l'art | Chapitres 1-2 rédigés |
+| S16 | 25–29 août | Rédaction rapport : résultats + contribution | Chapitres 3-4 rédigés |
+| S17 | 01–05 sept | Finalisation rapport + préparation soutenance | Rapport final |
 
 ---
 
@@ -32,6 +60,66 @@ Le pipeline principal :
 **Objectif :** Comprendre le contexte, lire l'article, explorer le code.
 
 - [x] Lire entièrement l'article Bruce-SLAM (`Bruce-SLAM_260511_085801.pdf`)
+
+<details>
+<summary>📄 Résumé de l'article Bruce-SLAM — voir détail complet dans <a href="BRUCE_SLAM.md">BRUCE_SLAM.md</a></summary>
+
+**Titre :** *Virtual Maps for Autonomous Exploration of Cluttered Underwater Environments*
+**Auteurs :** Jinkun Wang et al. — Stevens Institute of Technology, 2022
+**Publié :** IEEE Journal of Oceanic Engineering — arXiv:2202.08359
+
+---
+
+### Problème central
+Explorer un environnement sous-marin inconnu de façon autonome, sans GPS, sans vision, en gérant le compromis entre :
+- Explorer (couvrir du terrain)
+- Revisiter (fermer des boucles pour corriger la dérive)
+
+---
+
+### Contribution principale : cartes virtuelles + algorithme EM
+- **Carte virtuelle** : landmarks hypothétiques dans les zones non encore visitées
+- **EM** : choisit le chemin qui minimise `det(Σ)` (incertitude globale) en anticipant les observations futures
+- Résultat : EM atteint 90% de couverture en **30% moins de distance** que l'approche heuristique
+
+---
+
+### Pipeline SLAM (Section IV)
+| Étape | Méthode | Fréquence |
+|-------|---------|-----------|
+| Feature extraction | SOCA-CFAR | 5 Hz |
+| Scan matching séquentiel | ICP + CONSAC init | 5 Hz |
+| Dead reckoning | DVL + IMU + pression | 5 Hz |
+| Optimisation graphe | iSAM2 (GTSAM) | 0.2 Hz |
+| Loop closure | NSSM + PCM | 0.2 Hz |
+| Cartographie | Grille d'occupation (log-odds) | 0.2 Hz |
+
+---
+
+### Capteurs (BlueROV2 réel — marina King's Point NY)
+- Sonar : Oculus M750d, 512 beams, ±65°, 30m
+- DVL : Rowe SeaPilot
+- IMU : VectorNav VN100
+- Pression : Bar30
+
+---
+
+### Résultats expérimentaux
+- **4 algos comparés :** NF, NBV, Heuristic, EM
+- **EM retenu** : meilleur compromis pose uncertainty / map error / couverture
+- **Simulation** (45 et 60 essais) + **ROV réel** (12 runs)
+- Map error à 400m : EM=1.05, NF=1.13, NBV=1.12, Heuristic=1.03
+
+---
+
+### Conclusion
+Premier exemple d'exploration autonome réelle d'un port avec un ROV intégrant son propre SLAM dans chaque décision de planification.
+**Perspective :** extension 3D (SE(2) → SE(3)).
+
+📖 **Résumé complet section par section :** [BRUCE_SLAM.md](BRUCE_SLAM.md)
+
+</details>
+
 - [x] Comprendre les notions fondamentales du SLAM (pose graph, facteur, iSAM2)
 
 <details>
@@ -488,89 +576,418 @@ Image sonar (5 Hz)
 
 ---
 
-### Jalon 1 — Installation de l'environnement
+### Jalon 1 — Installation de l'environnement ✅
 **Objectif :** Avoir un environnement fonctionnel pour faire tourner Bruce-SLAM.
+**Semaines :** S2 (19–23 mai 2026)
 
-**Environnement : Fedora (pas Ubuntu) → RoboStack (micromamba/conda)**
+**Environnement : Fedora → VM Ubuntu 20.04 (KVM/QEMU)**
 
-ROS Noetic n'est pas supporté nativement sur Fedora. Solution retenue : **RoboStack** via micromamba, qui fournit des binaires conda de ROS Noetic fonctionnels sur Fedora sans Docker ni VM.
+RoboStack (conda) s'est avéré cassé avec conda-forge actuel (conflit numpy ≥1.26 introuvable). Solution retenue : **VM KVM** avec Ubuntu 20.04 — ROS Noetic officiellement supporté, zéro surprise pour une démo.
 
-- [ ] Installer `micromamba` (gestionnaire de paquets conda léger)
-  ```bash
-  "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
-  ```
-- [ ] Créer l'environnement ROS Noetic via RoboStack
-  ```bash
-  micromamba create -n ros_env -c conda-forge -c robostack-noetic ros-noetic-desktop python=3.8
-  micromamba activate ros_env
-  ```
-- [ ] Installer catkin-tools et pybind11 dans l'env
-  ```bash
-  micromamba install -c conda-forge -c robostack-noetic ros-noetic-catkin python-catkin-tools
-  ```
-- [ ] Installer les dépendances Python 3 dans l'env conda
-  ```bash
-  micromamba install -c conda-forge gtsam opencv numpy scipy scikit-learn shapely tqdm pyyaml
-  pip install rosbag  # si non disponible via conda
-  ```
-- [ ] Créer le workspace catkin : `mkdir -p ~/catkin_ws/src`
-- [ ] [libnabo](https://github.com/ethz-asl/libnabo) (cloner dans `~/catkin_ws/src/`)
-- [ ] [libpointmatcher](https://github.com/ethz-asl/libpointmatcher) — version spécifique : commit `d478ef2`
-  ```bash
-  git checkout d478ef2eb33894d5f1fe84d8c62cec2fc6da818f
-  ```
-- [ ] [Argonaut](https://github.com/jake3991/Argonaut) (cloner dans `~/catkin_ws/src/`)
-- [ ] Cloner ce dépôt dans `~/catkin_ws/src/`
-- [ ] Compiler avec `catkin build` (PAS `catkin_make`)
+- [x] Vérifier la virtualisation AMD/SVM dans le BIOS Asus TUF (`grep -c svm /proc/cpuinfo` → 16)
+- [x] Installer KVM + virt-manager sur Fedora
+- [x] Créer une VM Ubuntu 20.04 (8 CPU, 8 GB RAM, 50 GB disque)
+- [x] Installer ROS Noetic Desktop Full dans la VM
+- [x] Configurer le workspace catkin (`~/catkin_ws/`)
+- [x] Compiler libnabo depuis les sources (`make -j2` — RAM limitée en VM)
+- [x] Compiler libpointmatcher commit `d478ef2` (`make -j2`)
+- [x] Cloner sonar-SLAM et Argonaut dans `~/catkin_ws/src/`
+- [x] Corriger `CMakeLists.txt` : `-std=c++11` → `-std=c++14` (requis par PCL 1.10)
+- [x] Installer dépendances ROS : `pybind11-catkin`, `nav-core`, `navigation`, `ros-numpy`
+- [x] Installer dépendances Python : `gtsam==4.1.1`, `numpy==1.23.5`, `tqdm`, `shapely`, `scikit-learn`
+- [x] `catkin build` → tous les packages compilent
 
-> **Référence RoboStack :** https://robostack.github.io/GettingStarted.html
-
-**Livrable :** Workspace catkin qui compile sans erreur.
+**Livrable :** Workspace catkin qui compile sans erreur. ✅
 
 ---
 
 ### Jalon 2 — Reproduction des résultats
 **Objectif :** Faire tourner Bruce-SLAM sur les données fournies et reproduire les résultats de l'article.
+**Semaines :** S3–S4 (26 mai – 06 juin 2026)
 
-- [ ] Télécharger le fichier de données `sample_data.bag` (Google Drive)
-- [ ] Lancer le mode offline : `roslaunch bruce_slam slam.launch file:=sample_data.bag`
-- [ ] Visualiser le résultat dans RViz
-- [ ] Lancer le mode online (rejouer le bag en temps réel)
-- [ ] Comparer les trajectoires et cartes obtenues avec les figures de l'article
-- [ ] Comprendre chaque paramètre dans le dossier `config/`
+- [x] Télécharger le fichier de données `sample_data.bag` (Google Drive)
+- [x] Lancer le mode offline : `roslaunch bruce_slam slam.launch file:=sample_data.bag`
+- [x] Obtenir RViz qui affiche carte + trajectoire complètes sans erreur
+- [ ] Lancer le mode online (rejouer le bag en temps réel avec `rosbag play`)
+- [x] Vérifier la reproductibilité : 3 runs identiques → même résultat ✅
+- [ ] Faire des captures d'écran des résultats et les comparer aux figures de l'article
+- [x] Comprendre chaque paramètre dans le dossier `config/`
+
+<details>
+<summary>📖 Explication des fichiers de configuration</summary>
+
+---
+
+### `slam.yaml` — Paramètres du SLAM
+
+#### Keyframes
+```yaml
+keyframe_duration: 1.0       # délai minimum (s) entre deux keyframes
+keyframe_translation: 3.0    # distance (m) à parcourir pour créer une keyframe
+keyframe_rotation: deg(30)   # rotation (°) pour créer une keyframe
+```
+Une keyframe est ajoutée si le robot s'est déplacé de **3m OU tourné de 30°** depuis la dernière. Valeurs recommandées : 1–4m selon la densité souhaitée du graphe.
+
+#### Modèles de bruit (sigmas = écart-type de l'incertitude)
+```yaml
+prior_sigmas:    [0.1, 0.1, 0.01]   # incertitude initiale sur x(m), y(m), θ(rad)
+odom_sigmas:     [0.2, 0.2, 0.02]   # incertitude du dead reckoning DVL+IMU
+icp_odom_sigmas: [0.1, 0.1, 0.01]   # incertitude d'une contrainte ICP
+```
+Ces valeurs définissent la confiance accordée à chaque source de mesure dans le graphe de facteurs. Un sigma plus grand = moins de confiance = la contrainte pèse moins dans l'optimisation.
+
+#### Sequential Scan Matching (SSM) — contraintes entre keyframes consécutives
+```yaml
+ssm:
+  enable: True        # activer/désactiver le SSM
+  min_points: 50      # nombre minimum de features pour tenter un SSM
+  max_translation: 3.0   # déplacement max accepté entre deux keyframes (m)
+  max_rotation: deg(30)  # rotation max acceptée (°)
+  target_frames: 3    # comparer la keyframe courante aux 3 précédentes
+```
+Si l'ICP donne un résultat qui dépasse `max_translation` ou `max_rotation`, il est rejeté (trop irréaliste).
+
+#### Non-Sequential Scan Matching (NSSM) — détection de loop closures
+```yaml
+nssm:
+  enable: True        # activer/désactiver les loop closures
+  min_st_sep: 8       # zone d'exclusion : ignorer les 8 keyframes les plus récentes
+  min_points: 50      # nombre minimum de features
+  max_translation: 10.0  # distance max pour tenter une loop closure (m)
+  max_rotation: deg(60)  # rotation max (°)
+  source_frames: 5    # agréger 5 frames pour augmenter la densité de points
+  cov_samples: 30     # échantillons pour estimer la covariance de la loop closure
+```
+`min_st_sep: 8` évite de détecter des "fausses" loop closures avec des keyframes trop récentes (qui sont déjà liées par le SSM).
+
+#### PCM — rejet des loop closures aberrantes
+```yaml
+pcm_queue_size: 5   # fenêtre glissante : analyser les 5 dernières loop closures
+min_pcm: 2          # garder une loop closure seulement si au moins 2 autres dans la fenêtre sont cohérentes avec elle
+```
+Si une loop closure est incohérente avec ses voisines temporelles, elle est rejetée comme aberrante.
+
+---
+
+### `feature.yaml` — Paramètres du détecteur SOCA-CFAR
+
+#### Détecteur CFAR
+```yaml
+CFAR:
+  Ntc: 40      # nombre de cellules d'entraînement de chaque côté du CUT
+  Ngc: 10      # nombre de cellules de garde (exclues du calcul de bruit)
+  Pfa: 0.1     # taux de fausse alarme cible (10% → seuil τ calculé en conséquence)
+  rank: 10     # rang de la matrice (stabilisation numérique)
+  alg: 'SOCA' # algorithme : Smallest-Of Cell-Averaging (le plus robuste)
+```
+La fenêtre CFAR autour d'un pixel : `[Ngc | Ntc | CUT | Ntc | Ngc]`. Plus `Ntc` est grand, meilleure est l'estimation du bruit ambiant. `Pfa = 0.1` est assez permissif — on accepte 10% de fausses alarmes pour ne pas rater de vrais retours.
+
+#### Filtrage du nuage de points
+```yaml
+filter:
+  threshold: 65    # intensité minimale pour être gardé après CFAR (filtre dur)
+  resolution: 0.5  # résolution du voxel downsampling (m) — réduit la densité
+  radius: 1.0      # rayon (m) pour le filtre de rejet d'outliers
+  min_points: 5    # nombre minimum de voisins dans le rayon pour garder un point
+  skip: 1          # traiter 1 scan sur skip (1 = tous les scans)
+```
+Le pipeline de filtrage est : CFAR → seuil dur → voxel downsampling → rejet d'outliers isolés. Le résultat est un nuage de points 2D propre transmis à l'ICP.
+
+---
+
+### `icp.yaml` — Paramètres de l'alignement ICP (libpointmatcher)
+
+#### Filtres de données
+```yaml
+readingDataPointsFilters:    # filtres appliqués au scan source (vide = aucun)
+referenceDataPointsFilters:  # filtres appliqués au scan cible (vide = aucun)
+```
+Les filtres sont déjà appliqués en amont dans `feature.yaml`, donc vides ici.
+
+#### Correspondances
+```yaml
+matcher:
+  KDTreeMatcher:
+    knn: 1         # 1 voisin le plus proche (nearest neighbor)
+    epsilon: 0     # précision exacte (pas d'approximation)
+    maxDist: 10.0  # distance maximale pour une correspondance valide (m)
+```
+Utilise un **KD-tree** pour trouver efficacement le point le plus proche dans le scan de référence.
+
+#### Filtres d'outliers
+```yaml
+outlierFilters:
+  - MaxDistOutlierFilter:
+      maxDist: 3.0    # rejeter les correspondances avec distance > 3m
+  - TrimmedDistOutlierFilter:
+      ratio: 0.8      # garder seulement les 80% de correspondances les plus proches
+```
+Double filtre : d'abord rejeter les correspondances trop éloignées, puis ne garder que les 80% les meilleures. Robuste aux scans bruités.
+
+#### Minimiseur d'erreur
+```yaml
+errorMinimizer:
+  PointToPointErrorMinimizer   # minimise ||R·p_source + t - p_cible||²
+```
+Point-à-point classique. L'alternative commentée `PointToPlaneErrorMinimizer` est plus précise mais nécessite des normales de surface.
+
+#### Critères d'arrêt
+```yaml
+transformationCheckers:
+  - CounterTransformationChecker:
+      maxIterationCount: 40     # arrêter après 40 itérations max
+  - DifferentialTransformationChecker:
+      minDiffRotErr: 0.01       # arrêter si la rotation change de moins de 0.01 rad
+      minDiffTransErr: 0.1      # arrêter si la translation change de moins de 0.1 m
+      smoothLength: 4           # moyenner sur 4 itérations pour éviter les oscillations
+```
+L'ICP s'arrête dès qu'un des deux critères est atteint : convergence ou nombre max d'itérations.
+
+---
+
+### `dead_reckoning.yaml` — Fusion DVL + IMU
+
+```yaml
+dvl_max_velocity: 0.5      # vitesse max DVL acceptée (m/s) — au-delà = rejeté comme aberrant
+imu_pose: [0,0,0,deg(-90),0,0]  # offset de montage de l'IMU (x,y,z,roll,pitch,yaw)
+                                 # -90° en roll = IMU montée sur le côté sur ce ROV
+keyframe_duration: 1.0     # délai minimum entre deux keyframes de dead reckoning
+keyframe_translation: 4.0  # distance (m) pour créer une keyframe DR (légèrement > slam.yaml)
+keyframe_rotation: deg(30) # rotation (°) pour créer une keyframe DR
+use_gyro: False            # False = pas de FOG (Fiber Optic Gyroscope) sur ce robot
+imu_version: 1             # version du driver IMU (1 = VectorNav lourd, 2 = MKII)
+```
+
+`imu_pose` est crucial : il compense l'orientation physique de l'IMU dans le châssis du ROV. Si l'IMU est montée de travers, sans correction toutes les mesures angulaires seraient fausses.
+
+---
+
+### `mapping.yaml` — Cartographie par grille d'occupation
+
+#### Dimensions de la carte
+```yaml
+origin: [-100.0, -100.0]   # coin bas-gauche de la carte initiale (m)
+size: [200.0, 200.0]       # taille initiale : 200m × 200m
+resolution: 0.2            # résolution : 1 cellule = 0.2m × 0.2m
+inc: 50.0                  # agrandissement automatique de 50m si le robot sort des bords
+use_slam_traj: true        # utiliser la trajectoire SLAM (corrigée) plutôt que le dead reckoning
+```
+
+#### Modèle d'occupation (Bayes filter)
+```yaml
+pub_occupancy1: true
+hit_prob: 0.8       # probabilité d'occupation si un retour sonar est détecté (P(occupé|hit))
+miss_prob: 0.3      # probabilité d'occupation si le beam passe sans retour (P(occupé|miss))
+inflation_angle: 0.04  # demi-angle d'ouverture d'un beam pour l'inflation (rad)
+inflation_range: 0.4   # distance d'inflation autour d'un point de contact (m)
+```
+`hit_prob = 0.8` et `miss_prob = 0.3` sont convertis en log-odds et accumulés cellule par cellule. Une cellule devient "occupée" quand son log-odds dépasse un seuil.
+
+#### Filtrage des outliers de carte
+```yaml
+outlier_filter_radius: 5.0      # rayon de recherche de voisins (m)
+outlier_filter_min_points: 20   # nombre minimum de voisins pour garder un point
+min_translation: 0.5            # déplacement minimum (m) avant de mettre à jour la carte
+min_rotation: 0.015             # rotation minimum (rad) avant de mettre à jour la carte
+```
+
+---
+
+### `gyro.yaml` — Filtre gyroscope (FOG)
+
+```yaml
+latitude: 40.70594689371728  # latitude de la marina USMMA (King's Point, NY)
+                              # utilisée pour compenser la rotation terrestre
+sensor_rate: 250             # fréquence du FOG (250 Hz)
+offset:
+  x: 0.
+  y: 0.
+  z: 45.                     # décalage angulaire de 45° entre le FOG et le sonar
+```
+
+> ℹ️ Ce fichier n'est utilisé que si `use_gyro: True` dans `dead_reckoning.yaml`. Le FOG (*Fiber Optic Gyroscope*) est un capteur de cap très précis, non présent sur tous les ROV. Le sample_data.bag a été enregistré **sans** FOG.
+
+---
+
+### `kalman.yaml` — Filtre de Kalman étendu (alternatif)
+
+Ce fichier configure une **alternative** au dead reckoning simple — un filtre de Kalman complet à 12 états. Non utilisé par défaut dans Bruce-SLAM (remplacé par `dead_reckoning.py`), mais présent pour des expérimentations.
+
+**Vecteur d'état (12 dimensions) :**
+```
+[x, y, z, roll, pitch, yaw, ẋ, ẏ, ż, roll̇, pitcḣ, yaẇ]
+ ←── position ──→  ←── orientation ──→  ←── vitesses ──→
+```
+
+**Matrices clés :**
+- `Q` — bruit de processus : incertitude du modèle de mouvement. Les valeurs faibles (0.0001) sur x signifient qu'on fait très confiance au modèle pour x, moins pour roll/yaw (0.1).
+- `A_imu` — matrice de transition d'état à dt=0.005s (200 Hz IMU) : $x_{k+1} = A \cdot x_k$. Les termes `0.005` sur la diagonale position/vitesse encodent $x = x + \dot{x} \cdot dt$.
+- `R_dvl`, `R_imu`, `R_depth`, `R_gyro` — matrices de bruit de mesure de chaque capteur. Plus la valeur est petite, plus on fait confiance au capteur.
+- `H_dvl`, `H_imu`, `H_depth`, `H_gyro` — matrices d'observation : sélectionnent quelles dimensions du vecteur d'état sont observées par chaque capteur. Ex: `H_dvl` observe les vitesses (lignes 7-9 du vecteur d'état).
+
+```yaml
+imu_offset: 180   # offset de montage IMU pour ce dataset (USMMA) en degrés
+dt_dvl: 0.2       # période DVL (5 Hz)
+dt_imu: 0.005     # période IMU (200 Hz)
+dt_depth: 0.25    # période capteur pression (4 Hz)
+dt_gyro: 0.004    # période FOG (250 Hz)
+```
+
+</details>
 
 **Livrable :** Captures d'écran / vidéos des résultats reproduits. Rapport de comparaison.
+
+<details>
+<summary>🧪 Tests de paramètres — voir détail complet dans <a href="TESTS.md">TESTS.md</a></summary>
+
+Tests réalisés sur `sample_data.bag` en modifiant les paramètres un par un.
+Images des résultats dans `TESTS_image/`.
+
+**Paramètres testés (`feature.yaml`) :**
+| Paramètre | Baseline | Valeurs testées | Impact principal |
+|-----------|---------|----------------|-----------------|
+| Pfa | 0.1 | 0.01, 0.001 | Densité points — peu d'impact trajectoire |
+| threshold | 65 | 30, 90 | Fort impact : drift à 30, moins de LC à 90 |
+| resolution | 0.5 | 0.1, 2.0 | Géométrie et loop closures |
+| radius | 1.0 | 0.3, 3.0 | Drift si mal réglé |
+
+**Paramètres testés (`icp.yaml`) :**
+| Paramètre | Baseline | Valeurs testées | Impact principal |
+|-----------|---------|----------------|-----------------|
+| MaxDistOutlier | 3.0 | 1.0, 6.0 | Plus de LC à 1.0 |
+| TrimmedDist ratio | 0.8 | 0.5, 0.95 | Peu d'impact |
+
+**Conclusion générale :** `threshold` et `resolution` sont les paramètres les plus sensibles pour changer de dataset.
+
+📊 **Détail complet avec images :** [TESTS.md](TESTS.md)
+
+</details>
 
 ---
 
 ### Jalon 3 — Compréhension approfondie du pipeline
 **Objectif :** Maîtriser le pipeline de bout en bout en lisant et en instrumentant le code.
+**Semaines :** S5–S9 (09 juin – 11 juillet 2026)
 
-- [ ] **Front-end :**
-  - [ ] Comprendre la détection SOCA-CFAR (`feature.yaml`, code de détection)
-  - [ ] Comprendre le scan matching ICP (initialisation globale + raffinement local)
-  - [ ] Comprendre la fusion DVL + IMU (dead reckoning)
-- [ ] **Back-end :**
-  - [ ] Comprendre la construction du graphe de facteurs
-  - [ ] Comprendre l'optimisation iSAM2 (GTSAM)
-  - [ ] Comprendre la détection de loop closure (PCM — Pairwise Consistent Measurement)
-- [ ] **Cartographie :**
-  - [ ] Comprendre la grille d'occupation par sous-cartes (submaps)
-  - [ ] Comprendre les cartes virtuelles (virtual landmarks) pour l'exploration EM
-- [ ] Ajouter des logs/visualisations pour observer l'état interne
+- [x] **Front-end (S5–S6) :**
+  - [x] Comprendre la détection SOCA-CFAR (`CFAR.py`, `cfar.cpp`, `config/feature.yaml`)
+  - [x] Comprendre le scan matching ICP (initialisation globale CONSAC + raffinement, `pcl.cpp`)
+  - [x] Comprendre la fusion DVL + IMU (`dead_reckoning.py`)
+- [x] **Back-end (S7–S8) :**
+  - [x] Comprendre la construction du graphe de facteurs (`slam.py`)
+  - [x] Comprendre l'optimisation iSAM2 via GTSAM
+  - [x] Comprendre la détection de loop closure — PCM (`slam.py`)
+- [x] **Cartographie (S9) :**
+  - [x] Comprendre la grille d'occupation par sous-cartes (`mapping.py`)
+  - [x] Comprendre les cartes virtuelles (virtual landmarks) pour l'exploration EM (code non publié)
+- [x] Ajouter des logs/visualisations pour observer l'état interne (via RViz + tests paramètres TESTS.md)
 
 **Livrable :** Schéma annoté du pipeline avec correspondances code/article.
+
+<details>
+<summary>📖 Analogie — La boucle SLAM complète (du sonar au EM)</summary>
+
+**Situation : tu explores un bâtiment inconnu dans le noir, avec une lampe torche qui éclaire juste devant toi.**
+
+---
+
+**1. Sonar → image brute**
+- Vie réelle : ta lampe torche éclaire une zone, tu vois des formes floues
+- SLAM : le sonar envoie 512 faisceaux, reçoit les échos → image en intensité
+
+**2. CFAR → feature extraction**
+- Vie réelle : tu ignores les ombres et zones floues, tu retiens seulement les objets nets (un mur, une colonne)
+- SLAM : CFAR compare chaque pixel à ses voisins, garde seulement les réflexions fortes → nuage de points
+
+**3. DVL + IMU → dead reckoning**
+- Vie réelle : tu comptes tes pas et tu sais dans quelle direction tu marches → "j'ai avancé de 3m vers le nord"
+- SLAM : DVL mesure la vitesse sol, IMU mesure l'orientation → estimation de la pose courante
+
+**4. ICP → scan matching**
+- Vie réelle : tu compares ce que tu vois maintenant avec ce que tu as vu 3 secondes avant → tu affines ta position
+- SLAM : ICP aligne le scan actuel sur le scan précédent, le dead reckoning fournit le point de départ (guess)
+
+**5. Vérification SSM**
+- Vie réelle : si ICP dit que tu as bougé de 10m en 1 seconde → impossible → on rejette
+- SLAM : si la transformation ICP s'écarte trop du dead reckoning → résultat rejeté, on garde juste le DR
+
+**6. BetweenFactor → graphe iSAM2**
+- Vie réelle : tu notes dans un carnet "depuis le point A jusqu'au point B, j'ai fait X pas dans cette direction"
+- SLAM : `BetweenFactorPose2` = contrainte entre deux poses dans le graphe
+
+**7. iSAM2 → optimisation globale**
+- Vie réelle : à la fin de la journée tu relis ton carnet, tu corriges les incohérences → tu redresses ta carte mentale
+- SLAM : iSAM2 optimise toutes les poses simultanément en minimisant l'erreur globale du graphe
+
+**8. NSSM → loop closure detection**
+- Vie réelle : tu reconnais une colonne que tu as déjà vue il y a 10 minutes → tu sais où tu es !
+- SLAM : ICP compare le submap actuel (5 keyframes fusionnées) avec toutes les keyframes passées
+
+**9. PCM → validation du loop closure**
+- Vie réelle : tu demandes confirmation à 2 autres personnes qui explorent le même bâtiment → si elles confirment, c'est vrai
+- SLAM : PCM vérifie que plusieurs loop closures candidats sont mutuellement cohérents → min_pcm validés → ajout au graphe
+
+**10. Occupancy map → carte finale**
+- Vie réelle : tu dessines le plan du bâtiment sur papier au fur et à mesure
+- SLAM : chaque scan validé remplit la grille d'occupation (hit_prob=0.8 si objet, miss_prob=0.3 sinon)
+
+**11. EM → exploration**
+- Vie réelle : tu choisis toujours la prochaine pièce à explorer en priorité celle qui réduira le plus ton incertitude sur le plan global
+- SLAM : EM place des virtual landmarks dans les zones inexplorées, choisit le chemin qui minimise det(Σ)
+
+</details>
 
 ---
 
 ### Jalon 4 — Analyse des limitations
 **Objectif :** Identifier les points faibles du système actuel pour cibler les améliorations.
+**Semaines :** S10–S11 (14–25 juillet 2026)
 
 - [ ] Analyser la robustesse de SOCA-CFAR dans différentes conditions
 - [ ] Étudier la dérive accumulée et l'impact des loop closures
 - [ ] Identifier les goulets d'étranglement de performance (temps de calcul)
-- [ ] Recenser les limitations mentionnées dans l'article (section Discussion/Conclusion)
-- [ ] Tester le système dans des conditions dégradées (bruit, faible densité de features)
+- [x] Recenser les limitations mentionnées dans l'article (section VI)
+- [ ] Recherche bibliographique sur les pistes d'amélioration existantes
+
+<details>
+<summary>📋 Limitations identifiées — article + code</summary>
+
+### Limitations mentionnées dans l'article (Section VI)
+
+**1. Hypothèse 3DOF (profondeur fixe)**
+- Le système opère en SE(2) : x, y, θ uniquement
+- La profondeur z est fournie par le capteur Bar30, pas estimée
+- Pas de gestion du roulis/tangage dans le SLAM
+- → Inutilisable si le robot change de profondeur ou dans un environnement 3D
+
+**2. Code d'exploration EM non publié**
+- Le pipeline SLAM est open-source mais l'exploration autonome (EM) ne l'est pas
+- Impossible de reproduire les expériences d'exploration autonome du papier
+- → Seul le mode bag (données enregistrées) est reproductible
+
+**3. Pas de vérité terrain pour les runs réels**
+- Les expériences en vrai port (King's Point NY) n'ont pas de ground truth
+- Évaluation qualitative uniquement sur les cartes finales
+- → Impossible de calculer ATE ou map error sur données réelles
+
+**4. Dépendance aux structures réfléchissantes**
+- CFAR détecte les échos forts → nécessite des obstacles solides bien réfléchissants
+- Environnements ouverts (fond sableux, eau libre) → peu de features → ICP instable
+- → Robustesse limitée dans des environnements non encombrés
+
+**5. Paramètres non adaptatifs**
+- Tous les paramètres (Pfa, threshold, keyframe_translation...) sont fixes
+- Pas d'adaptation automatique à l'environnement ou aux conditions sonar
+- Observé lors de nos tests : threshold et resolution très sensibles au dataset
+
+### Limitations identifiées lors de nos tests (TESTS.md)
+
+- **threshold trop bas** → drift visible par faux positifs CFAR
+- **resolution trop haute** → perte de loop closures → trajectoire moins précise
+- **radius outlier mal réglé** → drift même avec loop closures actifs
+- **Pas de dataset alternatif compatible** → validation limitée à sample_data.bag
+
+</details>
 
 **Livrable :** Rapport d'analyse avec pistes d'amélioration priorisées.
 
@@ -578,6 +995,7 @@ ROS Noetic n'est pas supporté nativement sur Fedora. Solution retenue : **RoboS
 
 ### Jalon 5 — Amélioration et optimisation algorithmique
 **Objectif :** Proposer et implémenter au moins une amélioration concrète du système.
+**Semaines :** S12–S14 (28 juillet – 15 août 2026)
 
 Pistes possibles (à choisir/affiner avec l'encadrant) :
 - [ ] Amélioration de l'extraction de features (alternative à SOCA-CFAR)
@@ -587,8 +1005,9 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 - [ ] Amélioration de la détection de loop closure
 - [ ] Optimisation du temps de calcul (profiling + refactoring)
 
-- [ ] Implémenter l'amélioration choisie
-- [ ] Valider quantitativement (comparaison avec la baseline)
+- [ ] Prototyper l'amélioration choisie (S12)
+- [ ] Implémenter l'amélioration (S13)
+- [ ] Valider quantitativement — comparaison avec la baseline (S14)
 
 **Livrable :** Code versionné + rapport de résultats comparatifs.
 
@@ -596,13 +1015,15 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 
 ### Jalon 6 — Rédaction du rapport de stage
 **Objectif :** Produire le rapport final.
+**Semaines :** S15–S17 (18 août – 05 septembre 2026)
 
-- [ ] Introduction : contexte, problématique, objectifs
-- [ ] État de l'art : SLAM, sonar imageur, odométrie sonar-inertielle
-- [ ] Présentation de Bruce-SLAM (pipeline, algorithmes clés)
-- [ ] Expériences et résultats reproduced
-- [ ] Contribution personnelle (amélioration algorithmique)
-- [ ] Conclusion et perspectives
+- [ ] Introduction : contexte, problématique, objectifs (S15)
+- [ ] État de l'art : SLAM, sonar imageur, odométrie sonar-inertielle (S15)
+- [ ] Présentation de Bruce-SLAM (pipeline, algorithmes clés) (S16)
+- [ ] Expériences et résultats reproduits (S16)
+- [ ] Contribution personnelle (amélioration algorithmique) (S16)
+- [ ] Conclusion et perspectives (S17)
+- [ ] Relecture + mise en forme finale (S17)
 
 **Livrable :** Rapport de stage complet.
 
@@ -610,15 +1031,15 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 
 ## Avancement global
 
-| Jalon | Description                          | Statut      |
-|-------|--------------------------------------|-------------|
-| 0     | Prise en main du sujet               | En cours    |
-| 1     | Installation de l'environnement      | Non démarré |
-| 2     | Reproduction des résultats           | Non démarré |
-| 3     | Compréhension approfondie            | Non démarré |
-| 4     | Analyse des limitations              | Non démarré |
-| 5     | Amélioration algorithmique           | Non démarré |
-| 6     | Rédaction du rapport                 | Non démarré |
+| Jalon | Description                      | Semaines   | Statut       |
+|-------|----------------------------------|------------|--------------|
+| 0     | Prise en main du sujet           | S1         | ✅ Terminé   |
+| 1     | Installation de l'environnement  | S2         | ✅ Terminé   |
+| 2     | Reproduction des résultats       | S3–S4      | 🔄 En cours  |
+| 3     | Compréhension approfondie        | S5–S9      | ⏳ À venir   |
+| 4     | Analyse des limitations          | S10–S11    | ⏳ À venir   |
+| 5     | Amélioration algorithmique       | S12–S14    | ⏳ À venir   |
+| 6     | Rédaction du rapport             | S15–S17    | ⏳ À venir   |
 
 ---
 
@@ -644,3 +1065,10 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 > Utiliser cette section pour noter les décisions importantes, blocages rencontrés et solutions trouvées.
 
 - **2026-05-11** — Initialisation du suivi de stage. Lecture partielle de l'article (pages 1-10). Exploration de la structure du dépôt.
+- **2026-05-13** — Jalon 0 terminé : article lu en entier (BRUCE_SLAM.md), notions SLAM/sonar/DVL comprises, architecture du code explorée.
+- **2026-05-13** — Jalon 1 terminé : RoboStack abandonné (numpy cassé), VM Ubuntu 20.04 via KVM installée, workspace catkin compilé après corrections (C++14, GTSAM 4.1.1, numpy 1.23.5).
+- **2026-05-13** — Jalon 2 démarré : `roslaunch bruce_slam slam.launch` tourne, RViz s'ouvre, images sonar visibles. Erreur GTSAM `quaternion()` résolue par downgrade à 4.1.1.
+- **2026-05-20** — Jalon 2 avancé : simulation offline reproduite (3 runs identiques ✅). Tests de paramètres CFAR + ICP + slam.yaml documentés dans TESTS.md (12 tests, images dans TESTS_image/).
+- **2026-05-20** — Jalon 3 terminé : deep dive complet du pipeline (CFAR, ICP, dead reckoning, iSAM2, loop closure PCM, mapping). Code EM non publié → coché comme non disponible.
+- **2026-05-20** — Jalon 4 démarré : limitations recensées (5DOF, EM non publié, pas de ground truth réel, dépendance aux structures réfléchissantes, paramètres fixes).
+- **2026-05-20** — Présentation semaine 1 préparée (Canva, 10 min) : pipeline Bruce-SLAM + résultats papier + ce qui a été fait.
