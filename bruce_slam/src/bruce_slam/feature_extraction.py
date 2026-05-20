@@ -258,15 +258,13 @@ class FeatureExtraction(object):
         #publish the feature message
         self.publish_features(sonar_msg, points)
 
-    def _get_synthetic_bearings(self, num_cols):
-        """Generate synthetic bearing array (in centidegrees) for a polar sonar image."""
-        half_fov = self.sonar_fov_deg / 2.0
-        bearings_deg = np.linspace(-half_fov, half_fov, num_cols)
-        # OculusPing bearings are in centidegrees (1/100 degree)
-        return (bearings_deg * 100).astype(np.int16).tolist()
-
     def callback_cartesian(self, msg):
-        """Feature extraction on polar sonar images from aracati2017 (CompressedImage PNG)."""
+        """Feature extraction on cartesian sonar images from aracati2017 (CompressedImage PNG).
+        The BlueView P900-130 image is already in cartesian projection:
+        - origin at top-center
+        - rows go from near range (top) to far range (bottom)
+        - cols go from -FOV/2 (left) to +FOV/2 (right)
+        """
         if not hasattr(self, "_cart_seq"):
             self._cart_seq = 0
         self._cart_seq += 1
@@ -281,35 +279,32 @@ class FeatureExtraction(object):
         if img is None:
             return
 
-        # Flip vertically: origin goes from top-center to bottom-center (near range at row 0)
-        img = cv2.flip(img, 0)
-
         h, w = img.shape
+        half_fov_rad = np.deg2rad(self.sonar_fov_deg / 2.0)
 
-        # Build a synthetic OculusPing-like object for generate_map_xy
-        class FakePing:
-            pass
-        fake = FakePing()
-        fake.range_resolution = self.sonar_max_range / float(h)
-        fake.num_ranges = h
-        fake.bearings = self._get_synthetic_bearings(w)
-
-        # CFAR + threshold in polar space
+        # CFAR + threshold directly on cartesian image
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold
 
-        # Remap polar → cartesian using existing generate_map_xy logic
-        self.generate_map_xy(fake)
-        vis_img = cv2.remap(img, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        vis_img = cv2.applyColorMap(vis_img, 2)
+        # Publish visualization
+        vis_img = cv2.applyColorMap(img, 2)
         self.feature_img_pub.publish(ros_numpy.image.numpy_to_image(vis_img, "bgr8"))
-        peaks = cv2.remap(peaks, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        locs = np.c_[np.nonzero(peaks)]
 
-        x = locs[:, 1] - self.cols / 2.
-        x = (-1 * ((x / float(self.cols / 2.)) * (self.width / 2.)))
-        y = (-1 * (locs[:, 0] / float(self.rows)) * self.height) + self.height
-        points = np.column_stack((y, x))
+        locs = np.c_[np.nonzero(peaks)]  # (row, col)
+        if len(locs) == 0:
+            self._publish_features_stamped(msg.header, np.array([[np.nan, np.nan]]))
+            return
+
+        # row → range in meters (row 0 = near, row h = max_range)
+        range_m = (locs[:, 0] / float(h)) * self.sonar_max_range
+
+        # col → angle in radians (-half_fov to +half_fov)
+        angle_rad = (locs[:, 1] / float(w) - 0.5) * 2.0 * half_fov_rad
+
+        # polar → cartesian (x=forward/range, y=lateral)
+        x = range_m * np.cos(angle_rad)
+        y = range_m * np.sin(angle_rad)
+        points = np.column_stack((x, y))
 
         if len(points) and self.resolution > 0:
             points = pcl.downsample(points, self.resolution)
