@@ -7,7 +7,7 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  threshold: 50
+  threshold: 20
   resolution: 0.5
   radius: 1.0
   min_points: 5
