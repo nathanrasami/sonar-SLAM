@@ -39,7 +39,7 @@
 
             <!-- SLAM node -->
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
-                <rosparam command="load" file="$(find bruce_slam)/config/slam.yaml" subst_value="true"/>
+                <rosparam command="load" file="$(find bruce_slam)/config/slam_aracati.yaml" subst_value="true"/>
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
