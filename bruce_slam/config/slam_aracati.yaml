@@ -11,7 +11,7 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 point_resolution: 0.5
 
 ssm:
-  enable: True
+  enable: False
   min_points: 50
   max_translation: 3.0
   max_rotation: deg(30)
