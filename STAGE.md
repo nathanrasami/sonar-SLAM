@@ -1072,3 +1072,6 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 - **2026-05-20** — Jalon 3 terminé : deep dive complet du pipeline (CFAR, ICP, dead reckoning, iSAM2, loop closure PCM, mapping). Code EM non publié → coché comme non disponible.
 - **2026-05-20** — Jalon 4 démarré : limitations recensées (5DOF, EM non publié, pas de ground truth réel, dépendance aux structures réfléchissantes, paramètres fixes).
 - **2026-05-20** — Présentation semaine 1 préparée (Canva, 10 min) : pipeline Bruce-SLAM + résultats papier + ce qui a été fait.
+- **2026-05-22** — Intégration dataset Aracati2017 dans bruce_slam : nœud `odom_bridge.py` (bridge `/odom_pose` → `nav_msgs/Odometry`), mode `cartesian_mode` dans `feature_extraction.py` pour images PNG BlueView P900-130, launch file `aracati.launch`, configs `feature_aracati.yaml` et `slam_aracati.yaml`.
+- **2026-05-22** — Tests Aracati2017 : odométrie pure → trajectoire cohérente (forme proche GPS ground truth, drift attendu). SSM → dégradation (ICP non calibré pour BlueView). NSSM → faux loop closures. Conclusion : ICP à recalibrer pour ce sonar.
+- **2026-05-22** — Export CSV ajouté (`slam_ros.py`) : `trajectory.csv` + `pointcloud.csv` générés dans `~/` au shutdown.
