@@ -1,5 +1,7 @@
 # python imports
 import threading
+import csv
+import os
 import tf
 import rospy
 import cv_bridge
@@ -126,6 +128,9 @@ class SLAMNode(SLAM):
         
         # define the robot ID this is not used here, extended in multi-robot SLAM
         self.rov_id = ""
+
+        #register shutdown hook to export CSV
+        rospy.on_shutdown(self.export_csv)
 
         #call the configure function
         self.configure()
@@ -362,3 +367,46 @@ class SLAMNode(SLAM):
         else:
             cloud_msg.header.frame_id = self.rov_id + "_map"
         self.cloud_pub.publish(cloud_msg)
+
+    def export_csv(self):
+        """Export trajectory and point cloud to CSV files on shutdown."""
+        if not self.keyframes:
+            return
+
+        output_dir = os.path.expanduser("~")
+
+        # --- Trajectory CSV ---
+        traj_path = os.path.join(output_dir, "trajectory.csv")
+        with open(traj_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["keyframe_id", "time",
+                             "x", "y", "theta",
+                             "dr_x", "dr_y", "dr_theta",
+                             "cov_xx", "cov_yy", "cov_tt",
+                             "nssm_constraints"])
+            for i, kf in enumerate(self.keyframes):
+                x = kf.pose.x()
+                y = kf.pose.y()
+                theta = kf.pose.theta()
+                dr_x = kf.dr_pose.x()
+                dr_y = kf.dr_pose.y()
+                dr_theta = kf.dr_pose.theta()
+                cov = kf.cov if kf.cov is not None else [[0,0,0],[0,0,0],[0,0,0]]
+                nssm = len(kf.constraints)
+                writer.writerow([i, kf.time.to_sec(),
+                                 x, y, theta,
+                                 dr_x, dr_y, dr_theta,
+                                 cov[0][0], cov[1][1], cov[2][2],
+                                 nssm])
+        rospy.loginfo("Trajectory saved to %s", traj_path)
+
+        # --- Point cloud CSV ---
+        cloud_path = os.path.join(output_dir, "pointcloud.csv")
+        with open(cloud_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["keyframe_id", "x", "y"])
+            for i, kf in enumerate(self.keyframes):
+                if kf.transf_points is not None and len(kf.transf_points):
+                    for pt in kf.transf_points:
+                        writer.writerow([i, pt[0], pt[1]])
+        rospy.loginfo("Point cloud saved to %s", cloud_path)

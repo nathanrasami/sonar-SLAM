@@ -231,3 +231,40 @@ Paramètres par défaut (`feature.yaml`) :
 ## À tester
 
 - [ ] Paramètres loop closure / iSAM2 (`slam.yaml`)
+
+---
+
+## Dataset Aracati2017 — Tests d'intégration
+
+Dataset : BlueView P900-130, FOV 130°, max range 50m, marina Yacht Club Rio Grande (Brésil).
+Différence principale vs sample_data : odométrie par intégration de `/cmd_vel` (pas de DVL/IMU) → plus grande erreur de dead reckoning.
+
+### Modifications apportées à bruce_slam
+
+- `feature_extraction.py` : ajout du mode `cartesian_mode=True` pour accepter les images PNG cartésiennes du BlueView directement (sans `OculusPing`)
+- `odom_bridge.py` : nœud de conversion `/odom_pose` (PoseStamped) → `nav_msgs/Odometry` sur `/bruce/slam/localization/odom`
+- `launch/aracati.launch` : launch file combinant aracati2017 + bruce_slam
+- `config/feature_aracati.yaml` : paramètres feature extraction pour le BlueView (threshold=65, cartesian_mode=True, FOV=130°, max_range=50m)
+- `config/slam_aracati.yaml` : paramètres SLAM adaptés (odom_sigmas augmentés, min_pcm=4)
+
+### Test 1 — Odométrie pure (SSM=False, NSSM=False)
+
+**Observation :** Trajectoire cohérente, forme similaire au ground truth GPS (vert). Drift visible mais attendu (odométrie seule sans correction sonar).
+
+**Conclusion :** Le bridge odométrie fonctionne correctement. La forme globale est cohérente avec la réalité.
+
+### Test 2 — SSM activé (NSSM=False)
+
+**Observation :** Trajectoire dégradée — SSM introduit des erreurs. ICP ne converge pas correctement sur ce dataset.
+
+**Conclusion :** Les paramètres ICP calibrés pour l'Oculus M750d ne sont pas adaptés au BlueView P900-130. Le recalage local échoue et dégrade la trajectoire.
+
+### Test 3 — SSM + NSSM activés
+
+**Observation :** Faux loop closures nombreux (traits rouges partant tous vers le début). Trajectoire incohérente avec le ground truth.
+
+**Conclusion :** NSSM détecte de fausses correspondances — les scans BlueView sont trop différents des scans Oculus pour que le NSSM fonctionne avec ces paramètres. `min_pcm=4` ne suffit pas à rejeter les faux positifs.
+
+### Conclusion générale
+
+Bruce-SLAM intégré avec Aracati2017 fonctionne en mode odométrie pure. SSM et NSSM nécessitent un recalibrage des paramètres ICP spécifique au sonar BlueView P900-130 pour fonctionner correctement sur ce dataset.
