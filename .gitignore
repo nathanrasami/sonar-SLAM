@@ -8,6 +8,5 @@ install/
 __pycache__/
 *.bag
 *.pcd
-*.csv
 .ros/
 *.bag
