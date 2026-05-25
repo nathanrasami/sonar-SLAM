@@ -295,8 +295,8 @@ class FeatureExtraction(object):
             self._publish_features_stamped(msg.header, np.array([[np.nan, np.nan]]))
             return
 
-        # row → range in meters (row 0 = near, row h = max_range)
-        range_m = (locs[:, 0] / float(h)) * self.sonar_max_range
+        # row → range in meters (row 0 = far, row h = near — origin at bottom center)
+        range_m = ((h - locs[:, 0]) / float(h)) * self.sonar_max_range
 
         # col → angle in radians (-half_fov to +half_fov)
         angle_rad = (locs[:, 1] / float(w) - 0.5) * 2.0 * half_fov_rad
