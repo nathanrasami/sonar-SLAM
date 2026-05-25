@@ -11,13 +11,23 @@ gt_path = os.path.join(results_dir, "groundtruth.csv")
 
 fig, ax = plt.subplots(figsize=(10, 8))
 
-ax.plot(traj["x"].to_numpy(), traj["y"].to_numpy(), label="SLAM / Dead reckoning", color="steelblue")
+tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
 
 if os.path.exists(gt_path):
     gt = pd.read_csv(gt_path)
-    ax.plot(gt["x"].to_numpy(), gt["y"].to_numpy(), label="Ground truth (GPS)", color="green", linestyle="--")
+    gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()
+    # Align starting points
+    tx = tx - tx[0] + gx[0]
+    ty = ty - ty[0] + gy[0]
+    ax.plot(gx, gy, label="Ground truth (GPS)", color="green", linestyle="--")
+    ax.plot(gx[0], gy[0], marker="*", color="green", markersize=14)
+    ax.plot(gx[-1], gy[-1], marker="X", color="green", markersize=12)
 else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
+
+ax.plot(tx, ty, label="SLAM / Dead reckoning", color="steelblue")
+ax.plot(tx[0], ty[0], marker="*", color="steelblue", markersize=14, label="Start")
+ax.plot(tx[-1], ty[-1], marker="X", color="steelblue", markersize=12, label="End")
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
