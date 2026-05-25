@@ -382,9 +382,9 @@ class SLAMNode(SLAM):
         if not self.keyframes:
             return
 
-        # Save in repo results/ folder so it can be git push/pulled
-        repo_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.normpath(os.path.join(repo_dir, "..", "..", "..", "..", "results"))
+        output_dir = os.environ.get("SLAM_RESULTS_DIR",
+            os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          "..", "..", "..", "results")))
         os.makedirs(output_dir, exist_ok=True)
 
         # --- Trajectory CSV ---

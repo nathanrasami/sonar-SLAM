@@ -3,18 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+results_dir = os.environ.get("SLAM_RESULTS_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
 
 traj = pd.read_csv(os.path.join(results_dir, "trajectory.csv"))
 gt_path = os.path.join(results_dir, "groundtruth.csv")
 
 fig, ax = plt.subplots(figsize=(10, 8))
 
-ax.plot(traj["x"], traj["y"], label="SLAM / Dead reckoning", color="steelblue")
+ax.plot(traj["x"].to_numpy(), traj["y"].to_numpy(), label="SLAM / Dead reckoning", color="steelblue")
 
 if os.path.exists(gt_path):
     gt = pd.read_csv(gt_path)
-    ax.plot(gt["x"], gt["y"], label="Ground truth (GPS)", color="green", linestyle="--")
+    ax.plot(gt["x"].to_numpy(), gt["y"].to_numpy(), label="Ground truth (GPS)", color="green", linestyle="--")
 else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
 
