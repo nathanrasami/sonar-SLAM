@@ -43,6 +43,7 @@
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
+                <env name="SLAM_RESULTS_DIR" value="$(find bruce_slam)/../results"/>
             </node>
 
         </group>
