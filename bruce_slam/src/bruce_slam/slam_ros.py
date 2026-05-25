@@ -9,7 +9,7 @@ from nav_msgs.msg import Odometry
 from message_filters import  Subscriber
 from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from message_filters import ApproximateTimeSynchronizer
 
 # bruce imports
@@ -128,6 +128,10 @@ class SLAMNode(SLAM):
         
         # define the robot ID this is not used here, extended in multi-robot SLAM
         self.rov_id = ""
+
+        # ground truth subscriber (aracati2017 only)
+        self.gt_poses = []
+        rospy.Subscriber("/pose_gt", PoseStamped, self._gt_callback, queue_size=100)
 
         #register shutdown hook to export CSV
         rospy.on_shutdown(self.export_csv)
@@ -368,12 +372,20 @@ class SLAMNode(SLAM):
             cloud_msg.header.frame_id = self.rov_id + "_map"
         self.cloud_pub.publish(cloud_msg)
 
+    def _gt_callback(self, msg):
+        self.gt_poses.append((msg.header.stamp.to_sec(),
+                              msg.pose.position.x,
+                              msg.pose.position.y))
+
     def export_csv(self):
-        """Export trajectory and point cloud to CSV files on shutdown."""
+        """Export trajectory, point cloud and ground truth to CSV files on shutdown."""
         if not self.keyframes:
             return
 
-        output_dir = os.path.expanduser("~")
+        # Save in repo results/ folder so it can be git push/pulled
+        repo_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.normpath(os.path.join(repo_dir, "..", "..", "..", "..", "results"))
+        os.makedirs(output_dir, exist_ok=True)
 
         # --- Trajectory CSV ---
         traj_path = os.path.join(output_dir, "trajectory.csv")
@@ -410,3 +422,13 @@ class SLAMNode(SLAM):
                     for pt in kf.transf_points:
                         writer.writerow([i, pt[0], pt[1]])
         rospy.loginfo("Point cloud saved to %s", cloud_path)
+
+        # --- Ground truth CSV ---
+        if self.gt_poses:
+            gt_path = os.path.join(output_dir, "groundtruth.csv")
+            with open(gt_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["time", "x", "y"])
+                for row in self.gt_poses:
+                    writer.writerow(row)
+            rospy.loginfo("Ground truth saved to %s", gt_path)
