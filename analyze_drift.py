@@ -22,19 +22,19 @@ if os.path.exists(gt_path):
     offset_y = gy[0] - ty[0]
     tx, ty = tx + offset_x, ty + offset_y
     dx, dy = dx + offset_x, dy + offset_y
-    ax.plot(gx, gy, label="Ground truth (GPS)", color="green", linestyle="--")
-    ax.plot(gx[0], gy[0], marker="*", color="green", markersize=14)
-    ax.plot(gx[-1], gy[-1], marker="X", color="green", markersize=12)
+    ax.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--")
+    ax.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
+    ax.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
 else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
 
-ax.plot(dx, dy, label="Odometry (dead reckoning)", color="orange", linestyle=":")
-ax.plot(dx[0], dy[0], marker="*", color="orange", markersize=14)
-ax.plot(dx[-1], dy[-1], marker="X", color="orange", markersize=12)
+ax.plot(dx, dy, label="Odometry (dead reckoning)", color="steelblue", linestyle=":")
+ax.plot(dx[0], dy[0], marker="*", color="steelblue", markersize=14)
+ax.plot(dx[-1], dy[-1], marker="X", color="steelblue", markersize=12)
 
-ax.plot(tx, ty, label="Bruce-SLAM (SSM+NSSM)", color="steelblue")
-ax.plot(tx[0], ty[0], marker="*", color="steelblue", markersize=14, label="Start")
-ax.plot(tx[-1], ty[-1], marker="X", color="steelblue", markersize=12, label="End")
+ax.plot(tx, ty, label="Bruce-SLAM (SSM+NSSM)", color="black")
+ax.plot(tx[0], ty[0], marker="*", color="black", markersize=14, label="Start")
+ax.plot(tx[-1], ty[-1], marker="X", color="black", markersize=12, label="End")
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
