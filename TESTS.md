@@ -234,6 +234,24 @@ Paramètres par défaut (`feature.yaml`) :
 
 ---
 
+## Indications doctorante — Aracati2017 (25 mai 2026)
+
+Objectif : la trajectoire Bruce-SLAM doit se situer **entre odométrie et GT** (pas identique à l'odo, pas aussi bonne que le GT).
+
+Problème actuel : avec SSM+NSSM activés, la trajectoire Bruce-SLAM a une forme complètement différente de GT et odométrie → quelque chose ne va pas.
+
+### Plan de débogage (dans l'ordre)
+
+- [ ] **1. Désactiver NSSM, garder SSM uniquement** — déboguer SSM seul d'abord
+- [ ] **2. Ajuster le seuil de sélection SSM vs odométrie** — Bruce-SLAM choisit entre facteur odométrie et facteur SSM selon la qualité de l'ICP ; essayer d'ajuster ce seuil
+- [ ] **3. Ajuster les paramètres CFAR/débruitage** (`feature_aracati.yaml`) — la conversion image sonar → points peut introduire du bruit
+- [ ] **4. Exporter la carte point cloud** (points cumulés comme dans RViz, hors trajectoire) dans `results/pointcloud_map.csv` et générer une image 2D
+  - La carte doit montrer des **lignes droites** (murs du port) et non des arcs
+  - Si la carte montre des arcs → problème dans la conversion pixels→mètres de l'image BlueView
+- [ ] **5. Une fois SSM OK, réactiver NSSM**
+
+---
+
 ## Dataset Aracati2017 — Tests d'intégration
 
 Dataset : BlueView P900-130, FOV 130°, max range 50m, marina Yacht Club Rio Grande (Brésil).

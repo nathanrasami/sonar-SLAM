@@ -48,3 +48,23 @@ out = os.path.join(results_dir, "trajectory_plot.png")
 plt.savefig(out, dpi=150)
 plt.show()
 print(f"Saved to {out}")
+
+# --- Point cloud map ---
+cloud_path = os.path.join(results_dir, "pointcloud.csv")
+if os.path.exists(cloud_path):
+    cloud = pd.read_csv(cloud_path)
+    fig2, ax2 = plt.subplots(figsize=(10, 8))
+    ax2.scatter(cloud["x"].to_numpy(), cloud["y"].to_numpy(),
+                s=0.5, c="navy", alpha=0.3)
+    ax2.set_xlabel("x (m)")
+    ax2.set_ylabel("y (m)")
+    ax2.set_title("Point cloud map (accumulated sonar points)")
+    ax2.axis("equal")
+    ax2.grid(True)
+    plt.tight_layout()
+    out2 = os.path.join(results_dir, "pointcloud_map.png")
+    plt.savefig(out2, dpi=150)
+    plt.show()
+    print(f"Saved to {out2}")
+else:
+    print("pointcloud.csv not found")
