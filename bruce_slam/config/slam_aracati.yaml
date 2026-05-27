@@ -18,7 +18,7 @@ ssm:
   target_frames: 3
 
 nssm:
-  enable: True
+  enable: False
   min_st_sep: 8
   min_points: 50
   max_translation: 10.0
