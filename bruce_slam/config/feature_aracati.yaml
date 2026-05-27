@@ -7,11 +7,11 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  threshold: 65
+  threshold: 30
   resolution: 0.5
   radius: 1.0
   min_points: 5
-  skip: 1
+  skip: 5
 
 visualization:
   coordinates: 'cartesian'
