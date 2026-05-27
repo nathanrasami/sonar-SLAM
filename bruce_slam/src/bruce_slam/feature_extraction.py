@@ -318,7 +318,7 @@ class FeatureExtraction(object):
 
     def _publish_features_stamped(self, header, points):
         """Publish features using a raw header (for cartesian mode)."""
-        points3d = np.c_[points[:, 0], np.zeros(len(points)), points[:, 1]]
+        points3d = np.c_[points[:, 0], points[:, 1], np.zeros(len(points))]
         feature_msg = n2r(points3d, "PointCloudXYZ")
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
