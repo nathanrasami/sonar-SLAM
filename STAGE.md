@@ -1075,3 +1075,24 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 - **2026-05-22** — Intégration dataset Aracati2017 dans bruce_slam : nœud `odom_bridge.py` (bridge `/odom_pose` → `nav_msgs/Odometry`), mode `cartesian_mode` dans `feature_extraction.py` pour images PNG BlueView P900-130, launch file `aracati.launch`, configs `feature_aracati.yaml` et `slam_aracati.yaml`.
 - **2026-05-22** — Tests Aracati2017 : odométrie pure → trajectoire cohérente (forme proche GPS ground truth, drift attendu). SSM → dégradation (ICP non calibré pour BlueView). NSSM → faux loop closures. Conclusion : ICP à recalibrer pour ce sonar.
 - **2026-05-22** — Export CSV ajouté (`slam_ros.py`) : `trajectory.csv` + `pointcloud.csv` générés dans `~/` au shutdown.
+- **2026-05-27** — Bug critique corrigé : `_publish_features_stamped` mettait y=0 sur tous les points (ordre des axes x,zeros,y au lieu de x,y,zeros). ICP ne pouvait pas recaler en 2D. Fix : swap y et z dans np.c_[]. Résultat : lignes droites visibles dans la carte point cloud.
+- **2026-05-27** — Constat : SSM (ICP) diverge sur Aracati2017 même après correction y=0. Confirmé par papier DISO (ICRA 2024) : BlueROV SLAM (= ICP) donne 16.25% translation error vs 8.69% pour DISO sur Aracati2017. ICP fondamentalement limité sur ce sonar (basse résolution + sensibilité aux conditions initiales).
+- **2026-05-27** — Plan d'action : intégrer DISO (github.com/SenseRoboticsLab/DISO) dans bruce_slam, remplacer SSM par odométrie directe DISO. Conserver back-end iSAM2 de bruce_slam pour loop closures. Prochaine présentation : papier DISO.
+
+---
+
+## Datasets intégrés
+
+| Dataset | Sonar | Odométrie | Statut | Notes |
+|---------|-------|-----------|--------|-------|
+| sample_data | Oculus M750d (polaire) | DVL + IMU | ✅ Fonctionnel | Pipeline original bruce_slam |
+| Aracati2017 | BlueView P900-130 (cartésien PNG, 130°, 50m) | `/cmd_vel` intégré | 🔧 SSM KO | ICP diverge → intégration DISO prévue |
+
+## Papiers
+
+| Papier | Auteurs | Conf. | Lien local | Statut |
+|--------|---------|-------|-----------|--------|
+| Bruce-SLAM | Wang et al. | JOE 2022 | `Paper/Bruce-SLAM_260511_085801.pdf` | ✅ Présenté (semaine 1) |
+| DISO | Xu et al. | ICRA 2024 | `Paper/Sonar/DISO_Direct_Imaging_Sonar_Odometry.pdf` | 🎯 À présenter |
+| Place Recognition | Kim et al. | ICRA 2023 | `Paper/Sonar/Robust_Imaging_Sonar-based_...pdf` | ⏳ |
+| SIO-UV | Bai et al. | IEEE TIE 2025 | `Paper/Sonar/SIO-UV_Rapid_and_Robust_...pdf` | ⏳ |

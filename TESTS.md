@@ -234,6 +234,52 @@ Paramètres par défaut (`feature.yaml`) :
 
 ---
 
+## Dataset Aracati2017 — Test SSM + NSSM paramètres défaut (27 mai 2026)
+
+### Paramètres actifs
+
+| Fichier | Paramètre | Valeur |
+|---------|-----------|--------|
+| `feature_aracati.yaml` | threshold | 30 |
+| `feature_aracati.yaml` | resolution | 0.5 |
+| `feature_aracati.yaml` | skip | 5 |
+| `feature_aracati.yaml` | Pfa | 0.1 |
+| `feature_aracati.yaml` | cartesian_mode | True (BlueView P900-130) |
+| `slam_aracati.yaml` | SSM enable | **True** |
+| `slam_aracati.yaml` | SSM max_translation | 3.0 m |
+| `slam_aracati.yaml` | SSM max_rotation | 30° |
+| `slam_aracati.yaml` | NSSM enable | **True** |
+| `slam_aracati.yaml` | NSSM max_translation | 10.0 m |
+| `slam_aracati.yaml` | NSSM max_rotation | 60° |
+| `icp.yaml` | errorMinimizer | PointToPointErrorMinimizer |
+| `icp.yaml` | MaxDistOutlierFilter maxDist | 3.0 |
+| `icp.yaml` | TrimmedDistOutlierFilter ratio | 0.8 |
+
+### Résultats
+
+![Trajectoire](TESTS_image/aracati_ssm_trajectory.png)
+
+![Carte point cloud](TESTS_image/aracati_ssm_pointcloud.png)
+
+### Observations
+
+- **Odométrie (bleu pointillé)** : bonne forme générale, proche du GT, drift attendu
+- **Trajectoire SLAM (noir)** : dérive largement, forme incohérente avec GT et odométrie
+- **Carte point cloud** : lignes droites visibles dans chaque scan ✅ mais orientées dans toutes les directions → ICP ne recale pas les scans entre eux
+- SSM introduit des erreurs au lieu de les corriger
+- NSSM produit de faux loop closures (warning sklearn "covariance not full rank")
+
+### Conclusion
+
+**ICP (SSM+NSSM) dégrade la trajectoire par rapport à l'odométrie seule** sur Aracati2017. Causes :
+- Image sonar BlueView basse résolution + bruit élevé → mauvaise extraction de points
+- ICP sensible aux conditions initiales → converge vers minimum local
+- Sans DVL/IMU (odométrie depuis `/cmd_vel`), l'initialisation ICP est moins précise
+
+**Confirmé par le papier DISO (Xu et al., ICRA 2024)** : BlueROV SLAM (= ICP) donne 16.25% d'erreur de translation sur Aracati2017 vs 8.69% pour DISO. La méthode directe par intensité sonar est nécessaire pour ce dataset.
+
+---
+
 ## Indications doctorante — Aracati2017 (25 mai 2026)
 
 Objectif : la trajectoire Bruce-SLAM doit se situer **entre odométrie et GT** (pas identique à l'odo, pas aussi bonne que le GT).
