@@ -301,9 +301,9 @@ class FeatureExtraction(object):
         # col → angle in radians (-half_fov to +half_fov)
         angle_rad = (locs[:, 1] / float(w) - 0.5) * 2.0 * half_fov_rad
 
-        # polar → cartesian (x=forward/range, y=lateral)
-        x = range_m * np.cos(angle_rad)
-        y = range_m * np.sin(angle_rad)
+        # Oculus convention: x=lateral, y=forward (range)
+        y = range_m * np.cos(angle_rad)
+        x = range_m * np.sin(angle_rad)
         points = np.column_stack((x, y))
 
         if len(points) and self.resolution > 0:
