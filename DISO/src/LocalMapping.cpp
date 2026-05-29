@@ -108,12 +108,9 @@ void LocalMapping::OptimizeWindow()
     // unique_lock<shared_mutex> lock2(mpTracker->mTrackMutex);
     int max_frame_id = Frame::mFrameNum;
     g2o::SparseOptimizer optimizer;
-    g2o::BlockSolver_6_3::LinearSolverType* linearSolver;
-
-    linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
-
-    g2o::BlockSolver_6_3* solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
-    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    auto linearSolver = std::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
+    auto solver_ptr = std::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver));
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(std::move(solver_ptr));
     optimizer.setAlgorithm(solver);
     // optimizer.setVerbose(true);
 
@@ -449,11 +446,11 @@ void LocalMapping::PoseEstimationWindow2Frame(shared_ptr<Frame> pF_pre, shared_p
 
     // setup g2o
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 1>> DirectBlock;
-    DirectBlock::LinearSolverType* linearSolver = new g2o::LinearSolverDense<DirectBlock::PoseMatrixType>();
-    DirectBlock* solver_ptr = new DirectBlock(linearSolver);
+    auto linearSolver = std::make_unique<g2o::LinearSolverDense<DirectBlock::PoseMatrixType>>();
+    auto solver_ptr = std::make_unique<DirectBlock>(std::move(linearSolver));
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr ); // G-N
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
-            solver_ptr); // L-M
+            std::move(solver_ptr)); // L-M
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(false);
