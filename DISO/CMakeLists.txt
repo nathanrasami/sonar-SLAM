@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 #set(Eigen3_DIR ${PROJECT_SOURCE_DIR}/Thirdparty/eigen3.3.4)
 find_package(Eigen3 3.3 REQUIRED)
 #set(OpenCV_DIR /home/da/project/Thirdparty/opencv3.2/share/OpenCV)
-find_package(OpenCV 3.2 REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 find_package(fmt REQUIRED)
 ## System dependencies are found with CMake's conventions
