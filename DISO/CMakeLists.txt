@@ -177,7 +177,7 @@ add_library(direct_sonar_odometry_lib src/cv_bridge.cpp src/rgb_colors.cpp
         src/nanoflann.hpp
         src/LocalMapping.cpp
         src/LocalMapping.h)
-target_link_libraries(direct_sonar_odometry_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBS} fmt::fmt-header-only)
+target_link_libraries(direct_sonar_odometry_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBS} fmt)
 
 add_executable(aracati2017_node src/run_aracati2017.cpp)
 target_link_libraries(aracati2017_node direct_sonar_odometry_lib)
@@ -187,7 +187,7 @@ target_link_libraries(aracati2017_node direct_sonar_odometry_lib)
 
 
 add_executable(traj_align src/traj_se3_align.cpp)
-target_link_libraries(traj_align ${catkin_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBS} fmt::fmt-header-only)
+target_link_libraries(traj_align ${catkin_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBS} fmt)
 
 add_executable(repub_gt src/RepubGT.cpp)
 target_link_libraries(repub_gt ${catkin_LIBRARIES})
