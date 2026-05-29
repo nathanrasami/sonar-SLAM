@@ -138,8 +138,7 @@ include_directories(
         /home/da/project/ros/direct_sonar_ws/src/direct_sonar_odometry/Thirdparty/eigen3.3.4/include/eigen3
 )
 link_directories(
-#        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib
-        ${PROJECT_SOURCE_DIR}/src/Thirdparty/g2o/lib
+        /opt/ros/noetic/lib
         ${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 set(G2O_LIBS g2o_core g2o_types_sba g2o_types_slam3d g2o_opengl_helper g2o_solver_csparse g2o_stuff g2o_csparse_extension)
