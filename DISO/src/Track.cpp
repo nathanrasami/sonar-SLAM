@@ -261,11 +261,11 @@ bool Track::PoseEstimationFrame2Frame(cv::Mat &pre_img, cv::Mat &img, Eigen::Iso
 
     // setup g2o
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 1>> DirectBlock;
-    DirectBlock::LinearSolverType* linearSolver = new g2o::LinearSolverDense<DirectBlock::PoseMatrixType>();
-    DirectBlock* solver_ptr = new DirectBlock(linearSolver);
+    auto linearSolver = std::make_unique<g2o::LinearSolverDense<DirectBlock::PoseMatrixType>>();
+    auto solver_ptr = std::make_unique<DirectBlock>(std::move(linearSolver));
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr ); // G-N
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
-            solver_ptr); // L-M
+            std::move(solver_ptr)); // L-M
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(false);
@@ -421,11 +421,11 @@ void Track::PoseEstimationWindow2Frame(shared_ptr<Frame> pF_pre, shared_ptr<Fram
 
     // setup g2o
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 1>> DirectBlock;
-    DirectBlock::LinearSolverType* linearSolver = new g2o::LinearSolverDense<DirectBlock::PoseMatrixType>();
-    DirectBlock* solver_ptr = new DirectBlock(linearSolver);
+    auto linearSolver = std::make_unique<g2o::LinearSolverDense<DirectBlock::PoseMatrixType>>();
+    auto solver_ptr = std::make_unique<DirectBlock>(std::move(linearSolver));
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr ); // G-N
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
-            solver_ptr); // L-M
+            std::move(solver_ptr)); // L-M
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(false);
