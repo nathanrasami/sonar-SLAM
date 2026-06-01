@@ -26,17 +26,30 @@ fig, ax = plt.subplots(figsize=(10, 8))
 if os.path.exists(gt_path):
     gt = pd.read_csv(gt_path)
     gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()
-    # Align DISO start to GT start
-    tx = tx + (gx[0] - tx[0])
-    ty = ty + (gy[0] - ty[0])
+
+    # Umeyama alignment: find R, t that best maps DISO onto GT (2D, no scale)
+    n = min(len(tx), len(gx))
+    p = np.stack([tx[:n], ty[:n]], axis=1)   # DISO
+    q = np.stack([gx[:n], gy[:n]], axis=1)   # GT
+    mu_p, mu_q = p.mean(axis=0), q.mean(axis=0)
+    pc, qc = p - mu_p, q - mu_q
+    H = pc.T @ qc
+    U, _, Vt = np.linalg.svd(H)
+    d = np.linalg.det(Vt.T @ U.T)
+    R = Vt.T @ np.diag([1, d]) @ U.T
+    t = mu_q - R @ mu_p
+    # Apply alignment to full DISO trajectory
+    aligned = (R @ np.stack([tx, ty])).T + t
+    tx_a, ty_a = aligned[:, 0], aligned[:, 1]
+
     ax.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--")
     ax.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
     ax.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
 
-    # ATE (2D)
-    n = min(len(tx), len(gx))
-    ate = np.sqrt(np.mean((tx[:n] - gx[:n])**2 + (ty[:n] - gy[:n])**2))
-    ax.set_title(f"DISO trajectory vs Ground truth — ATE={ate:.2f} m")
+    # ATE after alignment
+    ate = np.sqrt(np.mean((tx_a[:n] - gx[:n])**2 + (ty_a[:n] - gy[:n])**2))
+    ax.set_title(f"DISO trajectory vs Ground truth — ATE={ate:.2f} m (after SE2 align)")
+    tx, ty = tx_a, ty_a
 else:
     print("groundtruth.csv not found — plotting DISO only")
     ax.set_title("DISO trajectory")
