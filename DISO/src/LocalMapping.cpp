@@ -105,6 +105,11 @@ void LocalMapping::ProcessKeyFrame()
 
 void LocalMapping::OptimizeWindow()
 {
+    {
+        shared_lock<shared_mutex> lock(mWindowMutex);
+        if (mActiveFrameWindow.size() < 2)
+            return;
+    }
     // unique_lock<shared_mutex> lock2(mpTracker->mTrackMutex);
     int max_frame_id = Frame::mFrameNum;
     g2o::SparseOptimizer optimizer;
@@ -254,6 +259,11 @@ deque<shared_ptr<Frame>> LocalMapping::GetWindow()
 
 void LocalMapping::Visualize()
 {
+    {
+        shared_lock<shared_mutex> lock(mWindowMutex);
+        if (mActiveFrameWindow.empty())
+            return;
+    }
     visualization_msgs::MarkerArray all_markers;
 
 
