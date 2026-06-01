@@ -7,6 +7,6 @@
 
     <node name="rviz_direct_sonar" pkg="rviz" type="rviz" args="-d $(find direct_sonar_odometry)/launch/sonar_odometry.rviz"/>
 
-<!--    <node pkg="direct_sonar_odometry" type="bruce_save.py" name="bruce_save" output="screen"/>-->
+    <node pkg="direct_sonar_odometry" type="bruce_save.py" name="bruce_save" output="screen"/>
 
 </launch>
