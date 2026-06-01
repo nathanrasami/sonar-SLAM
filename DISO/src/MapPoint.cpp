@@ -33,7 +33,7 @@ void MapPoint::AddObservation(shared_ptr<Frame> pF)
         return;
     }
     unique_lock<shared_mutex> lock(mMapPointMutex);
-    mObservations.insert(make_pair(pF->mID, pF));
+    mObservations.insert(make_pair(pF->mID, weak_ptr<Frame>(pF)));
     mObservationNum++;
 }
 
@@ -58,7 +58,7 @@ void MapPoint::setPosition(const Eigen::Vector3d &mPw)
     MapPoint::mPw = mPw;
 }
 
-const map<int, shared_ptr<Frame>> &MapPoint::getObservations() const
+const map<int, weak_ptr<Frame>> &MapPoint::getObservations() const
 {
     shared_lock<shared_mutex> lock(mMapPointMutex);
     return mObservations;

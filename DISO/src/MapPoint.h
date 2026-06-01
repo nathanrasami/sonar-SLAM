@@ -30,7 +30,7 @@ public:
 
     void setPosition(const Eigen::Vector3d &mPw);
 
-    const map<int, shared_ptr<Frame>> &getObservations() const;
+    const map<int, weak_ptr<Frame>> &getObservations() const;
 
     int getObservationNum() const;
 
@@ -39,7 +39,8 @@ private:
     // map point position under world frame
     Eigen::Vector3d mPw;
     // observation frame_ID -> pixel_position
-    map<int,shared_ptr<Frame>> mObservations;
+    // weak refs to break Frame<->MapPoint shared_ptr cycle
+    map<int,weak_ptr<Frame>> mObservations;
     // how many time this landmark has been observed from frames
     int mObservationNum;
 
