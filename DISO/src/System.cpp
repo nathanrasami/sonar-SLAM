@@ -134,7 +134,7 @@ void System::frameLoad(const sensor_msgs::ImageConstPtr &image_msg,
     Eigen::Isometry3d T_bw_bi_sonar = mT_bw_b0 * mT_b_s * T_s0_si * mT_b_s.inverse();
 
     geometry_msgs::PoseStamped pose;
-    pose.header.stamp = ros::Time::now();
+    pose.header.stamp = image_msg->header.stamp;
     pose.header.frame_id = "map";
     pose.pose.position.x = T_bw_bi_sonar.translation().x();
     pose.pose.position.y = T_bw_bi_sonar.translation().y();

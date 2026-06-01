@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Plot DISO trajectory vs ground truth.
-Reads diso_trajectory.csv and groundtruth.csv from SLAM_RESULTS_DIR.
+Aligns by proportional index resampling then Umeyama SE2 (no scale).
 """
 import pandas as pd
 import numpy as np
@@ -9,55 +9,52 @@ import matplotlib.pyplot as plt
 import os
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "DISO", "results"))
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
 
 traj_path = os.path.join(results_dir, "diso_trajectory.csv")
-gt_path = os.path.join(results_dir, "groundtruth.csv")
+gt_path   = os.path.join(results_dir, "groundtruth.csv")
 
 if not os.path.exists(traj_path):
-    print(f"ERROR: {traj_path} not found — run DISO then CTRL+C to generate it")
+    print(f"ERROR: {traj_path} not found")
     exit(1)
 
 traj = pd.read_csv(traj_path)
+gt   = pd.read_csv(gt_path)
+
 tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
+gx, gy = gt["x"].to_numpy(),   gt["y"].to_numpy()
 
-fig, ax = plt.subplots(figsize=(10, 8))
+# Resample DISO to same number of points as GT (proportional index)
+idx = np.round(np.linspace(0, len(tx)-1, len(gx))).astype(int)
+tx_r, ty_r = tx[idx], ty[idx]
 
-if os.path.exists(gt_path):
-    gt = pd.read_csv(gt_path)
-    gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()
+# Umeyama SE2: find R, t mapping DISO → GT (no scale)
+p = np.stack([tx_r, ty_r], axis=1)
+q = np.stack([gx,   gy  ], axis=1)
+mu_p, mu_q = p.mean(0), q.mean(0)
+H = (p - mu_p).T @ (q - mu_q)
+U, _, Vt = np.linalg.svd(H)
+d = np.linalg.det(Vt.T @ U.T)
+R = Vt.T @ np.diag([1, d]) @ U.T
+t_vec = mu_q - R @ mu_p
 
-    # Umeyama alignment: find R, t that best maps DISO onto GT (2D, no scale)
-    n = min(len(tx), len(gx))
-    p = np.stack([tx[:n], ty[:n]], axis=1)   # DISO
-    q = np.stack([gx[:n], gy[:n]], axis=1)   # GT
-    mu_p, mu_q = p.mean(axis=0), q.mean(axis=0)
-    pc, qc = p - mu_p, q - mu_q
-    H = pc.T @ qc
-    U, _, Vt = np.linalg.svd(H)
-    d = np.linalg.det(Vt.T @ U.T)
-    R = Vt.T @ np.diag([1, d]) @ U.T
-    t = mu_q - R @ mu_p
-    # Apply alignment to full DISO trajectory
-    aligned = (R @ np.stack([tx, ty])).T + t
-    tx_a, ty_a = aligned[:, 0], aligned[:, 1]
+# Apply to full DISO trajectory
+aligned = (R @ np.stack([tx, ty])).T + t_vec
+tx_a, ty_a = aligned[:, 0], aligned[:, 1]
 
-    ax.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--")
-    ax.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
-    ax.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
+# ATE on resampled points
+tx_a_r = (R @ np.stack([tx_r, ty_r])).T + t_vec
+ate = np.sqrt(np.mean((tx_a_r[:,0] - gx)**2 + (tx_a_r[:,1] - gy)**2))
 
-    # ATE after alignment
-    ate = np.sqrt(np.mean((tx_a[:n] - gx[:n])**2 + (ty_a[:n] - gy[:n])**2))
-    ax.set_title(f"DISO trajectory vs Ground truth — ATE={ate:.2f} m (after SE2 align)")
-    tx, ty = tx_a, ty_a
-else:
-    print("groundtruth.csv not found — plotting DISO only")
-    ax.set_title("DISO trajectory")
+fig, ax = plt.subplots(figsize=(11, 9))
+ax.plot(gx,   gy,   label="Ground truth (GPS)", color="red",   linestyle="--", linewidth=1.5)
+ax.plot(gx[0], gy[0], marker="*", color="red",   markersize=14)
+ax.plot(gx[-1],gy[-1],marker="X", color="red",   markersize=12)
+ax.plot(tx_a, ty_a, label="DISO odometry",      color="green", linewidth=1.5)
+ax.plot(tx_a[0],  ty_a[0],  marker="*", color="green", markersize=14, label="Start")
+ax.plot(tx_a[-1], ty_a[-1], marker="X", color="green", markersize=12, label="End")
 
-ax.plot(tx, ty, label="DISO odometry", color="green")
-ax.plot(tx[0], ty[0], marker="*", color="green", markersize=14, label="Start")
-ax.plot(tx[-1], ty[-1], marker="X", color="green", markersize=12, label="End")
-
+ax.set_title(f"DISO trajectory vs Ground truth — ATE = {ate:.2f} m")
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
 ax.legend()
@@ -68,4 +65,4 @@ plt.tight_layout()
 out = os.path.join(results_dir, "diso_trajectory_plot.png")
 plt.savefig(out, dpi=150)
 plt.show()
-print(f"Saved to {out}")
+print(f"Saved to {out} — ATE = {ate:.2f} m")
