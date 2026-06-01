@@ -95,8 +95,8 @@ void Track::TrackFromLastFrame(const Frame &f)
     }
     // loss long time from last keyframe
     shared_ptr<Frame> kf_pre = mpLocalMaper->GetLastFrameInWindow();
-    if (mpCurrentFrame->mTimestamp - kf_pre->mTimestamp >= 6.0) {
-        Reset(kf_pre);
+    if (!kf_pre || mpCurrentFrame->mTimestamp - kf_pre->mTimestamp >= 6.0) {
+        Reset(kf_pre ? kf_pre : mpLastFrame);
         return;
     }
 

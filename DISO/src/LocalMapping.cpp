@@ -248,6 +248,8 @@ void LocalMapping::OptimizeWindow()
 shared_ptr<Frame> LocalMapping::GetLastFrameInWindow()
 {
     shared_lock<shared_mutex> lock(mWindowMutex);
+    if (mActiveFrameWindow.empty())
+        return nullptr;
     return mActiveFrameWindow.back();
 }
 
