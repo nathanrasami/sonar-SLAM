@@ -34,8 +34,11 @@ q = np.stack([gx,   gy  ], axis=1)
 mu_p, mu_q = p.mean(0), q.mean(0)
 H = (p - mu_p).T @ (q - mu_q)
 U, _, Vt = np.linalg.svd(H)
-d = np.linalg.det(Vt.T @ U.T)
-R = Vt.T @ np.diag([1, d]) @ U.T
+R = Vt.T @ U.T
+# Force proper rotation (no reflection)
+if np.linalg.det(R) < 0:
+    Vt[1, :] *= -1
+    R = Vt.T @ U.T
 t_vec = mu_q - R @ mu_p
 
 # Apply to full DISO trajectory
