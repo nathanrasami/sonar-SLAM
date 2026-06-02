@@ -44,6 +44,19 @@ t_vec = np.array([gx.mean(), gy.mean()]) - rotated.mean(axis=0)
 tx_a = rotated[:, 0] + t_vec[0]
 ty_a = rotated[:, 1] + t_vec[1]
 
+# Rotate everything +90° CCW for display
+_a = np.pi / 4
+Rd = np.array([[np.cos(_a), -np.sin(_a)], [np.sin(_a), np.cos(_a)]])
+def rot90(x, y):
+    pts = (Rd @ np.stack([x, y])).T
+    return pts[:, 0], pts[:, 1]
+
+tx_a, ty_a = rot90(tx_a, ty_a)
+gx, gy     = rot90(gx, gy)
+if cloud is not None:
+    cx, cy = cloud["x"].to_numpy(), cloud["y"].to_numpy()
+    cx, cy = rot90(cx, cy)
+
 # ATE
 idx = np.round(np.linspace(0, len(gx)-1, len(tx_a))).astype(int)
 ate = np.sqrt(np.mean((tx_a - gx[idx])**2 + (ty_a - gy[idx])**2))
@@ -66,8 +79,6 @@ print(f"Saved: {out1}")
 
 # ── Figure 2: Point cloud ─────────────────────────────────────────────────────
 if cloud is not None:
-    cx, cy = cloud["x"].to_numpy(), cloud["y"].to_numpy()
-
     fig2, ax2 = plt.subplots(figsize=(11, 9))
     ax2.scatter(cx, cy, s=0.5, c="green", alpha=0.4, label="Sonar landmarks")
     ax2.set_title("DISO Point cloud map")
