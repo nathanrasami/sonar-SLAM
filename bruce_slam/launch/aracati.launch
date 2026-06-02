@@ -1,26 +1,25 @@
 <launch>
     <arg name="rviz" default="true"/>
     <arg name="enable_slam" default="true"/>
-    <arg name="bag_file" default="$(find aracati2017)/bags/ARACATI_2017_8bits_full.bag"/>
+    <arg name="bag_file" default="/home/nathan/Aracati2017_DISO_backup/bags/ARACATI_2017_8bits_full.bag"/>
 
     <param name="use_sim_time" value="true"/>
 
-    <!-- aracati2017 odometry node -->
-    <node pkg="aracati2017" name="odom" type="odom" output="screen">
+    <!-- aracati2017 package not available — nodes commented out -->
+    <!-- <node pkg="aracati2017" name="odom" type="odom" output="screen">
         <remap from="/pose" to="/pose_gt"/>
         <param name="odom_frame_id" value="map"/>
         <param name="base_frame_id" value="son"/>
-    </node>
+    </node> -->
 
-    <!-- aracati2017 aerial image visualization -->
-    <node pkg="aracati2017" name="aerial_image" type="aerial_image" output="screen">
+    <!-- <node pkg="aracati2017" name="aerial_image" type="aerial_image" output="screen">
         <remap from="/odom" to="/odom_pose"/>
         <remap from="/pose_gt" to="/pose_gt"/>
         <param name="aerial_image_path" value="$(find aracati2017)/maps/2021-12.yaml"/>
         <param name="son_fov_openning" value="130.0"/>
         <param name="son_min_range" value="0.4"/>
         <param name="son_max_range" value="50.0"/>
-    </node>
+    </node> -->
 
     <!-- rosbag playback -->
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
