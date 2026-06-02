@@ -26,6 +26,10 @@
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
           args="$(arg bag_file) --clock -r 1.0 -q"/>
 
+    <!-- DISO sonar odometry front-end -->
+    <node pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"
+          args="$(find direct_sonar_odometry)/config/config_aracati2017.yaml" output="screen"/>
+
     <group ns="bruce">
         <group ns="slam">
 

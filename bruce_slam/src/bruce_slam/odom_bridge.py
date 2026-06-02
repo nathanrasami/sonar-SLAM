@@ -19,13 +19,13 @@ class OdomBridge:
         odom.header.frame_id = "map"
         odom.child_frame_id = "base_link"
         odom.pose.pose = msg.pose
-        # Fixed covariance — larger than DVL/IMU since this is wheel odometry
-        cov = [0.5, 0, 0, 0, 0, 0,
-               0, 0.5, 0, 0, 0, 0,
-               0, 0, 0.5, 0, 0, 0,
-               0, 0, 0, 0.1, 0, 0,
-               0, 0, 0, 0, 0.1, 0,
-               0, 0, 0, 0, 0, 0.1]
+        # DISO sonar odometry — tighter covariance than raw GPS
+        cov = [0.1, 0, 0, 0, 0, 0,
+               0, 0.1, 0, 0, 0, 0,
+               0, 0, 0.1, 0, 0, 0,
+               0, 0, 0, 0.05, 0, 0,
+               0, 0, 0, 0, 0.05, 0,
+               0, 0, 0, 0, 0, 0.05]
         odom.pose.covariance = cov
         self.pub.publish(odom)
 
