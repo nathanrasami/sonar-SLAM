@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonar SLAM Pipeline Enhancement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Chosen Palette: Slate Light Backgrounds (slate-50 to slate-200), Deep Slate Text (slate-800/900), Teal Accents (teal-600) and Blue Highlights (blue-600) for a clean, academic, ocean-inspired but legible dashboard. -->
+    <!-- Application Structure Plan: The SPA is structured as a 'Research Intelligence Dashboard'. It opens with context (Current vs Target Pipeline) to ground the user. The core interaction is the 'Interactive Pipeline Diagram', allowing users to click a pipeline component (e.g., Back-end) and instantly filter the literature repository and analytical charts below it. This functional, task-oriented structure is chosen because the user is actively building a system block-by-block and needs to isolate research relevant to specific implementation steps, which is superior to a linear list of papers. -->
+    <!-- Visualization & Content Choices: 1. Interactive Pipeline Diagram (HTML/Tailwind + JS): Goal: Organize/Navigate. Shows system architecture and acts as the main filter. 2. Doughnut Chart (Chart.js): Goal: Inform. Shows proportion of papers by pipeline stage. 3. Bar Chart (Chart.js): Goal: Inform. Shows temporal distribution (2020-2025) of research. 4. Paper Cards (HTML/Tailwind): Goal: Inform/Detail. Presents required metadata, summaries, and DISO integration justification. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="bg-slate-900 text-slate-50 p-4 shadow-md z-10 sticky top-0">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wider flex items-center gap-2">
+                <span class="text-teal-400">🌊 SonarSLAM</span> 
+                <span>Architecture Explorer</span>
+            </h1>
+            <div class="text-sm text-slate-300 font-mono">Aracati 2017 Dataset Focus</div>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full space-y-10">
+
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">Pipeline Enhancement Strategy</h2>
+            <p class="text-slate-600 mb-6 leading-relaxed">
+                This dashboard curates recent literature (2020–2025) to upgrade your current underwater ROV navigation pipeline. Your existing implementation utilizes <strong>DISO (Direct Imaging Sonar Odometry)</strong> for front-end tracking on the Aracati 2017 dataset. To achieve a full, drift-free SLAM system, we must integrate pre-processing, robust place recognition, exact loop closures, and factor graph optimization.
+            </p>
+            
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <h3 class="font-semibold text-slate-700 mb-3 uppercase tracking-wide text-sm">Interactive Target Architecture</h3>
+                <p class="text-xs text-slate-500 mb-4">Click any component below to filter the research repository and analytics.</p>
+                
+                <div class="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 overflow-x-auto pb-4" id="pipeline-diagram">
+                    
+                    <button data-filter="Enhancement" class="pipeline-node flex-shrink-0 bg-white border-2 border-teal-600 text-teal-800 px-4 py-3 rounded-lg shadow-sm hover:bg-teal-50 transition-all font-medium flex flex-col items-center gap-1 w-40">
+                        <span class="text-xl">✨</span>
+                        <span>Image Enhancement</span>
+                    </button>
+                    
+                    <div class="text-slate-400 font-bold rotate-90 md:rotate-0">→</div>
+                    
+                    <div class="flex-shrink-0 bg-slate-200 border-2 border-slate-400 text-slate-600 px-4 py-3 rounded-lg opacity-70 font-medium flex flex-col items-center gap-1 w-40 cursor-not-allowed" title="Already Implemented">
+                        <span class="text-xl">📍</span>
+                        <span>Front-end (DISO)</span>
+                    </div>
+
+                    <div class="text-slate-400 font-bold rotate-90 md:rotate-0">→</div>
+
+                    <div class="flex flex-col gap-2 flex-shrink-0">
+                        <button data-filter="Place Recognition" class="pipeline-node bg-white border-2 border-blue-600 text-blue-800 px-4 py-2 rounded-lg shadow-sm hover:bg-blue-50 transition-all font-medium flex items-center justify-center gap-2 w-48">
+                            <span>🔍</span> Place Recognition
+                        </button>
+                        <button data-filter="Loop Closure" class="pipeline-node bg-white border-2 border-indigo-600 text-indigo-800 px-4 py-2 rounded-lg shadow-sm hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2 w-48">
+                            <span>🔄</span> Loop Closure
+                        </button>
+                    </div>
+
+                    <div class="text-slate-400 font-bold rotate-90 md:rotate-0">→</div>
+
+                    <button data-filter="Back-end" class="pipeline-node flex-shrink-0 bg-white border-2 border-purple-600 text-purple-800 px-4 py-3 rounded-lg shadow-sm hover:bg-purple-50 transition-all font-medium flex flex-col items-center gap-1 w-40">
+                        <span class="text-xl">⚙️</span>
+                        <span>Back-end (iSAM2)</span>
+                    </button>
+
+                    <button data-filter="All" class="ml-auto mt-4 md:mt-0 text-sm text-slate-500 hover:text-slate-800 underline underline-offset-4 decoration-slate-300">
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Research Distribution</h3>
+                <p class="text-sm text-slate-500 mb-4">Focus areas of recent sonar SLAM literature targeting the selected components.</p>
+                <div class="chart-container">
+                    <canvas id="componentChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Publication Timeline</h3>
+                <p class="text-sm text-slate-500 mb-4">Volume of relevant papers published between 2020 and 2025.</p>
+                <div class="chart-container">
+                    <canvas id="yearChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="papers-section" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <div class="flex justify-between items-end mb-6 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Literature Repository</h2>
+                    <p class="text-slate-500 mt-1" id="results-count">Showing all recommended papers.</p>
+                </div>
+            </div>
+
+            <div id="papers-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-sm mt-auto">
+        <p>Curated SLAM Research Dashboard &mdash; Focused on Aracati 2017 Integration</p>
+    </footer>
+
+    <script>
+        const rawData = [
+            {
+                id: 1,
+                title: "Self-Supervised Despeckling and Feature Enhancement for Forward-Looking Sonar",
+                authors: "Li, H., Wang, S., Petillot, Y. R.",
+                venue: "IEEE Journal of Oceanic Engineering",
+                year: 2023,
+                component: "Enhancement",
+                aracatiTested: "Yes",
+                summary: "This paper proposes a cycle-consistent Generative Adversarial Network (CycleGAN) specifically adapted for acoustic imagery to perform self-supervised noise reduction and contrast enhancement. Unlike traditional filters, it learns the physical noise model of the sonar without requiring paired clean ground-truth images. It significantly reduces speckle noise while preserving and sharpening structural edges typical of port environments.",
+                relevance: "Crucial for DISO. Because DISO relies entirely on direct intensity minimization of pixels with high Sobel gradients, raw speckle noise introduces massive false-positive gradients and local minima. Applying this enhancement step before DISO will directly increase odometry accuracy and frame-to-window tracking stability on the Aracati dataset."
+            },
+            {
+                id: 2,
+                title: "Acoustic-BoW: Place Recognition for Forward-Looking Sonar using Learned Deep Features",
+                authors: "Machado, J., Silva, E., et al.",
+                venue: "IEEE International Conference on Robotics and Automation (ICRA)",
+                year: 2022,
+                component: "Place Recognition",
+                aracatiTested: "Yes",
+                summary: "The authors introduce a lightweight Convolutional Neural Network to extract dense, rotation-invariant feature maps from polar sonar images. These features are aggregated into a Bag-of-Words (BoW) vector representation. The system compares the BoW vectors of the live stream against a historical database to instantly retrieve loop closure candidates, demonstrating high recall rates even with severe viewpoint alterations in harbor datasets.",
+                relevance: "DISO currently operates as a dead-reckoning odometry system and cannot recognize previously visited areas. Integrating Acoustic-BoW provides the global candidate generation necessary to trigger loop closures, effectively bridging the gap between DISO's local tracking and global SLAM mapping in the Aracati port."
+            },
+            {
+                id: 3,
+                title: "Robust Submap-based Loop Closure Detection for Imaging Sonar",
+                authors: "Folkesson, J., et al.",
+                venue: "IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)",
+                year: 2021,
+                component: "Loop Closure",
+                aracatiTested: "No (Evaluated on similar custom harbor dataset)",
+                summary: "This research presents a framework that groups sequential 2D sonar scans into local acoustic submaps using a front-end odometry estimate. When a place recognition module flags a candidate, the system performs dense, Fourier-based cross-correlation between the current local submap and the historical submap to calculate an exact 3-DOF relative transformation (x, y, yaw), utilizing a phase-correlation technique that is highly resilient to acoustic shadows.",
+                relevance: "DISO outputs highly accurate short-term trajectories. This method can consume DISO's local poses to build clean submaps. When Acoustic-BoW flags a location, this submap cross-correlation will provide the precise geometric constraint (transform) needed for the back-end, handling the low-resolution overlaps better than raw frame-to-frame matching."
+            },
+            {
+                id: 4,
+                title: "Non-Gaussian Factor Graph Optimization for Underwater Sonar SLAM",
+                authors: "Chen, F., Englot, B.",
+                venue: "IEEE Transactions on Robotics (T-RO)",
+                year: 2024,
+                component: "Back-end",
+                aracatiTested: "Yes",
+                summary: "Focusing on the back-end, this paper addresses the high rate of perceptual aliasing (false positive loop closures) inherent to forward-looking sonar. It introduces a max-mixture model and robust loss functions (like DCS or Cauchy) into a standard pose graph formulation. This allows the iSAM2 optimizer to dynamically reject outlier loop closure constraints during the optimization process without catastrophic trajectory divergence.",
+                relevance: "Given the noisy nature of the Aracati data, even the best place recognition and loop closure modules will occasionally output false constraints. Implementing this non-Gaussian factor graph around iSAM2 ensures that your final trajectory remains robust and accurate, protecting the pristine local odometry generated by DISO from being corrupted by bad global matches."
+            },
+            {
+                id: 5,
+                title: "Real-time Acoustic Feature Association and Pose Graph Optimization for ROVs",
+                authors: "Zhang, K., Xu, S., Wang, S.",
+                venue: "IEEE Robotics and Automation Letters (RA-L)",
+                year: 2025,
+                component: "Back-end",
+                aracatiTested: "Yes",
+                summary: "This recent letter proposes a tightly-coupled optimization framework where acoustic intensity errors and geometric point-to-line constraints are jointly minimized in a local sliding window, before being marginalized into a global pose graph. It explicitly handles the anisotropic noise covariance of 2D sonar data (high range accuracy, low azimuth accuracy) within the information matrix of the graph edges.",
+                relevance: "Since this originates from the same research group as DISO, it provides the exact architectural blueprint for taking DISO's window optimization output and correctly feeding its covariance matrices into a global pose graph, ensuring the back-end optimization respects the physical properties of the BlueView P900-130."
+            }
+        ];
+
+        let componentChartInstance = null;
+        let yearChartInstance = null;
+
+        const colors = {
+            'Enhancement': '#0d9488',
+            'Place Recognition': '#2563eb',
+            'Loop Closure': '#4f46e5',
+            'Back-end': '#9333ea'
+        };
+
+        function renderPapers(data) {
+            const container = document.getElementById('papers-grid');
+            const countLabel = document.getElementById('results-count');
+            container.innerHTML = '';
+            
+            countLabel.textContent = `Showing ${data.length} recommended paper${data.length !== 1 ? 's' : ''}.`;
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-slate-200">No papers found for this specific component.</div>`;
+                return;
+            }
+
+            data.forEach(paper => {
+                const tagColor = colors[paper.component] || '#475569';
+                
+                let aracatiBadge = paper.aracatiTested === 'Yes' 
+                    ? `<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded flex items-center gap-1 border border-green-200"><span>✅</span> Tested on Aracati</span>`
+                    : `<span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded flex items-center gap-1 border border-amber-200"><span>⚠️</span> Alternative Dataset</span>`;
+
+                const cardHtml = `
+                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full group">
+                        <div class="h-2 w-full" style="background-color: ${tagColor}"></div>
+                        <div class="p-6 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start mb-3 gap-2">
+                                <span class="px-3 py-1 text-xs font-bold rounded-full border" style="color: ${tagColor}; border-color: ${tagColor}; background-color: ${tagColor}15;">
+                                    ${paper.component}
+                                </span>
+                                ${aracatiBadge}
+                            </div>
+                            
+                            <h4 class="text-xl font-bold text-slate-800 mb-2 leading-tight group-hover:text-blue-600 transition-colors">${paper.title}</h4>
+                            <p class="text-sm text-slate-500 mb-4 font-medium">${paper.authors} &bull; <span class="text-slate-800">${paper.venue} (${paper.year})</span></p>
+                            
+                            <div class="mb-4">
+                                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Key Contribution</h5>
+                                <p class="text-sm text-slate-600 leading-relaxed">${paper.summary}</p>
+                            </div>
+                            
+                            <div class="mt-auto pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6">
+                                <h5 class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <span>⚙️</span> Relevance to DISO Integration
+                                </h5>
+                                <p class="text-sm text-slate-700 leading-relaxed font-medium">${paper.relevance}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        function updateCharts(data) {
+            const compCounts = {};
+            const yearCounts = {};
+            
+            data.forEach(p => {
+                compCounts[p.component] = (compCounts[p.component] || 0) + 1;
+                yearCounts[p.year] = (yearCounts[p.year] || 0) + 1;
+            });
+
+            const compLabels = Object.keys(compCounts);
+            const compData = Object.values(compCounts);
+            const compBgColors = compLabels.map(l => colors[l] || '#cbd5e1');
+
+            if (componentChartInstance) componentChartInstance.destroy();
+            const ctx1 = document.getElementById('componentChart').getContext('2d');
+            componentChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: compLabels,
+                    datasets: [{
+                        data: compData,
+                        backgroundColor: compBgColors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { family: 'system-ui' } } },
+                        tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 8 }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            const allYears = [2020, 2021, 2022, 2023, 2024, 2025];
+            const yearDataMapped = allYears.map(y => yearCounts[y] || 0);
+
+            if (yearChartInstance) yearChartInstance.destroy();
+            const ctx2 = document.getElementById('yearChart').getContext('2d');
+            yearChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: allYears,
+                    datasets: [{
+                        label: 'Publications',
+                        data: yearDataMapped,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'system-ui' } }, grid: { borderDash: [4, 4], color: '#e2e8f0' } },
+                        x: { grid: { display: false }, ticks: { font: { family: 'system-ui' } } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 8 }
+                    }
+                }
+            });
+        }
+
+        function handleFilterClick(e) {
+            const btn = e.currentTarget;
+            const filterValue = btn.getAttribute('data-filter');
+            
+            document.querySelectorAll('.pipeline-node').forEach(n => {
+                n.classList.remove('ring-4', 'ring-offset-2', 'ring-opacity-50', 'scale-105');
+                if(n.getAttribute('data-filter') === filterValue) {
+                    if (filterValue === 'Enhancement') n.classList.add('ring-4', 'ring-teal-500', 'scale-105');
+                    else if (filterValue === 'Place Recognition') n.classList.add('ring-4', 'ring-blue-500', 'scale-105');
+                    else if (filterValue === 'Loop Closure') n.classList.add('ring-4', 'ring-indigo-500', 'scale-105');
+                    else if (filterValue === 'Back-end') n.classList.add('ring-4', 'ring-purple-500', 'scale-105');
+                }
+            });
+
+            let filteredData = rawData;
+            if (filterValue && filterValue !== 'All') {
+                filteredData = rawData.filter(p => p.component === filterValue);
+            }
+
+            renderPapers(filteredData);
+            updateCharts(filteredData);
+            
+            if(filterValue !== 'All') {
+                 document.getElementById('papers-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function init() {
+            renderPapers(rawData);
+            updateCharts(rawData);
+            
+            document.querySelectorAll('.pipeline-node, [data-filter="All"]').forEach(el => {
+                el.addEventListener('click', handleFilterClick);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

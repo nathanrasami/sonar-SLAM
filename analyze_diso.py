@@ -29,22 +29,31 @@ if traj is None:
     print("ERROR: diso_trajectory.csv missing — run DISO and CTRL+C first")
     exit(1)
 
-# ── Alignment: flip Y then rotate by centroid angle ──────────────────────────
-def align_to_gt(x, y, gx, gy):
-    """Flip Y then rotate so DISO centroid matches GT centroid direction."""
-    y = -y
-    diso_angle = np.arctan2(y.mean(), x.mean())
-    gt_angle   = np.arctan2(gy.mean(), gx.mean())
-    theta = gt_angle - diso_angle
-    c, s = np.cos(theta), np.sin(theta)
-    R = np.array([[c, -s], [s, c]])
-    aligned = (R @ np.stack([x, y])).T
-    return aligned[:, 0], aligned[:, 1], R
-
+# ── Alignment: flip Y, rotate, translate ─────────────────────────────────────
 tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
 gx, gy = gt["x"].to_numpy(),   gt["y"].to_numpy()
 
-tx_a, ty_a, R = align_to_gt(tx, ty, gx, gy)
+# Flip Y
+ty_f = -ty
+
+# Rotate by centroid angle difference
+diso_angle = np.arctan2(ty_f.mean(), tx.mean())
+gt_angle   = np.arctan2(gy.mean(),   gx.mean())
+theta = gt_angle - diso_angle
+c, s = np.cos(theta), np.sin(theta)
+R = np.array([[c, -s], [s, c]])
+
+# Compute translation: align centroids after rotation
+rotated = (R @ np.stack([tx, ty_f])).T
+t_vec = np.array([gx.mean(), gy.mean()]) - rotated.mean(axis=0)
+
+def apply_transform(x, y):
+    """Flip Y, rotate R, translate t_vec."""
+    yf = -y
+    aligned = (R @ np.stack([x, yf])).T + t_vec
+    return aligned[:, 0], aligned[:, 1]
+
+tx_a, ty_a = apply_transform(tx, ty)
 
 # ATE
 idx = np.round(np.linspace(0, len(gx)-1, len(tx_a))).astype(int)
@@ -56,13 +65,6 @@ ax1.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--", linewi
 ax1.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
 ax1.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
 
-if odom is not None:
-    ox, oy = odom["x"].to_numpy(), odom["y"].to_numpy()
-    ox_a, oy_a, _ = align_to_gt(ox, oy, gx, gy)
-    ax1.plot(ox_a, oy_a, label="Pure odometry (dead reckoning)", color="steelblue",
-             linestyle=":", linewidth=1.2)
-    ax1.plot(ox_a[0], oy_a[0], marker="*", color="steelblue", markersize=12)
-    ax1.plot(ox_a[-1], oy_a[-1], marker="X", color="steelblue", markersize=10)
 
 ax1.plot(tx_a, ty_a, label=f"DISO odometry (ATE={ate:.1f} m)", color="green", linewidth=1.5)
 ax1.plot(tx_a[0],  ty_a[0],  marker="*", color="green", markersize=14, label="Start")
@@ -79,10 +81,10 @@ print(f"Saved: {out1}")
 # ── Figure 2: Point cloud ─────────────────────────────────────────────────────
 if cloud is not None:
     cx, cy = cloud["x"].to_numpy(), cloud["y"].to_numpy()
-    # Apply same alignment (flip Y then rotate)
-    cy_f = -cy
-    aligned_c = (R @ np.stack([cx, cy_f])).T
-    cx_a, cy_a = aligned_c[:, 0], aligned_c[:, 1]
+    # Correct offset between cloud and trajectory raw centroids before transform
+    cx = cx - (cx.mean() - tx.mean())
+    cy = cy - (cy.mean() - ty.mean())
+    cx_a, cy_a = apply_transform(cx, cy)
 
     fig2, ax2 = plt.subplots(figsize=(11, 9))
     ax2.scatter(cx_a, cy_a, s=0.5, c="green", alpha=0.4, label="Sonar landmarks")
@@ -98,8 +100,6 @@ if cloud is not None:
     fig3, ax3 = plt.subplots(figsize=(11, 9))
     ax3.scatter(cx_a, cy_a, s=0.5, c="lightgreen", alpha=0.3, label="Sonar landmarks")
     ax3.plot(gx, gy, label="Ground truth", color="red", linestyle="--", linewidth=1.5)
-    if odom is not None:
-        ax3.plot(ox_a, oy_a, label="Pure odometry", color="steelblue", linestyle=":", linewidth=1.2)
     ax3.plot(tx_a, ty_a, label=f"DISO (ATE={ate:.1f} m)", color="green", linewidth=1.5)
     ax3.plot(tx_a[0], ty_a[0], marker="*", color="green", markersize=14, label="Start")
     ax3.plot(tx_a[-1], ty_a[-1], marker="X", color="green", markersize=12, label="End")
