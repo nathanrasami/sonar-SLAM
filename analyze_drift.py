@@ -32,14 +32,14 @@ else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
     ate = None
 
-ax.plot(dx, dy, label="Odometry (dead reckoning)", color="steelblue", linestyle=":")
-ax.plot(dx[0], dy[0], marker="*", color="steelblue", markersize=14)
-ax.plot(dx[-1], dy[-1], marker="X", color="steelblue", markersize=12)
-
 slam_label = f"Bruce-SLAM (DISO odom, iSAM2, ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM (DISO odom, iSAM2)"
-ax.plot(tx, ty, label=slam_label, color="black")
+ax.plot(tx, ty, label=slam_label, color="black", linewidth=1.5)
 ax.plot(tx[0], ty[0], marker="*", color="black", markersize=14, label="Start")
 ax.plot(tx[-1], ty[-1], marker="X", color="black", markersize=12, label="End")
+# drawn after SLAM so it's visible on top when trajectories overlap
+ax.plot(dx, dy, label="Odometry (dead reckoning)", color="steelblue", linestyle=":", linewidth=2.5)
+ax.plot(dx[0], dy[0], marker="*", color="steelblue", markersize=14)
+ax.plot(dx[-1], dy[-1], marker="X", color="steelblue", markersize=12)
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
