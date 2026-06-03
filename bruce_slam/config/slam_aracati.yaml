@@ -18,16 +18,16 @@ ssm:
   target_frames: 3
 
 nssm:
-  enable: True
+  enable: False
   min_st_sep: 8
-  min_points: 100
-  max_translation: 5.0
-  max_rotation: deg(30)
+  min_points: 50
+  max_translation: 10.0
+  max_rotation: deg(60)
   source_frames: 5
   cov_samples: 30
 
 pcm_queue_size: 5
-min_pcm: 6
+min_pcm: 4
 
 pz_samples: 0
-pz_detection_rate: 0.5
+pz_detection_rate: 0.3
