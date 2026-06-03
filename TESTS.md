@@ -332,3 +332,66 @@ Différence principale vs sample_data : odométrie par intégration de `/cmd_vel
 ### Conclusion générale
 
 Bruce-SLAM intégré avec Aracati2017 fonctionne en mode odométrie pure. SSM et NSSM nécessitent un recalibrage des paramètres ICP spécifique au sonar BlueView P900-130 pour fonctionner correctement sur ce dataset.
+
+---
+
+## Dataset Aracati2017 — DISO Standalone (2026-06-03)
+
+Front-end DISO uniquement (pas de back-end iSAM2). Odométrie directe par intensité sonar (pas ICP).
+
+### Configuration
+
+| Composant | Valeur |
+|-----------|--------|
+| Nœud | `direct_sonar_odometry/aracati2017_node` |
+| Config | `config/config_aracati2017.yaml` |
+| Back-end | aucun (pas de loop closure, pas de iSAM2) |
+| Topic pose | `/direct_sonar/pose` |
+
+### Résultats
+
+**Trajectoire DISO vs GT :**
+![DISO Trajectoires](TESTS_image/diso_trajectories.png)
+
+**Carte point cloud DISO :**
+![DISO Point cloud](TESTS_image/diso_pointcloud.png)
+
+### Observations
+
+- Trajectoire DISO suit la forme générale du GT (GPS)
+- Dérive progressive visible (pas de loop closure pour corriger)
+- Point cloud cohérent — les structures du port sont reconnaissables
+
+### ATE
+
+Calculé par `analyze_diso.py` (voir `plot1_trajectories.png` pour la valeur exacte).
+
+---
+
+## Dataset Aracati2017 — DISO + Bruce_SLAM (iSAM2, SSM=off, NSSM=off) (2026-06-03)
+
+DISO comme source d'odométrie sonar, back-end iSAM2 de Bruce_SLAM. SSM (ICP) désactivé car DISO le remplace. NSSM désactivé (faux loop closures).
+
+### Configuration
+
+| Composant | Valeur |
+|-----------|--------|
+| Front-end odométrie | DISO (`/direct_sonar/pose` → `odom_bridge` → `/bruce/slam/localization/odom`) |
+| SSM | **False** (DISO remplace ICP) |
+| NSSM | **False** (faux loop closures sur Aracati) |
+| Back-end | iSAM2 |
+| Covariance odom_bridge | 0.1 (position), 0.05 (rotation) |
+
+### Résultats
+
+![DISO + Bruce_SLAM trajectoire](TESTS_image/diso_bruce_slam_trajectory.png)
+
+### Observations
+
+- Sans loop closure, iSAM2 propage les poses DISO sans correction globale
+- Résultat légèrement moins bon que DISO standalone (latence bridge + overhead iSAM2 sans boucle)
+- Le gain réel de Bruce_SLAM viendra quand NSSM sera réactivé avec Sonar Context
+
+### Conclusion
+
+**Sans NSSM, DISO+Bruce_SLAM ≈ DISO standalone** avec overhead. La prochaine étape est d'intégrer Sonar Context (ICRA 2023) dans le NSSM pour activer le loop closure sur Aracati2017.

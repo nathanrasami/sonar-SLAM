@@ -22,17 +22,22 @@ if os.path.exists(gt_path):
     offset_y = gy[0] - (-ty[0])
     tx, ty = tx + offset_x, -ty + offset_y
     dx, dy = dx + offset_x, -dy + offset_y
+    # ATE: interpolate GT to SLAM keyframe count
+    idx = np.round(np.linspace(0, len(gx)-1, len(tx))).astype(int)
+    ate = np.sqrt(np.mean((tx - gx[idx])**2 + (ty - gy[idx])**2))
     ax.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--")
     ax.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
     ax.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
 else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
+    ate = None
 
 ax.plot(dx, dy, label="Odometry (dead reckoning)", color="steelblue", linestyle=":")
 ax.plot(dx[0], dy[0], marker="*", color="steelblue", markersize=14)
 ax.plot(dx[-1], dy[-1], marker="X", color="steelblue", markersize=12)
 
-ax.plot(tx, ty, label="Bruce-SLAM (DISO odom, iSAM2)", color="black")
+slam_label = f"Bruce-SLAM (DISO odom, iSAM2, ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM (DISO odom, iSAM2)"
+ax.plot(tx, ty, label=slam_label, color="black")
 ax.plot(tx[0], ty[0], marker="*", color="black", markersize=14, label="Start")
 ax.plot(tx[-1], ty[-1], marker="X", color="black", markersize=12, label="End")
 
