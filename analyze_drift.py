@@ -33,13 +33,15 @@ else:
 if os.path.exists(diso_path):
     diso = pd.read_csv(diso_path)
     ox, oy = diso["x"].to_numpy(), diso["y"].to_numpy()
-    oy = -oy  # flip Y to match frame
+    oy = -oy
     if os.path.exists(gt_path):
         ox = ox + (gx[0] - ox[0])
         oy = oy + (gy[0] - oy[0])
-    idx_d = np.round(np.linspace(0, len(gx)-1, len(ox))).astype(int) if os.path.exists(gt_path) else None
-    ate_diso = np.sqrt(np.mean((ox - gx[idx_d])**2 + (oy - gy[idx_d])**2)) if idx_d is not None else None
-    diso_label = f"DISO standalone (ATE={ate_diso:.1f} m)" if ate_diso is not None else "DISO standalone (odometry)"
+        idx_d = np.round(np.linspace(0, len(gx)-1, len(ox))).astype(int)
+        ate_diso = np.sqrt(np.mean((ox - gx[idx_d])**2 + (oy - gy[idx_d])**2))
+    else:
+        ate_diso = None
+    diso_label = f"DISO standalone (ATE={ate_diso:.1f} m)" if ate_diso is not None else "DISO standalone"
     ax.plot(ox, oy, label=diso_label, color="steelblue", linestyle=":", linewidth=2.0)
     ax.plot(ox[0], oy[0], marker="*", color="steelblue", markersize=14)
     ax.plot(ox[-1], oy[-1], marker="X", color="steelblue", markersize=12)
