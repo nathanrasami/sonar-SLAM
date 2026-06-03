@@ -815,7 +815,7 @@ void Track::DrawTrack()
     // cv::imwrite(ss.str(), out);
     //publish image
     cv_bridge::CvImage cvImage;
-    cvImage.header.stamp = ros::Time::now();
+    cvImage.header.stamp = ros::Time(mpCurrentFrame->mTimestamp);
     cvImage.header.frame_id = "map";
     cvImage.encoding = "bgr8";
     cvImage.image = out;
@@ -851,7 +851,7 @@ void Track::PublishPose()
     Eigen::Isometry3d T_s0_si = mpCurrentFrame->GetPose();
     Eigen::Isometry3d T_b0_bi = mT_b_s * T_s0_si * mT_b_s.inverse();
     geometry_msgs::PoseStamped pose;
-    pose.header.stamp = ros::Time::now();
+    pose.header.stamp = ros::Time(mpCurrentFrame->mTimestamp);
     pose.header.frame_id = "map";
     pose.pose.position.x = T_b0_bi.translation().x();
     pose.pose.position.y = T_b0_bi.translation().y();

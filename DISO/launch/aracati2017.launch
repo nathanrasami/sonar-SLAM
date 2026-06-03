@@ -1,4 +1,5 @@
 <launch>
+    <param name="use_sim_time" value="true"/>
     <node pkg="tf" type="static_transform_publisher" name="world2odom"
     args="0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 1.0000 odom orb_slam 100"/>
     <node pkg="direct_sonar_odometry" type="repub_gt" name="repub_gt_node"/>
