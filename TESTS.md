@@ -364,7 +364,7 @@ Front-end DISO uniquement (pas de back-end iSAM2). Odométrie directe par intens
 
 ### ATE
 
-Calculé par `analyze_diso.py` (voir `plot1_trajectories.png` pour la valeur exacte).
+**ATE = 6.5 m**
 
 ---
 
@@ -392,6 +392,10 @@ DISO comme source d'odométrie sonar, back-end iSAM2 de Bruce_SLAM. SSM (ICP) d�
 - Résultat légèrement moins bon que DISO standalone (latence bridge + overhead iSAM2 sans boucle)
 - Le gain réel de Bruce_SLAM viendra quand NSSM sera réactivé avec Sonar Context
 
+### ATE
+
+**ATE = 29.9 m**
+
 ### Conclusion
 
-**Sans NSSM, DISO+Bruce_SLAM ≈ DISO standalone** avec overhead. La prochaine étape est d'intégrer Sonar Context (ICRA 2023) dans le NSSM pour activer le loop closure sur Aracati2017.
+**Sans NSSM, DISO+Bruce_SLAM est nettement pire que DISO standalone (29.9 m vs 6.5 m).** iSAM2 sans loop closure ne fait que propager les erreurs avec overhead supplémentaire (latence bridge, désynchronisation temporelle possible). Le gain réel de Bruce_SLAM viendra quand NSSM sera réactivé avec Sonar Context pour corriger la dérive globale.
