@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
@@ -27,39 +28,20 @@ if traj is None:
     print("ERROR: diso_trajectory.csv missing — run DISO and CTRL+C first")
     exit(1)
 
-tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
-gx, gy = gt["x"].to_numpy(),   gt["y"].to_numpy()
+gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()  # GT dans son repère natif
 
-# ── Alignment DISO → GT: flip Y, rotate by centroid angle, translate ─────────
-ty_f = -ty
+# ── Alignement DISO → GT : association temporelle + Umeyama (rigide, sans flip)
+src = traj[["x", "y"]].to_numpy()
+gt_xy = associer_par_temps(traj["time"], gt["time"], gt["x"], gt["y"])
+s, R, t = umeyama(src, gt_xy)               # absorbe la réflexion Y automatiquement
+est = appliquer(s, R, t, src)
+tx_a, ty_a = est[:, 0], est[:, 1]
+ate = calculer_ate(est, gt_xy)
 
-diso_angle = np.arctan2(ty_f.mean(), tx.mean())
-gt_angle   = np.arctan2(gy.mean(),   gx.mean())
-theta = gt_angle - diso_angle
-c, s = np.cos(theta), np.sin(theta)
-R = np.array([[c, -s], [s, c]])
-
-rotated = (R @ np.stack([tx, ty_f])).T
-t_vec = np.array([gx.mean(), gy.mean()]) - rotated.mean(axis=0)
-tx_a = rotated[:, 0] + t_vec[0]
-ty_a = rotated[:, 1] + t_vec[1]
-
-# Rotate everything +90° CCW for display
-_a = np.pi / 4
-Rd = np.array([[np.cos(_a), -np.sin(_a)], [np.sin(_a), np.cos(_a)]])
-def rot90(x, y):
-    pts = (Rd @ np.stack([x, y])).T
-    return pts[:, 0], pts[:, 1]
-
-tx_a, ty_a = rot90(tx_a, ty_a)
-gx, gy     = rot90(gx, gy)
+# Le point cloud reçoit la MÊME transfo que la trajectoire (cohérence visuelle)
 if cloud is not None:
-    cx, cy = cloud["x"].to_numpy(), cloud["y"].to_numpy()
-    cx, cy = rot90(cx, cy)
-
-# ATE
-idx = np.round(np.linspace(0, len(gx)-1, len(tx_a))).astype(int)
-ate = np.sqrt(np.mean((tx_a - gx[idx])**2 + (ty_a - gy[idx])**2))
+    cloud_a = appliquer(s, R, t, cloud[["x", "y"]].to_numpy())
+    cx, cy = cloud_a[:, 0], cloud_a[:, 1]
 
 # ── Figure 1: Trajectories ────────────────────────────────────────────────────
 fig1, ax1 = plt.subplots(figsize=(11, 9))

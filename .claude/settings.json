@@ -7,7 +7,11 @@
       "Read(//tmp/aracati2017_repo/**)",
       "Bash(SLAM_RESULTS_DIR=results python3 analyze_diso.py)",
       "Bash(python3 analyze_diso.py)",
-      "Bash(python3 analyze_drift.py)"
+      "Bash(python3 analyze_drift.py)",
+      "Bash(MPLBACKEND=Agg python3 analyze_diso.py)",
+      "Bash(MPLBACKEND=Agg python3 analyze_drift.py)",
+      "Read(//home/nathanrasami/**)",
+      "Bash(git lfs *)"
     ]
   }
 }
