@@ -6,11 +6,9 @@ import tf
 import rospy
 import cv_bridge
 from nav_msgs.msg import Odometry
-from message_filters import  Subscriber
 from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
-from message_filters import ApproximateTimeSynchronizer
 
 # bruce imports
 from bruce_slam.utils.io import *
@@ -82,20 +80,10 @@ class SLAMNode(SLAM):
         self.pcm_queue_size = rospy.get_param(ns + "pcm_queue_size")
         self.min_pcm = rospy.get_param(ns + "min_pcm")
 
-        #mak delay between an incoming point cloud and dead reckoning
-        self.feature_odom_sync_max_delay = 0.5
-
-        #define the subsrcibing topics
-        self.feature_sub = Subscriber(SONAR_FEATURE_TOPIC, PointCloud2)
-        self.odom_sub = Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry)
-
-        #define the sync policy
-        self.time_sync = ApproximateTimeSynchronizer(
-            [self.feature_sub, self.odom_sub], 20, 
-            self.feature_odom_sync_max_delay, allow_headerless = False)
-
-        #register the callback in the sync policy
-        self.time_sync.registerCallback(self.SLAM_callback)
+        #cache the latest odom message; feature callback uses it directly
+        self._latest_odom = None
+        rospy.Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry, self._odom_cache_callback, queue_size=50)
+        rospy.Subscriber(SONAR_FEATURE_TOPIC, PointCloud2, self._feature_callback, queue_size=50)
 
         #pose publisher
         self.pose_pub = rospy.Publisher(
@@ -151,6 +139,14 @@ class SLAMNode(SLAM):
         
         self.oculus.configure(ping)
         self.sonar_sub.unregister()
+
+    def _odom_cache_callback(self, msg: Odometry) -> None:
+        self._latest_odom = msg
+
+    def _feature_callback(self, feature_msg: PointCloud2) -> None:
+        if self._latest_odom is None:
+            return
+        self.SLAM_callback(feature_msg, self._latest_odom)
 
     @add_lock
     def SLAM_callback(self, feature_msg:PointCloud2, odom_msg:Odometry)->None:

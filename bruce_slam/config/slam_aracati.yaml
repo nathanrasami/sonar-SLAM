@@ -1,5 +1,5 @@
 keyframe_duration: 1.0
-keyframe_translation: 3.0
+keyframe_translation: 1.0
 keyframe_rotation: deg(30)
 
 prior_sigmas: [0.1, 0.1, 0.01]
