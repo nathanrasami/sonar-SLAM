@@ -18,11 +18,11 @@ ssm:
   target_frames: 3
 
 nssm:
-  enable: False
+  enable: True
   min_st_sep: 8
-  min_points: 50
-  max_translation: 10.0
-  max_rotation: deg(60)
+  min_points: 30
+  max_translation: 8.0
+  max_rotation: deg(45)
   source_frames: 5
   cov_samples: 30
 
