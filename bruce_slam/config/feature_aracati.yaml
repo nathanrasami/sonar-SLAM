@@ -11,7 +11,7 @@ filter:
   resolution: 0.5
   radius: 1.0
   min_points: 5
-  skip: 5
+  skip: 1
 
 visualization:
   coordinates: 'cartesian'
