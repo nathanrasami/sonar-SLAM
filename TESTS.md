@@ -498,10 +498,10 @@ Test avec le loop closure NSSM réactivé. Archivé dans
 | `slam_aracati.yaml` | **nssm enable** | **True** |
 | `slam_aracati.yaml` | nssm min_st_sep | 8 |
 | `slam_aracati.yaml` | nssm min_points | 100 |
-| `slam_aracati.yaml` | nssm max_translation | 8.0 m |
-| `slam_aracati.yaml` | nssm max_rotation | deg(45) |
+| `slam_aracati.yaml` | nssm max_translation | 5.0 m |
+| `slam_aracati.yaml` | nssm max_rotation | deg(30) |
 | `slam_aracati.yaml` | nssm source_frames | 5 |
-| `slam_aracati.yaml` | min_pcm | 4 |
+| `slam_aracati.yaml` | min_pcm | 6 |
 | (ssm reste off, reste identique au run NSSM off) | | |
 
 ### Résultats
@@ -530,3 +530,48 @@ Test avec le loop closure NSSM réactivé. Archivé dans
 et seulement de l'overhead. C'est exactement le problème que **Sonar Context** (ICRA 2023)
 résout — détection de lieu robuste sans ICP, testée sur Aracati2017. Confirme la pertinence
 de l'intégrer dans le NSSM.
+
+---
+
+## Run DISO + Bruce_SLAM — NSSM ON, params relâchés (2026-06-04)
+
+Re-run NSSM on avec des seuils **plus permissifs** que le run précédent, pour tenter de
+déclencher des loop closures. Commit : `Run NSSM on, min_points 100 max_translation 8,
+max_rotation 45, min_pcm 4`. Archivé dans
+`TESTS_image/run_diso_bruce_2026-06-04_nssm_on_ate5.5/`.
+
+### Configuration
+
+| Fichier | Paramètre | Run précédent (6.2 m) | Ce run (5.5 m) |
+|---------|-----------|-----------------------|----------------|
+| `slam_aracati.yaml` | nssm min_points | 100 | 100 |
+| `slam_aracati.yaml` | nssm max_translation | 5.0 m | **8.0 m** |
+| `slam_aracati.yaml` | nssm max_rotation | deg(30) | **deg(45)** |
+| `slam_aracati.yaml` | min_pcm | 6 | **4** |
+
+Seuils relâchés (zone de recherche plus large, moins de votes PCM requis) = conditions
+plus favorables à la détection de boucle.
+
+### Résultats
+
+![Trajectoires NSSM ON params relâchés](TESTS_image/run_diso_bruce_2026-06-04_nssm_on_ate5.5/trajectory_plot.png)
+
+| Run NSSM on | max_trans / max_rot / min_pcm | ATE Bruce | Loop closures | N kf | Trous > 30s |
+|-------------|-------------------------------|-----------|---------------|------|-------------|
+| #1 (strict) | 5.0 / 30° / 6 | 6.2 m | 0 | 569 | 2 |
+| #2 (relâché) | 8.0 / 45° / 4 | **5.5 m** | **0** | 579 | 1 |
+
+### Observations
+
+- **Même en relâchant les seuils, 0 loop closure** détecté → NSSM natif confirmé inopérant
+  quels que soient les paramètres testés.
+- ATE 5.5 m (relâché) vs 6.2 m (strict) : la légère amélioration vient surtout du nombre de
+  trous (1 vs 2), pas du NSSM (toujours 0 boucle).
+- Reste au-dessus de DISO standalone (3.0 m).
+
+### Conclusion
+
+Le NSSM natif ne trouve **aucune boucle sur Aracati2017, ni avec des seuils stricts ni
+relâchés**. Le problème n'est pas le réglage mais la méthode de détection elle-même
+(features + ICP, inadaptée au sonar BlueView). C'est exactement ce que **Sonar Context**
+(ICRA 2023) corrige.

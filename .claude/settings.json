@@ -12,7 +12,8 @@
       "Bash(MPLBACKEND=Agg python3 analyze_drift.py)",
       "Read(//home/nathanrasami/**)",
       "Bash(git lfs *)",
-      "Bash(grep -vE \"^\\\\s*#|^\\\\s*$\" bruce_slam/config/feature_aracati.yaml)"
+      "Bash(grep -vE \"^\\\\s*#|^\\\\s*$\" bruce_slam/config/feature_aracati.yaml)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

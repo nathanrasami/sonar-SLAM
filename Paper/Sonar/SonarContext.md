@@ -170,12 +170,33 @@ Descripteur global **SONAR Context** pour place recognition robuste :
 | Module Bruce_SLAM | Actuellement | Apport de ce papier |
 |-------------------|--------------|---------------------|
 | Front-end odométrie | DISO (remplace SSM/ICP) | — |
-| **Place recognition / loop closure (NSSM)** | **désactivé** (faux loop closures, divergence) | **SONAR Context** = détection de boucles robuste |
+| **Place recognition / loop closure (NSSM)** | **inopérant** (0 boucle détectée) | **SONAR Context** = détection de boucles robuste |
 | Back-end | iSAM2 | — |
 
-**Pertinence directe :** mon NSSM (loop closure) est désactivé car il génère de fausses boucles sur Aracati. Ce papier propose exactement une **meilleure détection de loop closure** (SONAR Context + adaptive shifting), testée sur Aracati2017. C'est une **amélioration d'un module existant** de Bruce_SLAM, pas un remplacement complet → conforme à mon objectif.
+**Pertinence directe :** ce papier propose exactement une **meilleure détection de loop closure**
+(SONAR Context + adaptive shifting), testée sur Aracati2017. C'est une **amélioration d'un
+module existant** de Bruce_SLAM, pas un remplacement complet → conforme à mon objectif.
 
-**Prochaine étape possible :** remplacer la détection de boucles features+ICP du NSSM par SONAR Context, puis réactiver le NSSM.
+### Motivation expérimentale (mes runs sur Aracati2017)
+
+J'ai mesuré que le NSSM natif de Bruce_SLAM (détection par features + ICP) est **inopérant**
+sur ce dataset — il ne trouve **aucune boucle**, quels que soient les paramètres :
+
+| Run DISO + Bruce_SLAM | ATE (Umeyama) | Loop closures |
+|-----------------------|---------------|---------------|
+| NSSM off | 5.4 m | 0 |
+| NSSM on, seuils stricts (max_trans 5, rot 30°, pcm 6) | 6.2 m | **0** |
+| NSSM on, seuils relâchés (max_trans 8, rot 45°, pcm 4) | 5.5 m | **0** |
+| *(référence)* DISO standalone | 3.0 m | — |
+
+→ Le problème n'est pas le **réglage** mais la **méthode de détection** : les features + ICP
+sont inadaptés aux images sonar BlueView basse résolution. C'est précisément le constat de ce
+papier (cf. Fig. 4 : AKAZE/features très mauvais sous l'eau), et SONAR Context y répond sans
+ICP ni features locales.
+
+**Prochaine étape :** remplacer la détection de boucles features+ICP du NSSM par SONAR Context,
+puis réactiver le NSSM → on attend alors un ATE Bruce **inférieur** à DISO standalone (le loop
+closure corrige enfin la dérive).
 
 ---
 
