@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
@@ -12,34 +13,38 @@ diso_path = os.path.join(results_dir, "diso_trajectory.csv")
 
 fig, ax = plt.subplots(figsize=(10, 8))
 
-tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
+s_b = R_b = t_b = None  # transfo Bruce, réutilisée pour le point cloud
 
 if os.path.exists(gt_path):
     gt = pd.read_csv(gt_path)
-    gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()
-    offset_x = gx[0] - tx[0]
-    offset_y = gy[0] - (-ty[0])
-    tx, ty = tx + offset_x, -ty + offset_y
-    idx = np.round(np.linspace(0, len(gx)-1, len(tx))).astype(int)
-    ate = np.sqrt(np.mean((tx - gx[idx])**2 + (ty - gy[idx])**2))
+    gx, gy = gt["x"].to_numpy(), gt["y"].to_numpy()  # GT natif
+    # Alignement Bruce → GT : association temporelle + Umeyama (sans flip)
+    src_b = traj[["x", "y"]].to_numpy()
+    gt_b = associer_par_temps(traj["time"], gt["time"], gt["x"], gt["y"])
+    s_b, R_b, t_b = umeyama(src_b, gt_b)
+    est_b = appliquer(s_b, R_b, t_b, src_b)
+    tx, ty = est_b[:, 0], est_b[:, 1]
+    ate = calculer_ate(est_b, gt_b)
     ax.plot(gx, gy, label="Ground truth (GPS)", color="red", linestyle="--")
     ax.plot(gx[0], gy[0], marker="*", color="red", markersize=14)
     ax.plot(gx[-1], gy[-1], marker="X", color="red", markersize=12)
 else:
     print("groundtruth.csv not found — run simulation with /pose_gt topic active")
+    tx, ty = traj["x"].to_numpy(), traj["y"].to_numpy()
     ate = None
 
 # DISO standalone as odometry reference
 if os.path.exists(diso_path):
     diso = pd.read_csv(diso_path)
-    ox, oy = diso["x"].to_numpy(), diso["y"].to_numpy()
-    oy = -oy
     if os.path.exists(gt_path):
-        ox = ox + (gx[0] - ox[0])
-        oy = oy + (gy[0] - oy[0])
-        idx_d = np.round(np.linspace(0, len(gx)-1, len(ox))).astype(int)
-        ate_diso = np.sqrt(np.mean((ox - gx[idx_d])**2 + (oy - gy[idx_d])**2))
+        src_d = diso[["x", "y"]].to_numpy()
+        gt_d = associer_par_temps(diso["time"], gt["time"], gt["x"], gt["y"])
+        s_d, R_d, t_d = umeyama(src_d, gt_d)
+        est_d = appliquer(s_d, R_d, t_d, src_d)
+        ox, oy = est_d[:, 0], est_d[:, 1]
+        ate_diso = calculer_ate(est_d, gt_d)
     else:
+        ox, oy = diso["x"].to_numpy(), diso["y"].to_numpy()
         ate_diso = None
     diso_label = f"DISO standalone (ATE={ate_diso:.1f} m)" if ate_diso is not None else "DISO standalone"
     ax.plot(ox, oy, label=diso_label, color="steelblue", linestyle=":", linewidth=2.0)
@@ -70,9 +75,11 @@ print(f"Saved to {out}")
 cloud_path = os.path.join(results_dir, "pointcloud.csv")
 if os.path.exists(cloud_path):
     cloud = pd.read_csv(cloud_path)
+    cxy = cloud[["x", "y"]].to_numpy()
+    if R_b is not None:  # même transfo que la trajectoire Bruce
+        cxy = appliquer(s_b, R_b, t_b, cxy)
     fig2, ax2 = plt.subplots(figsize=(10, 8))
-    ax2.scatter(cloud["x"].to_numpy(), cloud["y"].to_numpy(),
-                s=0.5, c="navy", alpha=0.3)
+    ax2.scatter(cxy[:, 0], cxy[:, 1], s=0.5, c="navy", alpha=0.3)
     ax2.set_xlabel("x (m)")
     ax2.set_ylabel("y (m)")
     ax2.set_title("Point cloud map (accumulated sonar points)")
