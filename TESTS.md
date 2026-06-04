@@ -399,3 +399,87 @@ DISO comme source d'odométrie sonar, back-end iSAM2 de Bruce_SLAM. SSM (ICP) d�
 ### Conclusion
 
 **Sans NSSM, DISO+Bruce_SLAM est nettement pire que DISO standalone (29.9 m vs 6.5 m).** iSAM2 sans loop closure ne fait que propager les erreurs avec overhead supplémentaire (latence bridge, désynchronisation temporelle possible). Le gain réel de Bruce_SLAM viendra quand NSSM sera réactivé avec Sonar Context pour corriger la dérive globale.
+
+> ⚠️ Note rétrospective : les ATE 29.9 m / 6.5 m de cette section ont été calculés avec
+> l'ancienne méthode d'alignement (flip Y manuel + association `linspace`), peu fiable.
+> Voir la section suivante pour la méthode d'évaluation robuste (Umeyama + interpolation
+> temporelle) et des valeurs correctes.
+
+---
+
+## Méthode d'évaluation ATE — passage à Umeyama (2026-06-04)
+
+L'ancien alignement (flip Y hardcodé + rotation par centroïde + association des points par
+`np.linspace`) était fragile : un simple décalage en X faussait l'ATE, et le flip Y devait
+être géré à la main.
+
+**Nouvelle méthode (standard TUM/evo)** implémentée dans `traj_eval.py` :
+1. **Association temporelle** par interpolation sur la colonne `time` → compare chaque pose
+   estimée à la pose GT au même instant (résout les tailles différentes : DISO ~14k poses,
+   Bruce ~600 keyframes, GT ~14k).
+2. **Alignement rigide Umeyama** (SVD) → trouve rotation + translation optimales et **absorbe
+   automatiquement la réflexion Y** (det R = -1) → plus aucun flip manuel.
+3. **Sans échelle** (s=1) → ATE métrique honnête en mètres.
+
+Fait confirmé : `corr(diso_y, gt_y) = -0.95` → l'axe Y de DISO est l'opposé du GT (réflexion
+physique du repère, pas un bug). Umeyama la gère seul.
+
+`analyze_diso.py` et `analyze_drift.py` utilisent désormais ce module partagé.
+
+---
+
+## Run DISO + Bruce_SLAM — config affinée, ATE Umeyama (2026-06-04)
+
+Run propre (aucun saut/trou temporel, contrairement aux runs précédents avec paramètres
+NSSM trop conservateurs). Archivé dans `TESTS_image/run_diso_bruce_2026-06-04_ate5.4/`
+(CSV + PNG).
+
+### Configuration complète
+
+| Fichier | Paramètre | Valeur |
+|---------|-----------|--------|
+| `slam_aracati.yaml` | keyframe_duration | 1.0 s |
+| `slam_aracati.yaml` | **keyframe_translation** | **1.0 m** (était 3.0 → plus de keyframes) |
+| `slam_aracati.yaml` | keyframe_rotation | deg(30) |
+| `slam_aracati.yaml` | prior_sigmas | [0.1, 0.1, 0.01] |
+| `slam_aracati.yaml` | odom_sigmas | [0.5, 0.5, 0.05] |
+| `slam_aracati.yaml` | icp_odom_sigmas | [0.1, 0.1, 0.01] |
+| `slam_aracati.yaml` | point_resolution | 0.5 |
+| `slam_aracati.yaml` | **ssm enable** | **False** (DISO remplace ICP) |
+| `slam_aracati.yaml` | **nssm enable** | **False** |
+| `slam_aracati.yaml` | min_pcm | 4 |
+| `slam_aracati.yaml` | pz_detection_rate | 0.3 |
+| `feature_aracati.yaml` | CFAR Pfa | 0.1 |
+| `feature_aracati.yaml` | CFAR alg | SOCA (Ntc=40, Ngc=10, rank=10) |
+| `feature_aracati.yaml` | threshold | 30 |
+| `feature_aracati.yaml` | resolution | 0.5 |
+| `feature_aracati.yaml` | radius / min_points | 1.0 / 5 |
+| `feature_aracati.yaml` | skip | 5 |
+| `feature_aracati.yaml` | cartesian_mode | True (FOV 130°, max_range 50 m) |
+| `odom_bridge.py` | covariance | 0.1 (position), 0.05 (rotation) |
+| `config_aracati2017.yaml` (DISO) | Tbs | identité |
+| `config_aracati2017.yaml` (DISO) | OdomTopic / SonarTopic | /pose_gt / /son |
+
+### Résultats
+
+![Trajectoires DISO + Bruce_SLAM](TESTS_image/run_diso_bruce_2026-06-04_ate5.4/trajectory_plot.png)
+
+| Trajectoire | ATE (Umeyama, sans échelle) | N points |
+|-------------|-----------------------------|----------|
+| DISO standalone | **3.0 m** | ~14 400 |
+| DISO + Bruce_SLAM (iSAM2, sans loop closure) | **5.4 m** | 619 keyframes |
+
+### Observations
+
+- Run propre : 619 keyframes, dt max 23 s, **aucun trou temporel** (les sauts des runs
+  précédents venaient des paramètres NSSM conservateurs, maintenant remis à la config de base).
+- Bruce suit visuellement bien la forme du GT.
+- DISO standalone (3.0 m) reste meilleur que DISO+Bruce (5.4 m) car sans loop closure
+  iSAM2 ne corrige pas — il propage les poses DISO avec l'overhead du bridge.
+
+### Conclusion
+
+Le pipeline tourne proprement et l'évaluation est maintenant fiable (Umeyama). Tant que NSSM
+est désactivé, Bruce_SLAM n'apporte pas de gain sur DISO. Prochaine étape : intégrer Sonar
+Context dans le NSSM pour activer le loop closure et faire descendre l'ATE Bruce sous celui
+de DISO.
