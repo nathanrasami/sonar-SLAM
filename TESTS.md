@@ -483,3 +483,50 @@ Le pipeline tourne proprement et l'évaluation est maintenant fiable (Umeyama). 
 est désactivé, Bruce_SLAM n'apporte pas de gain sur DISO. Prochaine étape : intégrer Sonar
 Context dans le NSSM pour activer le loop closure et faire descendre l'ATE Bruce sous celui
 de DISO.
+
+---
+
+## Run DISO + Bruce_SLAM — NSSM ON (2026-06-04)
+
+Test avec le loop closure NSSM réactivé. Archivé dans
+`TESTS_image/run_diso_bruce_2026-06-04_nssm_on_ate6.2/`.
+
+### Configuration (différences vs run NSSM off précédent)
+
+| Fichier | Paramètre | Valeur |
+|---------|-----------|--------|
+| `slam_aracati.yaml` | **nssm enable** | **True** |
+| `slam_aracati.yaml` | nssm min_st_sep | 8 |
+| `slam_aracati.yaml` | nssm min_points | 100 |
+| `slam_aracati.yaml` | nssm max_translation | 8.0 m |
+| `slam_aracati.yaml` | nssm max_rotation | deg(45) |
+| `slam_aracati.yaml` | nssm source_frames | 5 |
+| `slam_aracati.yaml` | min_pcm | 4 |
+| (ssm reste off, reste identique au run NSSM off) | | |
+
+### Résultats
+
+![Trajectoires NSSM ON](TESTS_image/run_diso_bruce_2026-06-04_nssm_on_ate6.2/trajectory_plot.png)
+
+| Run | ATE Bruce | Loop closures (nssm_constraints) | N keyframes | Trous > 30s |
+|-----|-----------|----------------------------------|-------------|-------------|
+| NSSM **off** | 5.4 m | 0 | 619 | 0 |
+| NSSM **on** | **6.2 m** | **0** | 569 | 2 |
+| DISO standalone | 3.0 m | — | — | — |
+
+### Observations
+
+- **NSSM n'a détecté AUCUN loop closure** (0 constraints) malgré son activation.
+- L'ATE est légèrement pire (6.2 m vs 5.4 m), pas meilleur. Causes probables :
+  - 2 trous temporels (dt max 32.9 s) dans ce run alors que le run NSSM off n'en avait aucun.
+  - Overhead du NSSM (recherche de candidats + ICP de vérification) sans aucun bénéfice
+    puisque 0 boucle trouvée.
+  - Variance run-to-run (timing temps réel différent).
+
+### Conclusion
+
+**Le NSSM natif de Bruce_SLAM est inopérant sur Aracati2017** : sa détection de boucle
+(features + ICP) ne trouve aucune correspondance sur les scans BlueView, donc 0 correction
+et seulement de l'overhead. C'est exactement le problème que **Sonar Context** (ICRA 2023)
+résout — détection de lieu robuste sans ICP, testée sur Aracati2017. Confirme la pertinence
+de l'intégrer dans le NSSM.
