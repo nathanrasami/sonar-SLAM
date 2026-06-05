@@ -575,3 +575,62 @@ Le NSSM natif ne trouve **aucune boucle sur Aracati2017, ni avec des seuils stri
 relâchés**. Le problème n'est pas le réglage mais la méthode de détection elle-même
 (features + ICP, inadaptée au sonar BlueView). C'est exactement ce que **Sonar Context**
 (ICRA 2023) corrige.
+
+> ⚠️ **Correction (voir run suivant)** : cette conclusion était ERRONÉE. Le vrai problème
+> n'était pas la méthode NSSM mais le paramètre `skip: 5` qui rendait 69 % des keyframes
+> vides (pas de features → rien à matcher). Avec `skip: 1`, le NSSM trouve bien des boucles.
+
+---
+
+## Run DISO + Bruce_SLAM — skip=1, NSSM trouve des boucles ! (2026-06-05)
+
+**Découverte majeure.** Le paramètre `skip: 5` de `feature_aracati.yaml` ne traitait qu'1 scan
+sonar sur 5 → 69 % des keyframes étaient vides → le NSSM n'avait aucune feature à matcher → 0
+boucle. En passant à **`skip: 1`**, tous les scans sont traités, les keyframes ne sont plus
+vides, et le NSSM **détecte enfin des loop closures**.
+
+### Configuration
+
+| Fichier | Paramètre | Valeur |
+|---------|-----------|--------|
+| `feature_aracati.yaml` | **skip** | **1** (était 5) |
+| `feature_aracati.yaml` | threshold | 30 |
+| `slam_aracati.yaml` | ssm enable | False |
+| `slam_aracati.yaml` | nssm enable | True |
+| `slam_aracati.yaml` | nssm min_points | 30 |
+| `slam_aracati.yaml` | nssm max_translation | 8.0 m |
+| `slam_aracati.yaml` | nssm max_rotation | deg(45) |
+| `slam_aracati.yaml` | nssm source_frames | 5 |
+
+### Résultats
+
+![Trajectoires skip=1 NSSM](TESTS_image/run_diso_bruce_2026-06-05_skip1_nssm8loops_ate11.3/trajectory_plot.png)
+
+| Métrique | Runs précédents (skip=5) | Ce run (skip=1) |
+|----------|--------------------------|-----------------|
+| Keyframes vides | 69 % | **0 %** |
+| **Loop closures NSSM** | **0** | **8** |
+| N keyframes | ~570 | 551 |
+| ATE Bruce | 5.4–6.2 m | 11.3 m |
+| ATE DISO standalone | 3.0 m | 3.0 m |
+
+### Observations
+
+- **Le NSSM fonctionne** : 8 loop closures détectées (vs 0 avant). Le diagnostic « features+ICP
+  inadaptés » était faux — il manquait juste des features (cause : `skip: 5`).
+- **Comportement de la trajectoire** (qualitatif) :
+  - **Départ erroné** : très mauvaise initialisation (Bruce part vers y ≈ -60, loin du GT).
+  - **Milieu** : se recalibre progressivement grâce aux loop closures détectées.
+  - **Fin** : trajectoire bien alignée sur le GT.
+- L'**ATE global (11.3 m) est élevé à cause du mauvais départ**, pas du loop closure (qui
+  améliore au contraire la fin). Le RMSE est dominé par l'erreur d'initialisation.
+- 2 trous temporels subsistent (dt max 34.8 s).
+
+### Conclusion
+
+`skip: 1` débloque le NSSM natif (0 → 8 boucles). Le loop closure recale bien la trajectoire en
+cours de route. **Deux problèmes restants** : (1) la mauvaise initialisation de départ qui plombe
+l'ATE, (2) seulement 8 boucles, dont l'effet reste limité. C'est là que **Sonar Context**
+apportera plus : une détection de boucle plus dense et robuste → recalage plus précoce et plus
+fort. Prochaine étape : investiguer l'init de départ, puis tester d'autres seuils NSSM
+maintenant que les features sont disponibles.

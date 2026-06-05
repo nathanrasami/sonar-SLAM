@@ -13,7 +13,28 @@
       "Read(//home/nathanrasami/**)",
       "Bash(git lfs *)",
       "Bash(grep -vE \"^\\\\s*#|^\\\\s*$\" bruce_slam/config/feature_aracati.yaml)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(git ls-remote *)",
+      "Bash(gh auth *)",
+      "Bash(timeout 12 ssh -T -o StrictHostKeyChecking=accept-new -p 443 git@ssh.github.com)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"Contenu actuel du credential store \\(masqué\\) :\" *)",
+      "Bash(timeout 10 curl -sS -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" https://github.com)",
+      "Bash(timeout 10 curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://api.github.com)",
+      "Bash(timeout 10 curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://api.githubcopilot.com)",
+      "Bash(getent hosts *)",
+      "Bash(timeout 8 curl -sS -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" https://www.google.com)",
+      "Bash(timeout 8 curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://gitlab.univ-nantes.fr)",
+      "Bash(timeout 8 curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" --resolve github.com:443:140.82.121.3 https://github.com)",
+      "Bash(timeout 32 curl -sS -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" --connect-timeout 30 https://github.com)",
+      "Bash(ip -brief addr)",
+      "Bash(VBoxManage list *)",
+      "Bash(virsh list *)",
+      "Bash(systemctl is-active *)",
+      "Bash(ip addr *)"
+    ],
+    "additionalDirectories": [
+      "/home/nathanrasami"
     ]
   }
 }
