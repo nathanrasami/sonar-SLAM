@@ -8,10 +8,10 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  threshold: 30
-  resolution: 0.3
+  threshold: 80
+  resolution: 0.5
   radius: 1.0
-  min_points: 5
+  min_points: 10
   skip: 1
 
 visualization:
