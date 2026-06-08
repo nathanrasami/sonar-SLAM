@@ -179,24 +179,42 @@ module existant** de Bruce_SLAM, pas un remplacement complet → conforme à mon
 
 ### Motivation expérimentale (mes runs sur Aracati2017)
 
-J'ai mesuré que le NSSM natif de Bruce_SLAM (détection par features + ICP) est **inopérant**
-sur ce dataset — il ne trouve **aucune boucle**, quels que soient les paramètres :
+J'ai testé le NSSM natif de Bruce_SLAM (détection par features + ICP) sur ce dataset. Le
+diagnostic s'est fait en deux temps.
+
+**1. Le NSSM était d'abord affamé de features.** Avec le paramètre `skip: 5` (1 scan sonar
+traité sur 5), 69 % des keyframes étaient vides → le NSSM ne trouvait **aucune boucle** :
 
 | Run DISO + Bruce_SLAM | ATE (Umeyama) | Loop closures |
 |-----------------------|---------------|---------------|
 | NSSM off | 5.4 m | 0 |
-| NSSM on, seuils stricts (max_trans 5, rot 30°, pcm 6) | 6.2 m | **0** |
-| NSSM on, seuils relâchés (max_trans 8, rot 45°, pcm 4) | 5.5 m | **0** |
-| *(référence)* DISO standalone | 3.0 m | — |
+| NSSM on, seuils stricts | 6.2 m | 0 |
+| NSSM on, seuils relâchés | 5.5 m | 0 |
 
-→ Le problème n'est pas le **réglage** mais la **méthode de détection** : les features + ICP
-sont inadaptés aux images sonar BlueView basse résolution. C'est précisément le constat de ce
-papier (cf. Fig. 4 : AKAZE/features très mauvais sous l'eau), et SONAR Context y répond sans
-ICP ni features locales.
+**2. En passant à `skip: 1` (tous les scans traités), le NSSM détecte enfin des boucles —
+mais elles sont FAUSSES.** Mesuré via la corrélation de forme avec le GT :
+
+| Trajectoire | corr_y avec GT | Loop closures | ATE |
+|-------------|----------------|---------------|-----|
+| DISO standalone | -0.99 | — | **3.0 m** |
+| Bruce AVANT correction NSSM | -0.88 | — | — |
+| Bruce APRÈS 8 boucles (min_pcm 4) | **-0.12 (forme cassée)** | 8 | 11.3 m |
+| Bruce, boucles filtrées (min_pcm 6) | -0.98 (forme OK) | 0 | **5.2 m** |
+
+→ Les boucles proposées par le NSSM natif **dégradent** la trajectoire (corr_y -0.88 → -0.12).
+Soit on les garde (forme cassée, ATE 11.3 m), soit on les filtre par PCM (0 boucle, ATE 5.2 m
+mais aucun gain de loop closure). **Dans les deux cas, aucun bénéfice réel.**
+
+Le problème n'est donc pas le réglage ni la quantité de features, mais la **qualité de la
+détection** : features + ICP produisent de fausses correspondances sur les images sonar
+BlueView basse résolution. C'est précisément le constat de ce papier (Fig. 4 : AKAZE/features
+très mauvais sous l'eau), et SONAR Context y répond sans ICP ni features locales.
+
+**Baseline à battre : ATE 5.2 m** (skip=1, min_pcm=6, 0 fausse boucle).
 
 **Prochaine étape :** remplacer la détection de boucles features+ICP du NSSM par SONAR Context,
-puis réactiver le NSSM → on attend alors un ATE Bruce **inférieur** à DISO standalone (le loop
-closure corrige enfin la dérive).
+puis réactiver le NSSM → on attend de **vraies** boucles robustes (validables par PCM) et un
+ATE Bruce **inférieur** à DISO standalone (le loop closure corrige enfin la dérive).
 
 ---
 

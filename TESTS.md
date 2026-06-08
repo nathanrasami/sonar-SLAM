@@ -634,3 +634,65 @@ l'ATE, (2) seulement 8 boucles, dont l'effet reste limité. C'est là que **Sona
 apportera plus : une détection de boucle plus dense et robuste → recalage plus précoce et plus
 fort. Prochaine étape : investiguer l'init de départ, puis tester d'autres seuils NSSM
 maintenant que les features sont disponibles.
+
+### Analyse approfondie du run skip=1 (les 8 boucles sont FAUSSES)
+
+En analysant la forme de la trajectoire (corrélation avec le GT) :
+
+| Trajectoire | corr_x | corr_y | Forme |
+|-------------|--------|--------|-------|
+| DISO standalone | +0.99 | -0.99 | excellente |
+| Bruce `dr_` (DISO via bridge, AVANT NSSM) | +0.99 | **-0.88** | bonne |
+| Bruce `x/y` (APRÈS les 8 boucles NSSM) | -0.80 | **-0.12** | **cassée** |
+
+→ Le NSSM **dégrade** la trajectoire : avant correction la forme est bonne (-0.88), après les 8
+boucles elle est cassée (-0.12). Les 8 loop closures (toutes groupées kf 49-65) sont donc
+**fausses / mal contraintes** : elles tordent la trajectoire au lieu de la corriger. Le
+« départ à y=-60 » du plot est un artefact d'alignement Umeyama causé par cette déformation
+globale, pas une vraie erreur d'initialisation du SLAM (kf0 brut = (0,0) = correct).
+
+---
+
+## Run DISO + Bruce_SLAM — skip=1, min_pcm=6 : fausses boucles filtrées (2026-06-05)
+
+Suite du diagnostic : les 8 boucles du run précédent étant fausses, on durcit le filtre PCM
+(Pairwise Consistency Maximization) de `min_pcm: 4` à **`min_pcm: 6`** pour les rejeter.
+
+### Configuration
+
+| Fichier | Paramètre | Valeur |
+|---------|-----------|--------|
+| `feature_aracati.yaml` | skip | 1 |
+| `slam_aracati.yaml` | nssm enable | True |
+| `slam_aracati.yaml` | nssm min_points | 30 |
+| `slam_aracati.yaml` | nssm max_translation | 8.0 m |
+| `slam_aracati.yaml` | nssm max_rotation | deg(45) |
+| `slam_aracati.yaml` | **min_pcm** | **6** (était 4) |
+
+### Résultats
+
+![Trajectoires skip=1 min_pcm=6](TESTS_image/run_2026-06-05_skip1_minpcm6_ate5.2/trajectory_plot.png)
+
+| Métrique | min_pcm=4 | **min_pcm=6** |
+|----------|-----------|---------------|
+| Loop closures | 8 (fausses) | **0** |
+| corr_y avant NSSM | -0.88 | -0.98 |
+| corr_y après NSSM | -0.12 (cassée) | **-0.98 (préservée)** |
+| ATE Bruce | 11.3 m | **5.2 m** |
+| Trous > 30 s | 2 | **0** |
+
+### Observations
+
+- `min_pcm: 6` **rejette les 8 fausses boucles** → la forme de la trajectoire est préservée
+  (corr_y reste -0.98) → ATE divisé par ~2 (11.3 → 5.2 m). Run parfaitement propre (0 trou).
+- Conséquence : retour à **0 loop closure**. Le PCM filtre TOUT car les 8 boucles étaient
+  toutes fausses ; il n'y a aucune vraie boucle à valider.
+
+### Conclusion
+
+Le NSSM natif sur Aracati2017 ne propose que des **fausses boucles** : soit on les garde
+(min_pcm 4 → trajectoire cassée, ATE 11.3 m), soit on les filtre (min_pcm 6 → 0 boucle, ATE
+5.2 m mais aucun gain de loop closure). Dans les deux cas, **aucun bénéfice réel du loop
+closure**. C'est l'argument définitif pour **Sonar Context** : une détection de lieu qui
+propose de *vraies* boucles robustes, validables par le PCM. Le meilleur réglage actuel
+(min_pcm 6, ATE 5.2 m) sert de **baseline** à battre avec Sonar Context.
