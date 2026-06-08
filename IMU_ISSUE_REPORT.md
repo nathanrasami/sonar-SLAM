@@ -42,6 +42,12 @@ The DVL is fine — body-frame speed magnitude matches GT:
 - DVL mean speed: **1.92 m/s**
 - GT  mean speed: **1.89 m/s**
 
+**Timestamps are also fine** — every topic has a proper `header.stamp`, all
+synchronized and monotonic (IMU/DVL/GT at 500 Hz, sonar at 1 Hz, start=0.002 s,
+end=71.5 s, zero jitter). So time-correlation across sensors is not an issue.
+Note: stamps start near 0 (HoloOcean sim time), so play the bag with
+`rosbag play --clock` and `use_sim_time=true`.
+
 ## What I need in a new bag
 
 Either of these would unblock the DVL+IMU odometry:
