@@ -66,22 +66,22 @@ My DISO + Bruce_SLAM runs on Aracati2017:
 
 ---
 
-## Slide 6 — The full method at a glance (Fig. 3)
+## Slide 6 — The full method at a glance (Fig. 3)  [SKIM]
 
 The method "SONAR Context" = a 4-block pipeline:
 
-- **(A) Place Description** — encode the current image into descriptors *(my focus →)*
-- **(B) Place Recognition** — match against past places (adaptive shifting)
-- **(C) Point Processing** — clean point cloud for the loop ICP
-- **(D) Pose Graph SLAM** — ICP constraint + graph optimization
+- **(A) Place Description** — encode the current image into descriptors *(detailed →)*
+- **(B) Place Recognition** — match against past places (adaptive shifting) *(detailed →)*
+- **(C) Point Processing** — clean point cloud for the loop ICP *(skim)*
+- **(D) Pose Graph SLAM** — ICP constraint + graph optimization *(skim, I already have it)*
 
-> I'll zoom into **(A)**, the heart of the paper. (B), (C), (D) shown for context.
+> I'll detail the **detection** = blocks **(A) + (B)** — that's what I will change in my NSSM.
 
 *(Paper Fig. 3, full pipeline)*
 
 ---
 
-## Slide 7 — Block (A): two descriptors of one image
+## Slide 7 — Block (A): two descriptors of one image  [DETAILED]
 
 The raw sonar image (range × azimuth × intensity), encoded **without deep learning**, into
 **two complementary descriptors computed in parallel**:
@@ -98,30 +98,43 @@ The raw sonar image (range × azimuth × intensity), encoded **without deep lear
 
 ---
 
-## Slide 8 — Why two descriptors? (the 2-stage idea)
+## Slide 8 — Why two descriptors? (the 2-stage idea)  [DETAILED]
 
 - **Polar Key** → fast candidate search (KD-tree, 1D vectors)
 - **SONAR Context** → fine verification of the best candidate (2D matrix)
 - → **Fast AND precise**: scan many places cheaply, then confirm carefully
 
-**+ Adaptive Shifting** (brief): the 2D matrix is shifted in columns/rows to match the same
-place seen from a different angle (rotation/translation), with zero padding for the limited FOV.
-
-*(Paper Fig. 3, blocks A → B)*
+*(Paper Fig. 3, block A → B)*
 
 ---
 
-## Slide 9 — The other blocks (context, brief)
+## Slide 9 — Block (B): Adaptive Shifting  [DETAILED]
+
+**Problem**: the robot revisits a place from a **different angle / position** → the sonar image
+is shifted → a naive comparison fails to recognize it.
+
+**Solution — shift the SONAR Context matrix before comparing:**
+- **Bounded column shifting** → handles **rotation** (azimuth shift)
+- **Bounded row shifting** → handles **translation** (range shift)
+- **Zero padding** → handles the sonar's **limited FOV** (no circular wrap-around)
+- Comparison metric: **cosine distance**, minimized over all shifts
+
+**Bonus**: the best shift directly gives the **initial relative pose** for the loop ICP
+
+> This is what makes detection robust — and what plain features (AKAZE) cannot do underwater.
+
+---
+
+## Slide 10 — The other blocks (context, brief)  [SKIM]
 
 - **(C) Point Processing**: median filter + binarization → clean point cloud
-- **(B) Recognition**: KD-tree search → adaptive shifting → loop candidate
-- **(D) Pose Graph SLAM**: initial pose (from shifting) → **ICP** → loop closing → optimization
+- **(D) Pose Graph SLAM**: initial pose (from shifting) → **ICP** → loop closing → graph optimization
 
-> Blocks (C) and (D) already exist in my Bruce-SLAM. I only need to plug in (A)+(B).
+> Blocks (C) and (D) **already exist in my Bruce-SLAM**. I only need to plug in (A)+(B).
 
 ---
 
-## Slide 10 — Paper results (Aracati2017)
+## Slide 11 — Paper results (Aracati2017)
 
 - Robustness: ~40° rotation and 5 m translation at **80% precision**
 
@@ -136,7 +149,7 @@ place seen from a different angle (rotation/translation), with zero padding for 
 
 ---
 
-## Slide 11 — My plan & success criterion
+## Slide 12 — My plan & success criterion
 
 - **Keep DISO** as the odometry front-end (proven, ATE 3.0 m)
 - Replace the NSSM's **detection** (features+ICP) with **SONAR Context**
