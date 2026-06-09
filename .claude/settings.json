@@ -31,7 +31,12 @@
       "Bash(VBoxManage list *)",
       "Bash(virsh list *)",
       "Bash(systemctl is-active *)",
-      "Bash(ip addr *)"
+      "Bash(ip addr *)",
+      "Bash(python3 -c \"import rosbag; print\\('rosbag OK'\\)\")",
+      "Bash(python3 -c \"from rosbags.rosbag1 import Reader; print\\('rosbags OK'\\)\")",
+      "Bash(timeout 25 pip install --user rosbags)",
+      "Bash(MPLBACKEND=Agg python3 analyze_holoocean.py)",
+      "Bash(grep -vE \"^\\\\s*$\")"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"

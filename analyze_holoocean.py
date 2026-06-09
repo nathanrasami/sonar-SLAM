@@ -18,17 +18,24 @@ RESULTS_DIR  = os.environ.get("SLAM_RESULTS_DIR",
 
 # ── 1. Extract GT from bag ────────────────────────────────────────────────────
 def extract_gt(bag_path):
-    import rosbag
-    times, xs, ys, yaws = [], [], [], []
-    with rosbag.Bag(bag_path) as bag:
-        for _, msg, _ in bag.read_messages(topics=["/ground_truth"]):
-            t = msg.header.stamp.to_sec()
-            x = msg.pose.pose.position.x
-            y = msg.pose.pose.position.y
+    """Read /ground_truth from a ROS1 bag without needing ROS (uses rosbags lib).
+    Extracts x, y, z and full orientation (roll, pitch, yaw) for future 3D use."""
+    from rosbags.rosbag1 import Reader
+    from rosbags.typesys import Stores, get_typestore
+    ts = get_typestore(Stores.ROS1_NOETIC)
+    times, xs, ys, zs, rolls, pitches, yaws = [], [], [], [], [], [], []
+    with Reader(bag_path) as reader:
+        conns = [c for c in reader.connections if c.topic == "/ground_truth"]
+        for conn, _, raw in reader.messages(connections=conns):
+            msg = ts.deserialize_ros1(raw, conn.msgtype)
+            t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+            p = msg.pose.pose.position
             o = msg.pose.pose.orientation
-            yaw = Rotation.from_quat([o.x, o.y, o.z, o.w]).as_euler("xyz")[2]
-            times.append(t); xs.append(x); ys.append(y); yaws.append(yaw)
-    return pd.DataFrame({"time": times, "x": xs, "y": ys, "yaw": yaws})
+            r, pi, ya = Rotation.from_quat([o.x, o.y, o.z, o.w]).as_euler("xyz")
+            times.append(t); xs.append(p.x); ys.append(p.y); zs.append(p.z)
+            rolls.append(r); pitches.append(pi); yaws.append(ya)
+    return pd.DataFrame({"time": times, "x": xs, "y": ys, "z": zs,
+                         "roll": rolls, "pitch": pitches, "yaw": yaws})
 
 print("Extracting GT from bag...")
 gt = extract_gt(BAG_PATH)
