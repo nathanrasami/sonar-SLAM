@@ -4,15 +4,9 @@
     <group ns="bruce">
         <group ns="slam">
 
-            <!-- DVL TwistStamped -> TwistWithCovarianceStamped for robot_localization -->
-            <node pkg="bruce_slam" name="dvl_bridge" type="dvl_twist_cov_bridge.py" output="screen"/>
-
-            <!-- DVL+IMU EKF odometry -->
-            <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization"
-                  output="screen">
-                <rosparam command="load" file="$(find bruce_slam)/config/ekf_holoocean.yaml"/>
-                <remap from="odometry/filtered" to="/bruce/slam/localization/odom"/>
-            </node>
+            <!-- GT as odometry source (IMU is broken in current bag — see IMU_ISSUE_REPORT.md) -->
+            <node pkg="topic_tools" type="relay" name="gt_odom_relay"
+                  args="/ground_truth /bruce/slam/localization/odom" output="screen"/>
 
             <!-- HoloOcean polar sonar → OculusPingUncompressed -->
             <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
