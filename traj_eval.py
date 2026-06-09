@@ -11,9 +11,28 @@ def associer_par_temps(t_est, t_gt, x_gt, y_gt):
 
     Résout les tailles différentes (ex: DISO 14434, Bruce 189, GT 14436) et
     le sous-échantillonnage des keyframes. Retourne un tableau (N, 2).
-    Pré-requis : t_gt croissant (cas des timestamps Unix).
+    Pré-requis : t_est et t_gt dans la MÊME base de temps (toutes deux issues
+    du header.stamp du bag).
+
+    Garde-fou : si les deux plages temporelles ne se recouvrent pas (ex. une
+    trajectoire en temps simulation 0–71 s, une autre en temps Unix 2017),
+    np.interp clamperait silencieusement tous les points sur GT[0] → alignement
+    et ATE faux. On lève alors une erreur explicite plutôt que de produire un
+    résultat trompeur.
     """
     t_est = np.asarray(t_est, dtype=float)
+    t_gt = np.asarray(t_gt, dtype=float)
+    # Recouvrement temporel ? (au moins une fraction des temps estimés tombe
+    # dans la plage GT)
+    inside = (t_est >= t_gt.min()) & (t_est <= t_gt.max())
+    if inside.mean() < 0.5:
+        raise ValueError(
+            "Bases de temps incompatibles entre la trajectoire et la GT : "
+            f"t_est=[{t_est.min():.1f}, {t_est.max():.1f}] vs "
+            f"t_gt=[{t_gt.min():.1f}, {t_gt.max():.1f}]. "
+            "Les deux doivent venir du même run (même header.stamp du bag). "
+            "Vérifie que les CSV proviennent bien du MÊME run."
+        )
     gx = np.interp(t_est, t_gt, x_gt)
     gy = np.interp(t_est, t_gt, y_gt)
     return np.column_stack([gx, gy])

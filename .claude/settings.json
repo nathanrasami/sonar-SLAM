@@ -40,7 +40,19 @@
       "Bash(python3 sonar_context.py)",
       "Bash(python3 -m py_compile bruce_slam/src/bruce_slam/feature_extraction.py bruce_slam/src/bruce_slam/sonar_context.py bruce_slam/src/bruce_slam/utils/topics.py)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'Add HoloOcean IMU issue report + allowlist updates *)"
+      "Bash(git commit -q -m 'Add HoloOcean IMU issue report + allowlist updates *)",
+      "Bash(git checkout *)",
+      "Bash(git commit -q -m 'Sonar Context étape 1: descripteur + publication \\(feature_extraction\\) *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(git push *)",
+      "Bash(grep -nA8 \"def associer_par_temps\" traj_eval.py)",
+      "Bash(python3 -m py_compile traj_eval.py analyze_drift.py analyze_holoocean.py)",
+      "Bash(awk -F',' 'NR>1{print $2}' results/trajectory.csv)",
+      "Bash(git rm *)",
+      "Bash(chmod +x run_slam.sh)",
+      "Bash(python3 -m py_compile analyze_drift.py traj_eval.py bruce_slam/src/bruce_slam/slam_ros.py DISO/scripts/bruce_save.py)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"

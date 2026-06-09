@@ -64,6 +64,15 @@ def export():
         w.writerows(odom)
     rospy.loginfo("DISO odom saved: %d poses -> %s", len(odom), odom_path)
 
+    # odometry.csv : format simple (time, x, y), même nom que côté Bruce
+    # → les scripts d'analyse lisent le même fichier pour tous les runs
+    odom_simple_path = os.path.join(output_dir, "odometry.csv")
+    with open(odom_simple_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["time", "x", "y"])
+        w.writerows([(r[0], r[1], r[2]) for r in odom])
+    rospy.loginfo("Odometry (simple) saved: %d poses -> %s", len(odom), odom_simple_path)
+
     cloud_path = os.path.join(output_dir, "diso_pointcloud.csv")
     with open(cloud_path, "w", newline="") as f:
         w = csv.writer(f)

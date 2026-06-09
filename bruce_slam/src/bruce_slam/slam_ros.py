@@ -82,6 +82,9 @@ class SLAMNode(SLAM):
 
         #cache the latest odom message; feature callback uses it directly
         self._latest_odom = None
+        # accumule l'odométrie brute (= DISO sur Aracati) à pleine fréquence,
+        # même base de temps que le GT → exporté dans odometry.csv
+        self.odom_poses = []
         rospy.Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry, self._odom_cache_callback, queue_size=50)
         rospy.Subscriber(SONAR_FEATURE_TOPIC, PointCloud2, self._feature_callback, queue_size=50)
 
@@ -142,6 +145,10 @@ class SLAMNode(SLAM):
 
     def _odom_cache_callback(self, msg: Odometry) -> None:
         self._latest_odom = msg
+        # log de l'odométrie brute à pleine fréquence (même base de temps que GT)
+        self.odom_poses.append((msg.header.stamp.to_sec(),
+                                msg.pose.pose.position.x,
+                                msg.pose.pose.position.y))
 
     def _feature_callback(self, feature_msg: PointCloud2) -> None:
         if self._latest_odom is None:
@@ -428,3 +435,13 @@ class SLAMNode(SLAM):
                 for row in self.gt_poses:
                     writer.writerow(row)
             rospy.loginfo("Ground truth saved to %s", gt_path)
+
+        # --- Odometry CSV (odométrie brute = DISO sur Aracati, pleine fréquence) ---
+        if self.odom_poses:
+            odom_path = os.path.join(output_dir, "odometry.csv")
+            with open(odom_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["time", "x", "y"])
+                for row in self.odom_poses:
+                    writer.writerow(row)
+            rospy.loginfo("Odometry saved to %s", odom_path)
