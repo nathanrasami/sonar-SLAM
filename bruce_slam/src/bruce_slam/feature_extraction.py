@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import rospy
 from sensor_msgs.msg import PointCloud2, Image
+from std_msgs.msg import Float32MultiArray
 import cv_bridge
 import ros_numpy
 
@@ -12,6 +13,7 @@ from bruce_slam.utils.conversions import *
 from bruce_slam.utils.visualization import apply_custom_colormap
 #from bruce_slam.feature import FeatureExtraction
 from bruce_slam import pcl
+from bruce_slam.sonar_context import build_sonar_context, build_polar_key
 import matplotlib.pyplot as plt
 from sonar_oculus.msg import OculusPing, OculusPingUncompressed
 from sensor_msgs.msg import CompressedImage
@@ -127,6 +129,14 @@ class FeatureExtraction(object):
         else:
             self.sonar_sub = rospy.Subscriber(
                 SONAR_TOPIC_UNCOMPRESSED, OculusPingUncompressed, self.callback, queue_size=10)
+
+        # SONAR Context (place recognition) — descripteur calculé sur l'image
+        self.sonar_context_enable = rospy.get_param(ns + "sonar_context/enable", False)
+        self.sc_num_azimuth = rospy.get_param(ns + "sonar_context/num_azimuth", 40)
+        self.sc_num_range = rospy.get_param(ns + "sonar_context/num_range", 40)
+        if self.sonar_context_enable:
+            self.descriptor_pub = rospy.Publisher(
+                SONAR_DESCRIPTOR_TOPIC, Float32MultiArray, queue_size=10)
 
         #feature publish topic
         self.feature_pub = rospy.Publisher(
@@ -279,6 +289,13 @@ class FeatureExtraction(object):
         if img is None:
             return
 
+        # SONAR Context : descripteur de place recognition calculé sur l'image brute.
+        # Publié avec le MÊME header.stamp que les features → le SLAM les associe.
+        if self.sonar_context_enable:
+            ctx = build_sonar_context(img, self.sc_num_azimuth, self.sc_num_range)
+            pkey = build_polar_key(ctx)
+            self._publish_descriptor(msg.header, ctx, pkey)
+
         h, w = img.shape
         half_fov_rad = np.deg2rad(self.sonar_fov_deg / 2.0)
 
@@ -323,3 +340,21 @@ class FeatureExtraction(object):
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
         self.feature_pub.publish(feature_msg)
+
+    def _publish_descriptor(self, header, context, polar_key):
+        """Publie le descripteur SONAR Context dans un Float32MultiArray.
+
+        Float32MultiArray n'a pas de header → on encode le timestamp (sec, nsec)
+        en tête du tableau pour que le SLAM associe le descripteur au bon keyframe.
+        Format aplati : [sec, nsec, A, R, context.flatten() (A*R), polar_key (R)]
+        """
+        A, R = context.shape
+        flat = np.concatenate([
+            [float(header.stamp.secs), float(header.stamp.nsecs)],
+            [float(A), float(R)],
+            context.flatten().astype(np.float32),
+            polar_key.astype(np.float32),
+        ]).astype(np.float32)
+        msg = Float32MultiArray()
+        msg.data = flat.tolist()
+        self.descriptor_pub.publish(msg)

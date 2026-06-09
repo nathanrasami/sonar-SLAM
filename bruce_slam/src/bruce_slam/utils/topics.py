@@ -36,3 +36,4 @@ MAPPING_OCCUPANCY_TOPIC = SLAM_NS + "mapping/occupancy"
 MAPPING_GET_MAP_SERVICE = SLAM_NS + "mapping/get_map"
 SONAR_FEATURE_TOPIC = SLAM_NS + "feature_extraction/feature"
 SONAR_FEATURE_IMG_TOPIC = SLAM_NS + "feature_extraction/feature_img"
+SONAR_DESCRIPTOR_TOPIC = SLAM_NS + "feature_extraction/descriptor"  # SONAR Context + Polar Key

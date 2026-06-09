@@ -25,3 +25,9 @@ cartesian_mode: True
 cartesian:
   fov_deg: 130.0
   max_range: 50.0
+
+# SONAR Context (place recognition pour loop closure)
+sonar_context:
+  enable: True
+  num_azimuth: 40
+  num_range: 40
