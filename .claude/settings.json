@@ -36,7 +36,11 @@
       "Bash(python3 -c \"from rosbags.rosbag1 import Reader; print\\('rosbags OK'\\)\")",
       "Bash(timeout 25 pip install --user rosbags)",
       "Bash(MPLBACKEND=Agg python3 analyze_holoocean.py)",
-      "Bash(grep -vE \"^\\\\s*$\")"
+      "Bash(grep -vE \"^\\\\s*$\")",
+      "Bash(python3 sonar_context.py)",
+      "Bash(python3 -m py_compile bruce_slam/src/bruce_slam/feature_extraction.py bruce_slam/src/bruce_slam/sonar_context.py bruce_slam/src/bruce_slam/utils/topics.py)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Add HoloOcean IMU issue report + allowlist updates *)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
