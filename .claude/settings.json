@@ -52,7 +52,9 @@
       "Bash(awk -F',' 'NR>1{print $2}' results/trajectory.csv)",
       "Bash(git rm *)",
       "Bash(chmod +x run_slam.sh)",
-      "Bash(python3 -m py_compile analyze_drift.py traj_eval.py bruce_slam/src/bruce_slam/slam_ros.py DISO/scripts/bruce_save.py)"
+      "Bash(python3 -m py_compile analyze_drift.py traj_eval.py bruce_slam/src/bruce_slam/slam_ros.py DISO/scripts/bruce_save.py)",
+      "Bash(bash -n run_slam.sh)",
+      "Bash(git commit -q -m 'run_slam.sh: le mode diso joue aussi le rosbag \\(RViz vide sinon\\) *)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"

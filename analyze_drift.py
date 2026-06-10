@@ -7,7 +7,13 @@ from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
 
-traj = pd.read_csv(os.path.join(results_dir, "trajectory.csv"))
+traj_path = os.path.join(results_dir, "trajectory.csv")
+if not os.path.exists(traj_path):
+    print(f"trajectory.csv introuvable dans {results_dir}")
+    print("=> analyze_drift.py est pour Bruce-SLAM (trajectory.csv).")
+    print("   Pour un run DISO standalone, utilise: python3 analyze_diso.py")
+    exit(1)
+traj = pd.read_csv(traj_path)
 gt_path   = os.path.join(results_dir, "groundtruth.csv")
 diso_path = os.path.join(results_dir, "diso_trajectory.csv")
 odom_path = os.path.join(results_dir, "odometry.csv")
