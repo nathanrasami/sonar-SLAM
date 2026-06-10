@@ -2,9 +2,6 @@
     <arg name="rviz" default="true"/>
     <arg name="enable_slam" default="true"/>
     <arg name="bag_file" default="/home/nathan/Aracati2017_DISO_backup/bags/ARACATI_2017_8bits_full.bag"/>
-    <!-- Dossier de résultats : hérite de l'env SLAM_RESULTS_DIR (cf. run_slam.sh),
-         sinon results/ par défaut. Permet 1 dossier par run (pas de mélange de CSV). -->
-    <arg name="results_dir" default="$(optenv SLAM_RESULTS_DIR $(find bruce_slam)/../results)"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -49,7 +46,9 @@
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
-                <env name="SLAM_RESULTS_DIR" value="$(arg results_dir)"/>
+                <!-- SLAM_RESULTS_DIR hérité de l'environnement (cf. run_slam.sh) ;
+                     si absent, le code Python retombe sur results/ par défaut. -->
+                <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
             </node>
 
         </group>
