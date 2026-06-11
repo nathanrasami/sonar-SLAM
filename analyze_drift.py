@@ -2,10 +2,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
+from traj_eval import (associer_par_temps, umeyama, appliquer, calculer_ate,
+                       odometrie_pure_depuis_bag)
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
+
+# bag pour l'odométrie pure (/cmd_vel intégré) — optionnel
+bag_path = os.environ.get("BAG_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "ARACATI_2017_8bits_full.bag"))
 
 traj_path = os.path.join(results_dir, "trajectory.csv")
 if not os.path.exists(traj_path):
@@ -49,16 +54,25 @@ if os.path.exists(gt_path):
         diso = pd.read_csv(diso_path)
         est_d, ate_diso, _ = aligner(diso[["x", "y"]].to_numpy(), diso["time"], gt, "DISO")
 
+    # Odométrie d'entrée du SLAM (= DISO sur Aracati, via odom_bridge)
     est_o = ate_odom = None
     if os.path.exists(odom_path):
         odom = pd.read_csv(odom_path)
-        est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odometry")
+        est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odom DISO")
+
+    # Odométrie PURE (dead-reckoning /cmd_vel) — celle de la doctorante, sans DISO
+    est_p = ate_pure = None
+    if os.path.exists(bag_path):
+        pure = odometrie_pure_depuis_bag(bag_path)
+        if pure is not None:
+            est_p, ate_pure, _ = aligner(np.column_stack([pure["x"], pure["y"]]),
+                                         pure["time"], gt, "Odom pure")
 else:
     print("groundtruth.csv not found — affichage en repère natif (pas d'ATE)")
     gt = None
     gxy = None
     est_b = traj[["x", "y"]].to_numpy(); ate = None
-    est_d = ate_diso = est_o = ate_odom = None
+    est_d = ate_diso = est_o = ate_odom = est_p = ate_pure = None
 
 # ── Translation cosmétique : tout ramener au départ (0,0) pour l'affichage ─────
 # IMPORTANT : appliquée APRÈS le calcul des ATE → ne fausse PAS l'ATE.
@@ -70,14 +84,20 @@ gxy_p  = au_depart(gxy)
 est_b_p = au_depart(est_b)
 est_d_p = au_depart(est_d)
 est_o_p = au_depart(est_o)
+est_p_p = au_depart(est_p)
 
 # ── Tracé ─────────────────────────────────────────────────────────────────────
 if gxy_p is not None:
     ax.plot(gxy_p[:, 0], gxy_p[:, 1], label="Ground truth (GPS)", color="red", linestyle="--")
     ax.plot(gxy_p[-1, 0], gxy_p[-1, 1], marker="X", color="red", markersize=12)
 
+if est_p_p is not None:
+    lbl = f"Odom pure (/cmd_vel, ATE={ate_pure:.1f} m)" if ate_pure is not None else "Odom pure"
+    ax.plot(est_p_p[:, 0], est_p_p[:, 1], label=lbl, color="purple", linestyle="--", linewidth=1.2)
+    ax.plot(est_p_p[-1, 0], est_p_p[-1, 1], marker="X", color="purple", markersize=12)
+
 if est_o_p is not None:
-    lbl = f"Odometry (DISO, ATE={ate_odom:.1f} m)" if ate_odom is not None else "Odometry"
+    lbl = f"Odom DISO (ATE={ate_odom:.1f} m)" if ate_odom is not None else "Odom DISO"
     ax.plot(est_o_p[:, 0], est_o_p[:, 1], label=lbl, color="orange", linestyle="-.", linewidth=1.5)
     ax.plot(est_o_p[-1, 0], est_o_p[-1, 1], marker="X", color="orange", markersize=12)
 
@@ -91,7 +111,7 @@ ax.plot(est_b_p[:, 0], est_b_p[:, 1], label=slam_label, color="black", linewidth
 ax.plot(est_b_p[-1, 0], est_b_p[-1, 1], marker="X", color="black", markersize=12, label="End")
 
 # toutes les trajectoires partent de (0,0) → un seul marqueur Start
-ax.plot(0, 0, marker="*", color="green", markersize=16, label="Start (0,0)")
+ax.plot(0, 0, marker="*", color="green", markersize=16, label="Start")
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")

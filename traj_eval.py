@@ -6,6 +6,42 @@ Association temporelle exacte par interpolation + alignement rigide optimal
 import numpy as np
 
 
+def odometrie_pure_depuis_bag(bag_path, cmd_vel_topic="/cmd_vel"):
+    """Reconstruit l'odométrie 'pure' (dead-reckoning) en intégrant /cmd_vel.
+
+    C'est l'odométrie native d'Aracati (vitesse commandée du ROV), indépendante
+    de DISO. Modèle unicycle 2D : on intègre la vitesse linéaire avant (vx) et la
+    vitesse angulaire (wz). Retourne un DataFrame-like (dict de numpy) time,x,y.
+
+    Nécessite la lib `rosbags` (lecture .bag sans ROS). Retourne None si absente
+    ou si le topic manque.
+    """
+    try:
+        from rosbags.rosbag1 import Reader
+        from rosbags.typesys import Stores, get_typestore
+    except ImportError:
+        print("rosbags non installé (pip install rosbags) — odométrie pure ignorée")
+        return None
+    ts = get_typestore(Stores.ROS1_NOETIC)
+    t, vx, wz = [], [], []
+    with Reader(bag_path) as r:
+        conns = [c for c in r.connections if c.topic == cmd_vel_topic]
+        if not conns:
+            print(f"{cmd_vel_topic} absent du bag — odométrie pure ignorée")
+            return None
+        for c, _, raw in r.messages(connections=conns):
+            m = ts.deserialize_ros1(raw, c.msgtype)
+            t.append(m.header.stamp.sec + m.header.stamp.nanosec * 1e-9)
+            vx.append(m.twist.linear.x)
+            wz.append(m.twist.angular.z)
+    t, vx, wz = np.array(t), np.array(vx), np.array(wz)
+    dt = np.diff(t)
+    theta = np.concatenate([[0], np.cumsum(wz[:-1] * dt)])
+    x = np.concatenate([[0], np.cumsum(vx[:-1] * np.cos(theta[:-1]) * dt)])
+    y = np.concatenate([[0], np.cumsum(vx[:-1] * np.sin(theta[:-1]) * dt)])
+    return {"time": t, "x": x, "y": y}
+
+
 def associer_par_temps(t_est, t_gt, x_gt, y_gt):
     """Interpole la position GT à chaque timestamp estimé.
 
