@@ -1101,6 +1101,8 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 
 - **2026-06-12 (validation)** — **Run `run_aracati_2026-06-12_154852` : les 5 correctifs validés.** La carte montre clairement le port (pontons en T, comme la carte DISO) avec un halo de speckle résiduel. Chiffres : **ATE Bruce 3.35 m ≈ ATE odom DISO 3.25 m**, écart Bruce-odom aux mêmes timestamps = **0.000 m** (vs 3.44 m avant le fix 3), 631 keyframes (vs 533 : la file d'attente évite les pertes), 0 loop closure. Confirmation structurelle (FABLE.md §2) : sans loop closure, iSAM2 ≡ chaîne d'odométrie — Bruce SE CONFOND avec l'odom DISO, c'est mathématiquement attendu, pas un bug. L'odom du plot EST DISO (5.2 Hz, ATE 3.25 m ; l'odométrie pure /cmd_vel du bag ferait 14.7 m) — `odometry.csv` = `LOCALIZATION_ODOM_TOPIC` = sortie DISO via odom_bridge. Le levier pour battre 3.25 m reste le loop closure (Sonar Context) ; le speckle résiduel se réduit via threshold 50→65 ou min_points 5→8 (un bouton à la fois).
 
+- **2026-06-12 (soir)** — **Sonar Context : étapes 2-5 intégrées** sur `feature/sonar-context` (commit `2c7c995`) + `threshold: 65` anti-speckle sur main. Architecture : `sonar_context_candidate()` (kNN brute-force sur Polar Keys puis distance cosinus avec adaptive shifting) **remplace uniquement la sélection de candidat** du NSSM (gating covariance + argmax counts — la source des fake loops) ; tout l'aval inchangé (shgo, ICP+cov, PCM). Descripteur attaché aux champs `ring_key`/`context` du Keyframe (prévus et jamais utilisés), associé par timestamp via `_descriptor_buffer`. **Fix FABLE §4 appliqué** : `_polar_remap()` repolarise le fan cartésien avant le descripteur (sinon shift colonne ≠ rotation). Journal `loops_detected.csv` (source, target, sc_dist, shifts, retenu) pour calibrer le seuil et mesurer precision/recall. Validation synthétique : lieu revisité retrouvé (dist ~0, shift azimut exact) ; seuil initial 0.25 **à calibrer avec l'histogramme du 1er run**. **Prochains runs** : A = main (Bruce+DISO, carte propre threshold 65) ; B = feature/sonar-context (Bruce+DISO+Sonar Context — AVEC DISO : Sonar Context remplace la détection de boucle, pas l'odométrie ; sans DISO on retombe sur /cmd_vel à 14.7 m). A vs B isole la contribution de Sonar Context.
+
 ---
 
 ## Datasets intégrés
@@ -1127,3 +1129,23 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 | `FABLE.md` | Analyse critique d'architecture (Fable 5) : migration 3D, DISO+Bruce vs standalone, Sonar Context, pistes priorisées pour passer sous 3 m d'ATE |
 | `SLAM_3D_MIGRATION.md` | Cadrage migration 2D→3D (HoloOcean uniquement ; Aracati reste 2D) |
 | `Paper/Sonar/DISO.md` · `SonarContext.md` · `SIO-UV.md` | Résumés détaillés des 3 papiers d'amélioration |
+
+## 2026-06-12 (soir) — Migration VM Ubuntu → Fedora natif (distrobox)
+
+**Motivation** : la VM (8 cœurs/8 Go) bridait DISO ; contraintes de partage de fichiers.
+
+**Solution** : conteneur Ubuntu 20.04 via distrobox+podman (natif, $HOME partagé, RViz sur le bureau Fedora).
+Script idempotent : `setup_ros_noetic.sh` (relançable, étapes marquées dans `~/.ros1_setup_state/`).
+
+**Pièges rencontrés et corrigés** :
+1. Repos GitHub jake3991 disparus (`sonar_oculus`, `rti_dvl`, `bar30_depth`, `kvh_gyro`)
+   → stubs de messages minimaux (champs vérifiés dans le code).
+2. **Dockerfile DISO incohérent** : il épingle g2o `21b7ce45` (avril **2016**, API pointeurs bruts)
+   alors que le code DISO utilise l'API `unique_ptr` (post-2017) → g2o `20201223_git`.
+3. PCL 1.10 (focal) exige C++14 → `bruce_slam/CMakeLists.txt` passé de c++11 à c++14.
+4. numpy système 1.17 trop vieille pour scipy/pandas → pip `numpy==1.23.5`
+   (dernière qui garde `np.float` pour ros_numpy).
+5. catkin_tools : `SHELL` doit être un chemin absolu.
+
+**Usage** : `./run_slam.sh aracati` depuis Fedora (le script entre tout seul dans le conteneur).
+Bag par défaut : `ARACATI_2017_8bits_full.bag` à la racine du repo.

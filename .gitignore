@@ -10,3 +10,4 @@ __pycache__/
 *.pcd
 .ros/
 *.bag
+DISO/Thirdparty/

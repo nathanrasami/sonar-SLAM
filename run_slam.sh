@@ -13,17 +13,29 @@
 #   SLAM_RESULTS_DIR=results/run_aracati_2026-... python3 analyze_drift.py
 
 set -e
+
+# Depuis Fedora : se re-lancer automatiquement dans le conteneur ros1.
+# À l'intérieur du conteneur, CONTAINER_ID est positionné par distrobox.
+if [ -z "$CONTAINER_ID" ]; then
+    DISTROBOX="${DISTROBOX:-$(command -v distrobox 2>/dev/null || echo ~/.opt/bin/distrobox)}"
+    exec "$DISTROBOX" enter ros1 -- bash "$0" "$@"
+fi
+
+# Source ROS (on est dans le conteneur)
+source /opt/ros/noetic/setup.bash
+[ -f "$HOME/ros1_ws/devel/setup.bash" ] && source "$HOME/ros1_ws/devel/setup.bash"
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TYPE="${1:-aracati}"
-# bag par défaut = celui d'aracati.launch (surchageable en 2e argument)
-BAG="${2:-/home/nathan/Aracati2017_DISO_backup/bags/ARACATI_2017_8bits_full.bag}"
+# bag par défaut : dans le dossier du repo (surchargeable en 2e argument)
+BAG="${2:-$HERE/ARACATI_2017_8bits_full.bag}"
 RUN_DIR="$HERE/results/run_${TYPE}_$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN_DIR"
 export SLAM_RESULTS_DIR="$RUN_DIR"
 echo "[run_slam] Résultats dans : $RUN_DIR"
 
 case "$TYPE" in
-  aracati)   roslaunch bruce_slam aracati.launch ;;
+  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
   diso)
     # le launch DISO ne joue pas le bag : on le lance, on attend que les nodes
