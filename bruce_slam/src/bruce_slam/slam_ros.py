@@ -1,5 +1,6 @@
 # python imports
 import threading
+import bisect
 import csv
 import os
 import tf
@@ -82,6 +83,7 @@ class SLAMNode(SLAM):
 
         #cache the latest odom message; feature callback uses it directly
         self._latest_odom = None
+        self._odom_buffer = []  # messages Odometry pour interpolation temporelle
         # accumule l'odométrie brute (= DISO sur Aracati) à pleine fréquence,
         # même base de temps que le GT → exporté dans odometry.csv
         self.odom_poses = []
@@ -145,15 +147,62 @@ class SLAMNode(SLAM):
 
     def _odom_cache_callback(self, msg: Odometry) -> None:
         self._latest_odom = msg
+        # buffer complet pour interpolation au timestamp des features
+        # (l'extraction CFAR est lente : la feature arrive avec plusieurs
+        # secondes de retard, _latest_odom serait une pose du futur)
+        self._odom_buffer.append(msg)
+        if len(self._odom_buffer) > 6000:  # ~10 min à 10 Hz
+            del self._odom_buffer[:1000]
         # log de l'odométrie brute à pleine fréquence (même base de temps que GT)
         self.odom_poses.append((msg.header.stamp.to_sec(),
                                 msg.pose.pose.position.x,
                                 msg.pose.pose.position.y))
 
+    def _interpolate_odom(self, stamp) -> Odometry:
+        """Retourne l'odométrie interpolée au temps `stamp` (position linéaire,
+        orientation par slerp). None si le buffer ne couvre pas encore ce temps."""
+        buf = self._odom_buffer
+        if not buf:
+            return None
+        t = stamp.to_sec()
+        times = [m.header.stamp.to_sec() for m in buf]
+        if t <= times[0]:
+            return buf[0] if abs(times[0] - t) < 1.0 else None
+        if t >= times[-1]:
+            # odom pas encore arrivée jusqu'à t : tolérer un petit retard
+            return buf[-1] if abs(t - times[-1]) < 1.0 else None
+        i = bisect.bisect_left(times, t)
+        m0, m1 = buf[i - 1], buf[i]
+        t0, t1 = times[i - 1], times[i]
+        a = (t - t0) / (t1 - t0) if t1 > t0 else 0.0
+        out = Odometry()
+        out.header.stamp = stamp
+        out.header.frame_id = m1.header.frame_id
+        out.child_frame_id = m1.child_frame_id
+        p0, p1 = m0.pose.pose.position, m1.pose.pose.position
+        out.pose.pose.position.x = p0.x + a * (p1.x - p0.x)
+        out.pose.pose.position.y = p0.y + a * (p1.y - p0.y)
+        out.pose.pose.position.z = p0.z + a * (p1.z - p0.z)
+        q0 = m0.pose.pose.orientation
+        q1 = m1.pose.pose.orientation
+        q = tf.transformations.quaternion_slerp(
+            [q0.x, q0.y, q0.z, q0.w], [q1.x, q1.y, q1.z, q1.w], a)
+        out.pose.pose.orientation.x = q[0]
+        out.pose.pose.orientation.y = q[1]
+        out.pose.pose.orientation.z = q[2]
+        out.pose.pose.orientation.w = q[3]
+        out.pose.covariance = m1.pose.covariance
+        out.twist = m1.twist if a > 0.5 else m0.twist
+        return out
+
     def _feature_callback(self, feature_msg: PointCloud2) -> None:
-        if self._latest_odom is None:
+        # odométrie AU TEMPS de la feature, pas la dernière reçue : avec le
+        # retard de traitement CFAR, _latest_odom est en avance de plusieurs
+        # secondes → les keyframes porteraient des poses du futur (ATE faussé)
+        odom_msg = self._interpolate_odom(feature_msg.header.stamp)
+        if odom_msg is None:
             return
-        self.SLAM_callback(feature_msg, self._latest_odom)
+        self.SLAM_callback(feature_msg, odom_msg)
 
     @add_lock
     def SLAM_callback(self, feature_msg:PointCloud2, odom_msg:Odometry)->None:
