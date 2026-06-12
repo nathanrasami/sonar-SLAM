@@ -2,12 +2,14 @@
 CFAR:
   Ntc: 40
   Ngc: 10
-  Pfa: 0.1
+  # 0.1 = 10% des cellules de bruit passent → la carte devient un disque de
+  # speckle (arcs à la portée max). DISO ne garde que gradient>170, lui.
+  Pfa: 0.01
   rank: 10
   alg: 'SOCA'
 
 filter:
-  threshold: 30
+  threshold: 50
   resolution: 0.5
   radius: 1.0
   min_points: 5

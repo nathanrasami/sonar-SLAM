@@ -84,6 +84,7 @@ class SLAMNode(SLAM):
         #cache the latest odom message; feature callback uses it directly
         self._latest_odom = None
         self._odom_buffer = []  # messages Odometry pour interpolation temporelle
+        self._pending_features = []  # features en attente que l'odom les rattrape
         # accumule l'odométrie brute (= DISO sur Aracati) à pleine fréquence,
         # même base de temps que le GT → exporté dans odometry.csv
         self.odom_poses = []
@@ -157,6 +158,15 @@ class SLAMNode(SLAM):
         self.odom_poses.append((msg.header.stamp.to_sec(),
                                 msg.pose.pose.position.x,
                                 msg.pose.pose.position.y))
+        # draine les features en attente que l'odom vient de couvrir
+        # (si DISO est en retard sur la CFAR, on ATTEND au lieu de jeter)
+        newest = msg.header.stamp.to_sec()
+        while self._pending_features and \
+                self._pending_features[0].header.stamp.to_sec() <= newest:
+            f = self._pending_features.pop(0)
+            odom = self._interpolate_odom(f.header.stamp)
+            if odom is not None:
+                self.SLAM_callback(f, odom)
 
     def _interpolate_odom(self, stamp) -> Odometry:
         """Retourne l'odométrie interpolée au temps `stamp` (position linéaire,
@@ -169,8 +179,9 @@ class SLAMNode(SLAM):
         if t <= times[0]:
             return buf[0] if abs(times[0] - t) < 1.0 else None
         if t >= times[-1]:
-            # odom pas encore arrivée jusqu'à t : tolérer un petit retard
-            return buf[-1] if abs(t - times[-1]) < 1.0 else None
+            # feature en avance sur l'odom : ne devrait plus arriver ici
+            # (la mise en attente est gérée dans _feature_callback)
+            return buf[-1] if abs(t - times[-1]) < 0.5 else None
         i = bisect.bisect_left(times, t)
         m0, m1 = buf[i - 1], buf[i]
         t0, t1 = times[i - 1], times[i]
@@ -199,6 +210,14 @@ class SLAMNode(SLAM):
         # odométrie AU TEMPS de la feature, pas la dernière reçue : avec le
         # retard de traitement CFAR, _latest_odom est en avance de plusieurs
         # secondes → les keyframes porteraient des poses du futur (ATE faussé)
+        buf = self._odom_buffer
+        if not buf or feature_msg.header.stamp.to_sec() > buf[-1].header.stamp.to_sec():
+            # l'odom (DISO) n'a pas encore atteint ce temps → attendre, pas jeter
+            # (sinon dès que DISO a >1 s de retard, plus aucun keyframe n'est créé)
+            self._pending_features.append(feature_msg)
+            if len(self._pending_features) > 300:
+                self._pending_features.pop(0)
+            return
         odom_msg = self._interpolate_odom(feature_msg.header.stamp)
         if odom_msg is None:
             return
