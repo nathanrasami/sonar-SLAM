@@ -1129,3 +1129,23 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 | `FABLE.md` | Analyse critique d'architecture (Fable 5) : migration 3D, DISO+Bruce vs standalone, Sonar Context, pistes priorisées pour passer sous 3 m d'ATE |
 | `SLAM_3D_MIGRATION.md` | Cadrage migration 2D→3D (HoloOcean uniquement ; Aracati reste 2D) |
 | `Paper/Sonar/DISO.md` · `SonarContext.md` · `SIO-UV.md` | Résumés détaillés des 3 papiers d'amélioration |
+
+## 2026-06-12 (soir) — Migration VM Ubuntu → Fedora natif (distrobox)
+
+**Motivation** : la VM (8 cœurs/8 Go) bridait DISO ; contraintes de partage de fichiers.
+
+**Solution** : conteneur Ubuntu 20.04 via distrobox+podman (natif, $HOME partagé, RViz sur le bureau Fedora).
+Script idempotent : `setup_ros_noetic.sh` (relançable, étapes marquées dans `~/.ros1_setup_state/`).
+
+**Pièges rencontrés et corrigés** :
+1. Repos GitHub jake3991 disparus (`sonar_oculus`, `rti_dvl`, `bar30_depth`, `kvh_gyro`)
+   → stubs de messages minimaux (champs vérifiés dans le code).
+2. **Dockerfile DISO incohérent** : il épingle g2o `21b7ce45` (avril **2016**, API pointeurs bruts)
+   alors que le code DISO utilise l'API `unique_ptr` (post-2017) → g2o `20201223_git`.
+3. PCL 1.10 (focal) exige C++14 → `bruce_slam/CMakeLists.txt` passé de c++11 à c++14.
+4. numpy système 1.17 trop vieille pour scipy/pandas → pip `numpy==1.23.5`
+   (dernière qui garde `np.float` pour ros_numpy).
+5. catkin_tools : `SHELL` doit être un chemin absolu.
+
+**Usage** : `./run_slam.sh aracati` depuis Fedora (le script entre tout seul dans le conteneur).
+Bag par défaut : `ARACATI_2017_8bits_full.bag` à la racine du repo.
