@@ -299,14 +299,14 @@ class FeatureExtraction(object):
         # l'échelle uniforme m/px (interpréter (row,col) comme (range,bearing) serait
         # faux : ça transforme toute structure verticale en traînée radiale)
         m_per_px = self.sonar_max_range / float(h)
-        y = (h - locs[:, 0]) * m_per_px        # avant (forward), convention Oculus
-        x = (locs[:, 1] - w / 2.0) * m_per_px  # latéral
+        x = (h - locs[:, 0]) * m_per_px        # avant (forward) — même repère que DISO
+        y = (locs[:, 1] - w / 2.0) * m_per_px  # latéral — même signe que DISO
         points = np.column_stack((x, y))
 
         # Masque du fan : retire les fausses détections CFAR sur la frontière
         # fan/padding noir (mêmes marges que DISO Frame.cpp:271-276)
         r = np.hypot(x, y)
-        bearing = np.arctan2(x, y)
+        bearing = np.arctan2(y, x)
         keep = (
             (r > 0.3)
             & (r < self.sonar_max_range - 0.3)
@@ -328,8 +328,15 @@ class FeatureExtraction(object):
         self._publish_features_stamped(msg.header, points)
 
     def _publish_features_stamped(self, header, points):
-        """Publish features using a raw header (for cartesian mode)."""
-        points3d = np.c_[points[:, 0], points[:, 1], np.zeros(len(points))]
+        """Publish features using a raw header (for cartesian mode).
+
+        ATTENTION : le nœud SLAM (slam_ros.py) parse le nuage avec
+        (x, -z) — convention du pipeline polaire qui publie [x, 0, z].
+        On packe donc [x_avant, 0, -y_latéral] pour qu'il reconstruise
+        (x_avant, y_latéral). Publier [x, y, 0] écraserait la 2e
+        coordonnée à zéro → chaque keyframe deviendrait une ligne.
+        """
+        points3d = np.c_[points[:, 0], np.zeros(len(points)), -points[:, 1]]
         feature_msg = n2r(points3d, "PointCloudXYZ")
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
