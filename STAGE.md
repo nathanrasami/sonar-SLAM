@@ -1035,11 +1035,15 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 |-------|----------------------------------|------------|--------------|
 | 0     | Prise en main du sujet           | S1         | ✅ Terminé   |
 | 1     | Installation de l'environnement  | S2         | ✅ Terminé   |
-| 2     | Reproduction des résultats       | S3–S4      | 🔄 En cours  |
-| 3     | Compréhension approfondie        | S5–S9      | ⏳ À venir   |
-| 4     | Analyse des limitations          | S10–S11    | ⏳ À venir   |
-| 5     | Amélioration algorithmique       | S12–S14    | ⏳ À venir   |
+| 2     | Reproduction des résultats       | S3–S4      | ✅ Terminé   |
+| 3     | Compréhension approfondie        | S5–S9      | ✅ Terminé   |
+| 4     | Analyse des limitations          | S10–S11    | ✅ Terminé (DISO + FABLE.md) |
+| 5     | Amélioration algorithmique       | S12–S14    | 🔄 En cours (DISO intégré ✅, Sonar Context 1/5) |
 | 6     | Rédaction du rapport             | S15–S17    | ⏳ À venir   |
+
+> ⚡ **Avance sur le planning.** La compréhension technique a avancé plus vite que la timeline
+> initiale : DISO est déjà intégré (amélioration n°1, jalon 5) et Sonar Context est entamé. Le
+> travail réel a divergé du plan théorique — voir le **Journal de bord** pour l'état exact.
 
 ---
 
@@ -1078,6 +1082,18 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 - **2026-05-27** — Bug critique corrigé : `_publish_features_stamped` mettait y=0 sur tous les points (ordre des axes x,zeros,y au lieu de x,y,zeros). ICP ne pouvait pas recaler en 2D. Fix : swap y et z dans np.c_[]. Résultat : lignes droites visibles dans la carte point cloud.
 - **2026-05-27** — Constat : SSM (ICP) diverge sur Aracati2017 même après correction y=0. Confirmé par papier DISO (ICRA 2024) : BlueROV SLAM (= ICP) donne 16.25% translation error vs 8.69% pour DISO sur Aracati2017. ICP fondamentalement limité sur ce sonar (basse résolution + sensibilité aux conditions initiales).
 - **2026-05-27** — Plan d'action : intégrer DISO (github.com/SenseRoboticsLab/DISO) dans bruce_slam, remplacer SSM par odométrie directe DISO. Conserver back-end iSAM2 de bruce_slam pour loop closures. Prochaine présentation : papier DISO.
+- **2026-06-03** — **DISO intégré et fonctionnel.** DISO publie `/direct_sonar/pose` → `odom_bridge.py` convertit en `nav_msgs/Odometry` sur `LOCALIZATION_ODOM_TOPIC` → consommé par bruce_slam comme dead-reckoning. SSM désactivé (`ssm.enable: False`). Run DISO standalone : ATE 2.1–3.0 m (non déterministe, le timing temps-réel change la trajectoire). Présentation DISO faite → résumé complet dans `Paper/Sonar/DISO.md`.
+- **2026-06-05** — **Refonte de l'évaluation de trajectoire** (`traj_eval.py`). Découverte du bug racine des plots : on mélangeait des CSV de runs différents (bases de temps incompatibles : temps simu 0–71 s vs temps Unix 2017) → `np.interp` clampait tout sur GT[0] → alignement faux. L'ancien « bricolage » flip-Y + rotation 45° magique masquait ce bug. Remplacé par : (1) garde-fou dans `associer_par_temps` (erreur explicite si les plages de temps ne se recouvrent pas), (2) alignement **Umeyama** (SVD, standard TUM/evo) à la place du bricolage manuel. ATE non faussé (translation cosmétique au départ appliquée APRÈS le calcul).
+- **2026-06-06** — **Wrapper `run_slam.sh`** : chaque run dans un dossier horodaté `results/run_<type>_<date>/` (évite le mélange de CSV) ; `*.csv` gitignorés. Mode `diso` lance DISO + joue le bag (le launch DISO ne jouait pas le bag → cause du « RViz vide »). Export CSV cohérent par run : `groundtruth.csv`, `trajectory.csv`, `odometry.csv`, `pointcloud.csv`. Correction RLException dans `aracati.launch` (`optenv` ne peut pas imbriquer `$(find)`).
+- **2026-06-10** — **Diagnostic loop closure NSSM natif sur Aracati.** `skip: 5` affamait le NSSM (69 % de keyframes vides → 0 boucle). En `skip: 1` le NSSM détecte des boucles mais elles sont **FAUSSES** (corr_y avec GT -0.88 → -0.12, forme cassée, ATE 11.3 m avec min_pcm 4). En les filtrant (min_pcm 6) : 0 boucle, ATE 5.2 m = **baseline à battre**. Conclusion : le problème est la *qualité* de la détection (features+ICP sur sonar basse résolution), pas le réglage. → motive Sonar Context.
+- **2026-06-10** — **Ajout odométrie pure** dans `analyze_drift.py` : `/cmd_vel` intégré (modèle unicycle), ATE 14.7 m. C'est l'odométrie native d'Aracati que la doctorante affichait (≠ DISO, qui est mon ajout). Plot final : GT, odom pure, odom DISO, DISO standalone, Bruce-SLAM.
+- **2026-06-10** — **Hiérarchie ATE mesurée sur Aracati** : odom pure 14.7 m → DISO standalone 2.1–3.0 m → odom DISO en run combiné 3.9 m → DISO+Bruce (NSSM off) 5.4 m → NSSM min_pcm6 5.2 m. Récit : DISO améliore l'odométrie ~4× vs dead-reckoning natif.
+- **2026-06-10** — **Organisation en branches Git** (le projet a plusieurs variantes) : `main` (DISO+Bruce, éval Umeyama, docs), `feature/sonar-context` (Sonar Context, étape 1/5), `feature/slam-3d` (vide, migration 2D→3D future), `experiments/holoocean`. Workflow : Fedora édite/pousse, VM Ubuntu pull/exécute — ne jamais mélanger les branches entre les deux.
+- **2026-06-10** — **Sonar Context — étape 1/5 codée** (`feature/sonar-context`) : module pur NumPy `sonar_context.py` (build_sonar_context A×R, build_polar_key, cosine_distance_shifted avec adaptive shifting + zero padding) testé seul ; publication du descripteur dans `feature_extraction.py` (topic `SONAR_DESCRIPTOR_TOPIC`, `Float32MultiArray` avec timestamp encodé). Reste étapes 2-5 : réception côté SLAM, remplacement de la détection NSSM, params YAML, validation shadow. Présentation Sonar Context faite → `Paper/Sonar/SonarContext.md`.
+- **2026-06-11** — **Analyse critique d'architecture (Fable 5)** consignée dans `FABLE.md` (sur main). Points clés : (1) la migration 3D vise la mauvaise cible — Bruce est 3-DOF *par conception* (z/roll/pitch observables par capteurs), pas besoin d'un back-end Pose3 6DOF complet ; viser un SLAM 4-DOF (z par pression, roll/pitch par IMU). (2) DISO+Bruce < DISO standalone n'est **pas un bug mais une propriété** : sans loop closure valide, l'odométrie seule ne crée pas d'info → impossible de battre DISO standalone. (3) Bruce original (SSM/ICP) ne peut pas faire mieux : son ICP suppose une bonne odométrie d'init (DVL+IMU) absente sur Aracati. (4) Test jamais fait à tenter : réactiver `ssm.enable: True` PAR-DESSUS DISO (DISO comme init de l'ICP). (5) Bug subtil d'éval : `allow_reflection=True` dans Umeyama n'est pas standard (evo force det(R)=+1) → corriger le signe Y de DISO à l'export. (6) CFAR appliqué sur l'image cartésienne = statistiquement bancal. **Priorité confirmée : Sonar Context (seul levier qui ajoute de l'information).**
+- **2026-06-12** — **Présentation SIO-UV préparée** → `Paper/Sonar/SIO-UV.md`. Papier IEEE TIE 2025 qui **bat directement Bruce-SLAM** (RMSE 1.68 m vs 22.2 m en piscine) car l'ICP front-end de Bruce explose dans les virages → **preuve externe** que remplacer le SSM par DISO est justifié (à citer au jury). Trois briques : MCFAR (débruitage multi-échelle), conversion 2D→3D par stacking vertical, odométrie 3D-LOAM. **Décision : ne piocher que MCFAR** (seule brique portable sur Aracati — pas d'IMU ; remplacement du CFAR mono-échelle, bénéficie à DISO et Sonar Context). Les deux autres briques : 3D-stacking = fausse 3D, 3D-LOAM = redondant avec DISO + dépend de l'IMU. **SIO-UV n'est PAS en compétition avec Sonar Context** : SIO-UV améliore l'odométrie, Sonar Context la détection de boucle (le vrai verrou). Sonar Context reste prioritaire.
+
+- **2026-06-12** — **BUG MAJEUR trouvé et corrigé : géométrie des features Aracati** (`feature_extraction.py::callback_cartesian`). Le nuage de points Bruce était une boule de traînées radiales (cf. `results/run_aracati_2026-06-10_181511/pointcloud_map.png`) alors que celui de DISO est impeccable. Cause : le code interprétait l'image **cartésienne** d'Aracati comme **polaire** (ligne=range, colonne=angle) — héritage du pipeline polaire Oculus. Or les pixels sont des **mètres** (échelle uniforme m/px, origine bas-centre), exactement le modèle de DISO (`Frame.cpp:110-113`) — d'où sa carte propre. Conséquence : x' = y·sin(k·x) → toute structure verticale devenait un rayon passant par le sonar. Correctif : conversion métrique directe (`m_per_px = max_range/h`) + **masque du fan** (r∈[0.3, R−0.3], |bearing| < FOV/2 − 0.05 rad, mêmes marges que DISO) qui supprime les fausses détections CFAR à la frontière fan/padding noir. Aussi : `max_range` aligné sur 48.2896 m (valeur SIM3 de DISO) dans `feature_aracati.yaml`. **Impact attendu** : carte propre ET features NSSM enfin géométriquement cohérentes → re-tester le loop closure (les "fake loops" venaient peut-être en partie de là). À re-runner sur la VM puis propager sur `feature/sonar-context`.
 
 ---
 
@@ -1086,13 +1102,22 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 | Dataset | Sonar | Odométrie | Statut | Notes |
 |---------|-------|-----------|--------|-------|
 | sample_data | Oculus M750d (polaire) | DVL + IMU | ✅ Fonctionnel | Pipeline original bruce_slam |
-| Aracati2017 | BlueView P900-130 (cartésien PNG, 130°, 50m) | `/cmd_vel` intégré | 🔧 SSM KO | ICP diverge → intégration DISO prévue |
+| Aracati2017 | BlueView P900-130 (cartésien PNG, 130°, 50m) | **DISO** (remplace SSM) | ✅ Fonctionnel | DISO standalone ATE 2.1–3.0 m ; DISO+Bruce 5.2–5.4 m. Pas d'IMU/DVL. Dataset **2D matériel** (pas d'élévation) |
+| HoloOcean | sonar simulé (+ futur PointCloud2 3D) | IMU + DVL | ⏳ À venir | Simulation avec Z → cible de la migration 3D. Bag corrigé attendu du collègue (IMU + élévation sonar) |
 
 ## Papiers
 
 | Papier | Auteurs | Conf. | Lien local | Statut |
 |--------|---------|-------|-----------|--------|
-| Bruce-SLAM | Wang et al. | JOE 2022 | `Paper/Bruce-SLAM_260511_085801.pdf` | ✅ Présenté (semaine 1) |
-| DISO | Xu et al. | ICRA 2024 | `Paper/Sonar/DISO_Direct_Imaging_Sonar_Odometry.pdf` | 🎯 À présenter |
-| Place Recognition | Kim et al. | ICRA 2023 | `Paper/Sonar/Robust_Imaging_Sonar-based_...pdf` | ⏳ |
-| SIO-UV | Bai et al. | IEEE TIE 2025 | `Paper/Sonar/SIO-UV_Rapid_and_Robust_...pdf` | ⏳ |
+| Bruce-SLAM | Wang et al. | JOE 2022 | `Paper/Bruce-SLAM_260511_085801.pdf` | ✅ Présenté (semaine 1) — `BRUCE_SLAM.md` |
+| DISO | Xu et al. | ICRA 2024 | `Paper/Sonar/DISO_Direct_Imaging_Sonar_Odometry.pdf` | ✅ Présenté + **intégré** — `Paper/Sonar/DISO.md` |
+| Place Recognition (Sonar Context) | Kim et al. | ICRA 2023 | `Paper/Sonar/Robust_Imaging_Sonar-based_...pdf` | ✅ Présenté + **en intégration (1/5)** — `Paper/Sonar/SonarContext.md` |
+| SIO-UV | Bai et al. | IEEE TIE 2025 | `Paper/Sonar/SIO-UV_Rapid_and_Robust_...pdf` | ✅ Analysé — `Paper/Sonar/SIO-UV.md` (n'en garder que MCFAR) |
+
+## Documents d'analyse internes
+
+| Document | Contenu |
+|----------|---------|
+| `FABLE.md` | Analyse critique d'architecture (Fable 5) : migration 3D, DISO+Bruce vs standalone, Sonar Context, pistes priorisées pour passer sous 3 m d'ATE |
+| `SLAM_3D_MIGRATION.md` | Cadrage migration 2D→3D (HoloOcean uniquement ; Aracati reste 2D) |
+| `Paper/Sonar/DISO.md` · `SonarContext.md` · `SIO-UV.md` | Résumés détaillés des 3 papiers d'amélioration |
