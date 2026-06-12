@@ -260,10 +260,10 @@ class FeatureExtraction(object):
 
     def callback_cartesian(self, msg):
         """Feature extraction on cartesian sonar images from aracati2017 (CompressedImage PNG).
-        The BlueView P900-130 image is already in cartesian projection:
-        - origin at top-center
-        - rows go from near range (top) to far range (bottom)
-        - cols go from -FOV/2 (left) to +FOV/2 (right)
+        L'image BlueView P900-130 est une projection cartésienne MÉTRIQUE :
+        - origine en bas-centre (véhicule), row 0 = loin, row h = proche
+        - les pixels sont des mètres (même échelle m/px en x et y), PAS (range, bearing)
+        - même modèle que DISO (Frame.cpp:110-113 : scale = rows/Range, origine bas-centre)
         """
         if not hasattr(self, "_cart_seq"):
             self._cart_seq = 0
@@ -295,16 +295,27 @@ class FeatureExtraction(object):
             self._publish_features_stamped(msg.header, np.array([[np.nan, np.nan]]))
             return
 
-        # row → range in meters (row 0 = far, row h = near — origin at bottom center)
-        range_m = ((h - locs[:, 0]) / float(h)) * self.sonar_max_range
-
-        # col → angle in radians (-half_fov to +half_fov)
-        angle_rad = (locs[:, 1] / float(w) - 0.5) * 2.0 * half_fov_rad
-
-        # Oculus convention: x=lateral, y=forward (range)
-        y = range_m * np.cos(angle_rad)
-        x = range_m * np.sin(angle_rad)
+        # Conversion pixel → mètres : l'image est cartésienne métrique, on applique
+        # l'échelle uniforme m/px (interpréter (row,col) comme (range,bearing) serait
+        # faux : ça transforme toute structure verticale en traînée radiale)
+        m_per_px = self.sonar_max_range / float(h)
+        y = (h - locs[:, 0]) * m_per_px        # avant (forward), convention Oculus
+        x = (locs[:, 1] - w / 2.0) * m_per_px  # latéral
         points = np.column_stack((x, y))
+
+        # Masque du fan : retire les fausses détections CFAR sur la frontière
+        # fan/padding noir (mêmes marges que DISO Frame.cpp:271-276)
+        r = np.hypot(x, y)
+        bearing = np.arctan2(x, y)
+        keep = (
+            (r > 0.3)
+            & (r < self.sonar_max_range - 0.3)
+            & (np.abs(bearing) < half_fov_rad - 0.05)
+        )
+        points = points[keep]
+        if len(points) == 0:
+            self._publish_features_stamped(msg.header, np.array([[np.nan, np.nan]]))
+            return
 
         if len(points) and self.resolution > 0:
             points = pcl.downsample(points, self.resolution)

@@ -24,4 +24,6 @@ compressed_images: False
 cartesian_mode: True
 cartesian:
   fov_deg: 130.0
-  max_range: 50.0
+  # même valeur que DISO (config_aracati2017.yaml, Range calibré par SIM3) :
+  # le nuage et les poses DISO doivent partager la même échelle m/px
+  max_range: 48.2896
