@@ -9,7 +9,9 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  threshold: 50
+  # 65 : coupe le speckle résiduel du run 154852 (un bouton à la fois ;
+  # si halo encore visible, passer min_points 5→8 au run suivant)
+  threshold: 65
   resolution: 0.5
   radius: 1.0
   min_points: 5
