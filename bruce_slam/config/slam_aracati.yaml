@@ -29,5 +29,19 @@ nssm:
 pcm_queue_size: 5
 min_pcm: 6
 
+# SONAR Context (Kim ICRA 2023) : remplace la DÉTECTION de candidat du NSSM
+# (gating covariance + argmax counts) par de la place recognition par
+# apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
+# exporté dans loops_detected.csv.
+sonar_context:
+  enable: True
+  knn: 5                 # candidats présélectionnés par la Polar Key
+  # 0.25 : test synthétique → lieu revisité ~0.0, lieu inconnu ~0.18.
+  # À CALIBRER après le 1er run avec l'histogramme sc_dist de loops_detected.csv
+  # (les faux candidats restent filtrés par ICP + PCM en aval).
+  dist_threshold: 0.25
+  max_azimuth_shift: 10  # ±10 cases × 3.25°/case = ±32.5° de rotation testée
+  max_range_shift: 5     # ±5 cases × ~1.2 m/case de translation testée
+
 pz_samples: 0
 pz_detection_rate: 0.3

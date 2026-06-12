@@ -289,10 +289,14 @@ class FeatureExtraction(object):
         if img is None:
             return
 
-        # SONAR Context : descripteur de place recognition calculé sur l'image brute.
+        # SONAR Context : descripteur calculé sur l'image REPOLARISÉE.
+        # Sur le fan cartésien les colonnes ne sont PAS l'azimuth (FABLE.md §4) :
+        # sans remap, l'équivalence shift-colonne ↔ rotation du descripteur est
+        # fausse et le matching entre passages avec caps différents échoue.
         # Publié avec le MÊME header.stamp que les features → le SLAM les associe.
         if self.sonar_context_enable:
-            ctx = build_sonar_context(img, self.sc_num_azimuth, self.sc_num_range)
+            polar_img = self._polar_remap(img)
+            ctx = build_sonar_context(polar_img, self.sc_num_azimuth, self.sc_num_range)
             pkey = build_polar_key(ctx)
             self._publish_descriptor(msg.header, ctx, pkey)
 
@@ -358,6 +362,28 @@ class FeatureExtraction(object):
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
         self.feature_pub.publish(feature_msg)
+
+    def _polar_remap(self, img):
+        """Rééchantillonne le fan cartésien en image polaire :
+        lignes = range (0 → portée max), colonnes = azimuth (−FOV/2 → +FOV/2),
+        exactement la convention attendue par build_sonar_context.
+        Géométrie : apex en bas-centre (w/2, h), rayon max = h pixels
+        (validée par les données : r_max body = R·sin(62.1°)).
+        Les maps cv2.remap sont mises en cache tant que (h, w) ne change pas."""
+        h, w = img.shape
+        if getattr(self, "_polar_maps_key", None) != (h, w):
+            # résolution : 8 px par case du descripteur (pooling 8x8 ensuite)
+            a_px = self.sc_num_azimuth * 8
+            r_px = self.sc_num_range * 8
+            half = np.deg2rad(self.sonar_fov_deg / 2.0)
+            az = np.linspace(-half, half, a_px, dtype=np.float32)
+            rr = np.linspace(0.0, float(h - 1), r_px, dtype=np.float32)
+            r_grid, a_grid = np.meshgrid(rr, az, indexing="ij")  # (r_px, a_px)
+            self._polar_map_x = (w / 2.0 + r_grid * np.sin(a_grid)).astype(np.float32)
+            self._polar_map_y = (h - r_grid * np.cos(a_grid)).astype(np.float32)
+            self._polar_maps_key = (h, w)
+        return cv2.remap(img, self._polar_map_x, self._polar_map_y,
+                         cv2.INTER_LINEAR, borderValue=0)
 
     def _publish_descriptor(self, header, context, polar_key):
         """Publie le descripteur SONAR Context dans un Float32MultiArray.

@@ -8,6 +8,7 @@ import rospy
 import cv_bridge
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import PointCloud2
+from std_msgs.msg import Float32MultiArray
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 
@@ -76,10 +77,22 @@ class SLAMNode(SLAM):
         self.nssm_params.cov_samples = rospy.get_param(ns + "nssm/cov_samples")
         print("NSSM: ", self.nssm_params.enable)
 
-        #pairwise consistency maximization parameters for loop closure 
+        #pairwise consistency maximization parameters for loop closure
         #outliar rejection
         self.pcm_queue_size = rospy.get_param(ns + "pcm_queue_size")
         self.min_pcm = rospy.get_param(ns + "min_pcm")
+
+        # SONAR Context : détection de loop closure par apparence
+        self.sc_enable = rospy.get_param(ns + "sonar_context/enable", False)
+        self.sc_knn = rospy.get_param(ns + "sonar_context/knn", 5)
+        self.sc_dist_threshold = rospy.get_param(ns + "sonar_context/dist_threshold", 0.35)
+        self.sc_max_azimuth_shift = rospy.get_param(ns + "sonar_context/max_azimuth_shift", 10)
+        self.sc_max_range_shift = rospy.get_param(ns + "sonar_context/max_range_shift", 5)
+        self._descriptor_buffer = {}  # (sec, nsec) -> (context, ring_key)
+        if self.sc_enable:
+            rospy.Subscriber(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,
+                             self._descriptor_callback, queue_size=50)
+        print("SONAR CONTEXT: ", self.sc_enable)
 
         #cache the latest odom message; feature callback uses it directly
         self._latest_odom = None
@@ -206,6 +219,23 @@ class SLAMNode(SLAM):
         out.twist = m1.twist if a > 0.5 else m0.twist
         return out
 
+    def _descriptor_callback(self, msg: Float32MultiArray) -> None:
+        """Décode le descripteur SONAR Context publié par feature_extraction.
+        Format : [sec, nsec, A, R, context aplati (A*R), polar_key (R)]."""
+        data = np.asarray(msg.data, dtype=np.float32)
+        if len(data) < 4:
+            return
+        sec, nsec = int(data[0]), int(data[1])
+        A, R = int(data[2]), int(data[3])
+        if len(data) != 4 + A * R + R:
+            return
+        context = data[4:4 + A * R].reshape(A, R)
+        ring_key = data[4 + A * R:]
+        self._descriptor_buffer[(sec, nsec)] = (context, ring_key)
+        # borne mémoire : purge les plus anciens (insertion ordonnée en py3.7+)
+        while len(self._descriptor_buffer) > 500:
+            self._descriptor_buffer.pop(next(iter(self._descriptor_buffer)))
+
     def _feature_callback(self, feature_msg: PointCloud2) -> None:
         # odométrie AU TEMPS de la feature, pas la dernière reçue : avec le
         # retard de traitement CFAR, _latest_odom est en avance de plusieurs
@@ -271,6 +301,13 @@ class SLAMNode(SLAM):
 
             #add the point cloud to the frame
             frame.points = points
+
+            # attache le descripteur SONAR Context publié avec le même stamp
+            # (ring_key/context : champs Keyframe déjà prévus, jamais utilisés)
+            if self.sc_enable:
+                desc = self._descriptor_buffer.pop((time.secs, time.nsecs), None)
+                if desc is not None:
+                    frame.context, frame.ring_key = desc
 
             #perform seqential scan matching
             #if this is the first frame do not
@@ -493,6 +530,18 @@ class SLAMNode(SLAM):
                     for pt in kf.transf_points:
                         writer.writerow([i, pt[0], pt[1]])
         rospy.loginfo("Point cloud saved to %s", cloud_path)
+
+        # --- Journal SONAR Context (validation étape 5 : precision/recall) ---
+        # retenu=1 : candidat sous le seuil, envoyé à l'ICP/PCM ;
+        # croiser avec nssm_constraints de trajectory.csv pour les acceptés.
+        if self.sc_log:
+            sc_path = os.path.join(output_dir, "loops_detected.csv")
+            with open(sc_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["source_key", "target_key", "sc_dist",
+                                 "shift_azimuth", "shift_range", "retenu"])
+                writer.writerows(self.sc_log)
+            rospy.loginfo("Sonar Context log saved to %s", sc_path)
 
         # --- Ground truth CSV ---
         if self.gt_poses:

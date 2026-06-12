@@ -23,6 +23,7 @@ from bruce_slam.slam_objects import (
     ICPResult,
     SMParams,
 )
+from bruce_slam.sonar_context import cosine_distance_shifted
 
 
 class SLAM(object):
@@ -103,6 +104,16 @@ class SLAM(object):
         self.nssm_queue = []  # the loop closur queue
         self.pcm_queue_size = 5  # default val
         self.min_pcm = 3  # default val
+
+        # SONAR Context (Kim, ICRA 2023) — remplace la DÉTECTION de candidat
+        # du NSSM (gating covariance + argmax counts) par de la place
+        # recognition par apparence. Tout l'aval (shgo, ICP+cov, PCM) inchangé.
+        self.sc_enable = False
+        self.sc_knn = 5                # candidats retenus par la Polar Key
+        self.sc_dist_threshold = 0.35  # distance cosinus max pour valider
+        self.sc_max_azimuth_shift = 10
+        self.sc_max_range_shift = 5
+        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
 
         # Use fixed noise model in two cases
         # - Sequential scan matching
@@ -872,47 +883,65 @@ class SLAM(object):
         # Target points in global frame
         target_points, target_keys = self.get_points(target_frames, None, True)
 
-        # Loop over the source frames
-        # Eliminate frames that do not have points in the same field of view
-        sel = np.zeros(len(target_points), np.bool)
-        for source_frame in source_frames:
+        if self.sc_enable:
+            # ===== SONAR Context : sélection du candidat par APPARENCE =====
+            # Remplace le gating covariance+FOV et l'argmax(counts) — la source
+            # des fake loops quand l'odométrie a dérivé. L'aval est inchangé.
+            cand = self.sonar_context_candidate(target_frames)
+            if cand is None:
+                ret.status = STATUS.NOT_ENOUGH_POINTS
+                ret.status.description = "sonar context: no candidate"
+                return ret
+            ret.target_key = cand[0]
+            if len(target_points) < self.nssm_params.min_points:
+                ret.status = STATUS.NOT_ENOUGH_POINTS
+                ret.status.description = "target points {}".format(len(target_points))
+                return ret
+            cov = self.keyframes[ret.source_key].cov  # bornes shgo plus bas
+        else:
+            # ===== Détection géométrique d'origine (Bruce) =====
+            # Loop over the source frames
+            # Eliminate frames that do not have points in the same field of view
+            sel = np.zeros(len(target_points), np.bool)
+            for source_frame in source_frames:
 
-            # pull the pose and covariance info
-            pose = self.keyframes[source_frame].pose
-            cov = self.keyframes[source_frame].cov
+                # pull the pose and covariance info
+                pose = self.keyframes[source_frame].pose
+                cov = self.keyframes[source_frame].cov
 
-            # parse the covariance
-            translation_std = np.sqrt(np.max(np.linalg.eigvals(cov[:2, :2])))
-            rotation_std = np.sqrt(cov[2, 2])
-            range_bound = translation_std * 5.0 + self.oculus.max_range
-            bearing_bound = rotation_std * 5.0 + self.oculus.horizontal_aperture * 0.5
+                # parse the covariance
+                translation_std = np.sqrt(np.max(np.linalg.eigvals(cov[:2, :2])))
+                rotation_std = np.sqrt(cov[2, 2])
+                range_bound = translation_std * 5.0 + self.oculus.max_range
+                bearing_bound = rotation_std * 5.0 + self.oculus.horizontal_aperture * 0.5
 
-            # figure out the uncertain points
-            local_points = Keyframe.transform_points(target_points, pose.inverse())
-            ranges = np.linalg.norm(local_points, axis=1)
-            bearings = np.arctan2(local_points[:, 1], local_points[:, 0])
-            sel_i = (ranges < range_bound) & (abs(bearings) < bearing_bound)
-            sel |= sel_i
+                # figure out the uncertain points
+                local_points = Keyframe.transform_points(target_points, pose.inverse())
+                ranges = np.linalg.norm(local_points, axis=1)
+                bearings = np.arctan2(local_points[:, 1], local_points[:, 0])
+                sel_i = (ranges < range_bound) & (abs(bearings) < bearing_bound)
+                sel |= sel_i
 
-        # only keep the certain points
-        target_points = target_points[sel]
-        target_keys = target_keys[sel]
+            # only keep the certain points
+            target_points = target_points[sel]
+            target_keys = target_keys[sel]
 
-        # Check which frame has the most points nearby
-        target_frames, counts = np.unique(np.int32(target_keys), return_counts=True)
-        target_frames = target_frames[counts > 10]
-        counts = counts[counts > 10]
+            # Check which frame has the most points nearby
+            target_frames, counts = np.unique(np.int32(target_keys), return_counts=True)
+            target_frames = target_frames[counts > 10]
+            counts = counts[counts > 10]
 
-        # check the aggragate cloud for num of points
-        if len(target_frames) == 0 or len(target_points) < self.nssm_params.min_points:
-            ret.status = STATUS.NOT_ENOUGH_POINTS
-            ret.status.description = "target points {}".format(len(target_points))
-            return ret
+            # check the aggragate cloud for num of points
+            if len(target_frames) == 0 or len(target_points) < self.nssm_params.min_points:
+                ret.status = STATUS.NOT_ENOUGH_POINTS
+                ret.status.description = "target points {}".format(len(target_points))
+                return ret
 
-        # populate the initilization object with some info
-        ret.target_key = target_frames[
-            np.argmax(counts)
-        ]  # this is critical, the one with the most points overlapping
+            # populate the initilization object with some info
+            ret.target_key = target_frames[
+                np.argmax(counts)
+            ]  # this is critical, the one with the most points overlapping
+
         ret.target_pose = self.keyframes[ret.target_key].pose
         ret.target_points = Keyframe.transform_points(
             target_points, ret.target_pose.inverse()
@@ -999,6 +1028,51 @@ class SLAM(object):
         ret.target_points = self.get_points(target_frames, ret.target_key)
 
         return ret
+
+    def sonar_context_candidate(self, target_frames) -> tuple:
+        """Sélection du candidat loop closure par SONAR Context (Kim, ICRA 2023).
+
+        1) kNN brute-force sur les Polar Keys (euclidien) — rapide, < 1000 keyframes
+        2) distance cosinus avec adaptive shifting sur les k meilleurs
+        3) candidat retenu si distance < sc_dist_threshold
+        Toute décision est tracée dans self.sc_log (validation étape 5).
+
+        Args:
+            target_frames: indices des keyframes candidats (déjà filtrés min_st_sep)
+
+        Returns:
+            (target_key, dist, shift_azimuth, shift_range) ou None si pas de candidat.
+        """
+        query = self.keyframes[self.current_key - 1]
+        if query.ring_key is None or query.context is None:
+            return None
+        cands = [k for k in target_frames if self.keyframes[k].ring_key is not None]
+        if not cands:
+            return None
+
+        # 1) Polar Keys → kNN euclidien
+        keys = np.array([self.keyframes[k].ring_key for k in cands])
+        d_pk = np.linalg.norm(keys - np.asarray(query.ring_key)[None, :], axis=1)
+        order = np.argsort(d_pk)[: self.sc_knn]
+
+        # 2) Sonar Context complet sur les kNN seulement (coûteux)
+        best = None
+        for idx in order:
+            k = cands[int(idx)]
+            d, sa, sr = cosine_distance_shifted(
+                query.context,
+                self.keyframes[k].context,
+                self.sc_max_azimuth_shift,
+                self.sc_max_range_shift,
+            )
+            if best is None or d < best[1]:
+                best = (k, d, sa, sr)
+
+        # 3) seuil de validation + journal (étape 5 : precision/recall offline)
+        retenu = best[1] < self.sc_dist_threshold
+        self.sc_log.append((self.current_key - 1, best[0], round(best[1], 4),
+                            best[2], best[3], int(retenu)))
+        return best if retenu else None
 
     def add_nonsequential_scan_matching(self) -> ICPResult:
         """Run a loop closure search. Here we compare the most recent keyframe to the
