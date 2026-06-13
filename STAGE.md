@@ -1174,3 +1174,31 @@ Fichiers : `feature_extraction._publish_descriptor`, `slam_ros._descriptor_callb
 
 **À refaire** : relancer le run B sur feature/sonar-context → vérifier que
 `loops_detected.csv` apparaît, puis calibrer `dist_threshold` sur son histogramme.
+
+## 2026-06-13 (suite) — Run SC OK côté descripteurs, mais 0 boucle : bornes shgo
+
+**Run run_aracati_2026-06-13_152937** (après fix float32) :
+- `loops_detected.csv` peuplé (624 candidats) → descripteurs attachés ✓
+- SC identifie de VRAIES revisites : kf 500↔116 (384 kf d'écart, 0,4 m, sc_dist 0,125)
+- MAIS `nssm_constraints = 0` : 527 candidats retenus, TOUS rejetés en aval.
+
+**Cause** : l'init ICP global (shgo) borne sa recherche à ±5·σ de la covariance
+accumulée du keyframe source. Sans boucle fermée, cette covariance explose
+(cov_yy ~930 → bornes **±153 m** pour un sonar de 48 m). shgo échantillonne alors
+trop grossièrement (100 pts sur ±150 m) pour converger → ICP échoue → 0 contrainte
+→ covariance continue de croître (cercle vicieux). Bug ANTÉRIEUR à SC : touche aussi
+le chemin géométrique d'origine (explique run A main = 0 boucle).
+
+**Fix** : plafond des bornes shgo (`nssm/shgo_max_translation`=20 m, `shgo_max_rotation`=π),
+appliqué par np.clip après le calcul 5·σ. Bénéficie aux deux chemins. Validé :
+±153 m → ±20 m, échantillonnage shgo ~4 m (< bassin ICP).
+Fichiers : slam.py (init + clip), slam_ros.py (lecture param), slam_aracati.yaml.
+
+**Faux problème écarté** : l'ATE absolu n'a PAS de souci d'échelle. Mon script rapide
+interdisait la réflexion ; DISO inverse l'axe Y, traj_eval.py l'absorbe. ATE correct
+(réflexion autorisée) : run SC = SLAM 4,72 m ≈ Odom 4,52 m (SC n'apporte rien tant
+que 0 boucle). Réf. run 154852 : 3,35 m.
+
+**À refaire** : relancer le run SC → vérifier nssm_constraints > 0 et ATE < 4,5 m,
+puis calibrer dist_threshold sur l'histogramme (actuel 0,25 trop permissif : 84%
+retenus, distribution unimodale 0,07–0,33).

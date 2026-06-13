@@ -75,6 +75,12 @@ class SLAMNode(SLAM):
         self.nssm_params.max_rotation = rospy.get_param(ns + "nssm/max_rotation")
         self.nssm_params.source_frames = rospy.get_param(ns + "nssm/source_frames")
         self.nssm_params.cov_samples = rospy.get_param(ns + "nssm/cov_samples")
+        # plafond des bornes de recherche shgo (cf. slam.py : covariance non
+        # bornée → bornes ±130 m → shgo ne converge pas → 0 boucle)
+        self.nssm_params.shgo_max_translation = rospy.get_param(
+            ns + "nssm/shgo_max_translation", 20.0)
+        self.nssm_params.shgo_max_rotation = rospy.get_param(
+            ns + "nssm/shgo_max_rotation", np.pi)
         print("NSSM: ", self.nssm_params.enable)
 
         #pairwise consistency maximization parameters for loop closure

@@ -95,6 +95,13 @@ class SLAM(object):
         self.nssm_params.max_rotation = np.pi / 2
         self.nssm_params.source_frames = 5
         self.nssm_params.cov_samples = 30
+        # Plafond des bornes de recherche shgo (init ICP global). Sans boucle
+        # fermée, la covariance accumulée explose (±130 m mesuré) et shgo
+        # échantillonne trop grossièrement pour converger → 0 boucle. On borne
+        # au domaine physique où une vraie boucle peut exister (recouvrement
+        # sonar + dérive locale). Surchargé par le YAML (nssm/shgo_*).
+        self.nssm_params.shgo_max_translation = 20.0
+        self.nssm_params.shgo_max_rotation = np.pi
 
         # define ICP
         self.icp = pcl.ICP()
@@ -959,6 +966,15 @@ class SLAM(object):
             rotation_std = np.sqrt(cov[2, 2])
             pose_stds = np.array([[translation_std, translation_std, rotation_std]]).T
             pose_bounds = 5.0 * np.c_[-pose_stds, pose_stds]
+
+            # Plafond physique : la covariance accumulée (sans boucle) gonfle les
+            # bornes à ±130 m pour un sonar de ~48 m → shgo ne converge jamais.
+            # On borne au domaine où une boucle est plausible. Bénéficie aux deux
+            # chemins (SONAR Context et gating géométrique d'origine).
+            cap = np.array([[self.nssm_params.shgo_max_translation],
+                            [self.nssm_params.shgo_max_translation],
+                            [self.nssm_params.shgo_max_rotation]])
+            pose_bounds = np.clip(pose_bounds, -cap, cap)
 
             # TODO remove
             # ret.occ = self.get_map(target_frames)

@@ -25,6 +25,11 @@ nssm:
   max_rotation: deg(45)
   source_frames: 5
   cov_samples: 30
+  # plafond des bornes de recherche shgo (init ICP global). Sans ce cap, la
+  # covariance accumulée (pas de boucle) gonfle les bornes à ±130 m → shgo ne
+  # converge pas → 0 boucle. 20 m couvre la dérive locale d'une vraie revisite.
+  shgo_max_translation: 20.0
+  shgo_max_rotation: deg(180)
 
 pcm_queue_size: 5
 min_pcm: 6
