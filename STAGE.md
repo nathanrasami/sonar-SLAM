@@ -1149,3 +1149,28 @@ Script idempotent : `setup_ros_noetic.sh` (relançable, étapes marquées dans `
 
 **Usage** : `./run_slam.sh aracati` depuis Fedora (le script entre tout seul dans le conteneur).
 Bag par défaut : `ARACATI_2017_8bits_full.bag` à la racine du repo.
+
+## 2026-06-13 — Bug Sonar Context : timestamp float32 → 0 descripteur attaché
+
+**Symptôme** : runs A (main, Bruce+DISO) et B (sonar-context) quasi identiques.
+Diagnostic : `nssm_constraints = 0` dans les DEUX trajectory.csv (pure odométrie DISO),
+et `loops_detected.csv` ABSENT du run B → `sc_log` vide → `sonar_context_candidate`
+sortait toujours en amont (`query.context is None`).
+
+**Vérifié dans les logs ROS** : le run B avait bien SC actif (topic `/descriptor`
+publié + nœud SLAM abonné). Donc SC tournait mais aucun descripteur ne s'attachait.
+
+**Cause racine** : le descripteur transite dans un `Float32MultiArray` (sans header),
+avec le timestamp encodé en tête. Or float32 n'est exact que < 2^24 (16.7 M), alors que
+sec (epoch ~1.5e9) et nsec (≤1e9) dépassent largement. Le champ secondes dérivait de
+**40 à 63 s** à l'aller-retour → la clé `(sec, nsec)` ne matchait JAMAIS → pop None →
+`frame.context/ring_key` jamais renseignés → 0 candidat → 0 boucle.
+
+**Fix** : scinder chaque entier 32 bits en deux moitiés 16 bits (< 65536, exactes en
+float32), recombinées au décodage. Format descripteur :
+`[sec_hi, sec_lo, nsec_hi, nsec_lo, A, R, context(A*R), key(R)]`.
+Validé : aller-retour exact sur les timestamps réels du run B.
+Fichiers : `feature_extraction._publish_descriptor`, `slam_ros._descriptor_callback`.
+
+**À refaire** : relancer le run B sur feature/sonar-context → vérifier que
+`loops_detected.csv` apparaît, puis calibrer `dist_threshold` sur son histogramme.

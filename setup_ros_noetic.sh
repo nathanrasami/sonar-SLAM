@@ -208,6 +208,8 @@ setup_bashrc() {
 if [ -n "$CONTAINER_ID" ] && [ -f /opt/ros/noetic/setup.bash ]; then
     source /opt/ros/noetic/setup.bash
     [ -f "$HOME/ros1_ws/devel/setup.bash" ] && source "$HOME/ros1_ws/devel/setup.bash"
+    export ROS_HOSTNAME=localhost
+    export ROS_MASTER_URI=http://localhost:11311
 fi
 EOF
 }

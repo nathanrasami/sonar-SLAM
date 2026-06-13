@@ -25,6 +25,11 @@ fi
 source /opt/ros/noetic/setup.bash
 [ -f "$HOME/ros1_ws/devel/setup.bash" ] && source "$HOME/ros1_ws/devel/setup.bash"
 
+# ROS sur loopback : sinon les nœuds communiquent via l'IP Wi-Fi (hostname),
+# et couper le Wi-Fi tue toutes les connexions ROS (gel constaté le 12/06).
+export ROS_HOSTNAME=localhost
+export ROS_MASTER_URI=http://localhost:11311
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TYPE="${1:-aracati}"
 # bag par défaut : dans le dossier du repo (surchargeable en 2e argument)

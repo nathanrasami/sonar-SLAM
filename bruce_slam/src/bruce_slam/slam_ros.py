@@ -221,16 +221,19 @@ class SLAMNode(SLAM):
 
     def _descriptor_callback(self, msg: Float32MultiArray) -> None:
         """Décode le descripteur SONAR Context publié par feature_extraction.
-        Format : [sec, nsec, A, R, context aplati (A*R), polar_key (R)]."""
+        Timestamp scindé en moitiés 16 bits (cf. _publish_descriptor : float32
+        corromprait sec/nsec sinon → clé jamais trouvée, 0 boucle).
+        Format : [sec_hi, sec_lo, nsec_hi, nsec_lo, A, R, context(A*R), key(R)]."""
         data = np.asarray(msg.data, dtype=np.float32)
-        if len(data) < 4:
+        if len(data) < 6:
             return
-        sec, nsec = int(data[0]), int(data[1])
-        A, R = int(data[2]), int(data[3])
-        if len(data) != 4 + A * R + R:
+        sec = (int(data[0]) << 16) | int(data[1])
+        nsec = (int(data[2]) << 16) | int(data[3])
+        A, R = int(data[4]), int(data[5])
+        if len(data) != 6 + A * R + R:
             return
-        context = data[4:4 + A * R].reshape(A, R)
-        ring_key = data[4 + A * R:]
+        context = data[6:6 + A * R].reshape(A, R)
+        ring_key = data[6 + A * R:]
         self._descriptor_buffer[(sec, nsec)] = (context, ring_key)
         # borne mémoire : purge les plus anciens (insertion ordonnée en py3.7+)
         while len(self._descriptor_buffer) > 500:

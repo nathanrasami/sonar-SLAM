@@ -388,13 +388,24 @@ class FeatureExtraction(object):
     def _publish_descriptor(self, header, context, polar_key):
         """Publie le descripteur SONAR Context dans un Float32MultiArray.
 
-        Float32MultiArray n'a pas de header → on encode le timestamp (sec, nsec)
-        en tête du tableau pour que le SLAM associe le descripteur au bon keyframe.
-        Format aplati : [sec, nsec, A, R, context.flatten() (A*R), polar_key (R)]
+        Float32MultiArray n'a pas de header → on encode le timestamp en tête du
+        tableau pour que le SLAM associe le descripteur au bon keyframe.
+
+        ATTENTION : float32 ne représente exactement que les entiers < 2^24
+        (16.7 M). Or sec (epoch Unix ~1.5e9) ET nsec (jusqu'à 1e9) dépassent
+        cette borne → un encodage direct corrompt le timestamp de plusieurs
+        dizaines de secondes, la clé ne matche jamais et AUCUN descripteur n'est
+        attaché (bug du run du 13/06 : sc_log vide, 0 boucle). On scinde donc
+        chaque entier 32 bits en deux moitiés 16 bits (< 65536, donc exactes).
+        Format : [sec_hi, sec_lo, nsec_hi, nsec_lo, A, R, context(A*R), key(R)]
         """
         A, R = context.shape
+        sec = int(header.stamp.secs)
+        nsec = int(header.stamp.nsecs)
+        ts = [float(sec >> 16), float(sec & 0xFFFF),
+              float(nsec >> 16), float(nsec & 0xFFFF)]
         flat = np.concatenate([
-            [float(header.stamp.secs), float(header.stamp.nsecs)],
+            ts,
             [float(A), float(R)],
             context.flatten().astype(np.float32),
             polar_key.astype(np.float32),
