@@ -94,6 +94,9 @@ class SLAMNode(SLAM):
         self.sc_dist_threshold = rospy.get_param(ns + "sonar_context/dist_threshold", 0.35)
         self.sc_max_azimuth_shift = rospy.get_param(ns + "sonar_context/max_azimuth_shift", 10)
         self.sc_max_range_shift = rospy.get_param(ns + "sonar_context/max_range_shift", 5)
+        # porte géométrique : distance max (m) entre source et candidat dans
+        # l'estimé courant (l'apparence propose, la géométrie vérifie)
+        self.sc_gate_distance = rospy.get_param(ns + "sonar_context/gate_distance", 20.0)
         self._descriptor_buffer = {}  # (sec, nsec) -> (context, ring_key)
         if self.sc_enable:
             rospy.Subscriber(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,

@@ -1066,6 +1066,22 @@ class SLAM(object):
         if not cands:
             return None
 
+        # 0) Porte géométrique : un VRAI revisité est proche dans l'estimé courant
+        # (DISO est bon → vraies boucles <10 m, fausses >34 m : séparation nette,
+        # mesurée sur sc_descriptor_bench). On écarte les candidats invraisemblables
+        # AVANT SC → élimine les faux positifs résiduels du descripteur (FPR ~24%)
+        # sans perdre de vraies boucles. L'apparence propose, la géométrie vérifie.
+        gate = getattr(self, "sc_gate_distance", 20.0)
+        if gate > 0:
+            qx, qy = query.pose.x(), query.pose.y()
+            cands = [
+                k for k in cands
+                if (self.keyframes[k].pose.x() - qx) ** 2
+                + (self.keyframes[k].pose.y() - qy) ** 2 <= gate * gate
+            ]
+            if not cands:
+                return None
+
         # 1) Polar Keys → kNN euclidien
         keys = np.array([self.keyframes[k].ring_key for k in cands])
         d_pk = np.linalg.norm(keys - np.asarray(query.ring_key)[None, :], axis=1)

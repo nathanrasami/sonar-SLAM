@@ -1233,3 +1233,28 @@ Fichiers : sonar_context.py, feature_extraction.py, feature_aracati.yaml, slam_a
 **À refaire** : relancer le run SC → vérifier ATE < odométrie. Si des fausses boucles
 persistent (FPR 24% résiduel), 2 leviers prêts : porte géométrique (rejeter candidat
 trop loin dans l'estimé) + monter min_pcm 6→8.
+
+## 2026-06-13 (suite) — Porte géométrique : éliminer les fausses boucles résiduelles
+
+**Run run_aracati_2026-06-13_183808** (descripteur densité) : net progrès, ATE
+17,65 → **4,73 m**, précision des boucles 18% → 51% vraies. Mais SLAM (4,73 m) reste
+au-dessus de l'odométrie (3,21 m) : 19% de fausses boucles résiduelles corrompent
+encore le graphe (FPR 24% du descripteur seul).
+
+**Mesure décisive (run 183808, estimé = odométrie non corrompue)** : pour les
+candidats retenus, la distance source↔cible dans l'estimé sépare PARFAITEMENT :
+- vraies boucles (GT<5m) : <10 m dans l'estimé (médiane 6,2, p90 9,7)
+- fausses (GT>30m) : >34 m dans l'estimé (médiane 39, p10 34)
+→ une porte à 20 m garde 112/112 vraies et rejette 41/41 fausses.
+
+C'est fiable parce que DISO est bon (3,2 m) : un vrai revisité est forcément proche
+dans l'estimé, une fausse correspondance d'apparence est loin. « L'apparence propose,
+la géométrie vérifie. »
+
+**Fix** : porte géométrique dans `sonar_context_candidate` — on filtre les candidats
+par distance dans l'estimé courant AVANT la sélection SC (`sonar_context/gate_distance:
+20.0`). Élimine les faux positifs résiduels sans perdre de vraies boucles.
+Fichiers : slam.py, slam_ros.py, slam_aracati.yaml.
+
+**Attendu au prochain run** : ATE SLAM < odométrie (les vraies boucles corrigent enfin
+la dérive sans pollution). Si l'ATE passe sous ~3 m → objectif du stage atteint.

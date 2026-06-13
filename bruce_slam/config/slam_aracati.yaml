@@ -48,6 +48,10 @@ sonar_context:
   dist_threshold: 0.65
   max_azimuth_shift: 10  # ±10 cases × 3.25°/case = ±32.5° de rotation testée
   max_range_shift: 5     # ±5 cases × ~1.2 m/case de translation testée
+  # porte géométrique : distance max (m) source<->candidat dans l'estimé courant.
+  # Validé sur le run 183808 : vraies boucles à <10 m, fausses à >34 m → un seuil
+  # de 20 m garde 112/112 vraies et rejette 41/41 fausses. Fiable car DISO est bon.
+  gate_distance: 20.0
 
 pz_samples: 0
 pz_detection_rate: 0.3
