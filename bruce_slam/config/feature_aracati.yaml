@@ -37,3 +37,7 @@ sonar_context:
   enable: True
   num_azimuth: 40
   num_range: 40
+  # seuil d'intensité du descripteur : ne garde que les retours forts (structure).
+  # Le max-pooling de l'intensité brute saturait (AUC 0.55) ; la densité au-dessus
+  # de ce seuil discrimine (AUC 0.86, sc_descriptor_bench.py). Pic vers 95-110.
+  intensity_threshold: 95

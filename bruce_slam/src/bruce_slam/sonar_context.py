@@ -14,20 +14,27 @@ Pipeline :
 import numpy as np
 
 
-def build_sonar_context(image, num_azimuth=40, num_range=40):
+def build_sonar_context(image, num_azimuth=40, num_range=40, intensity_threshold=95):
     """Construit le SONAR Context : matrice (num_azimuth x num_range).
 
-    Découpe l'image en patches et garde l'INTENSITÉ MAXIMALE de chaque patch
-    (formule M(P_ij) = max i(p)). Une forte intensité = structure réfléchissante
-    → encode la géométrie de l'environnement.
+    Encode la DENSITÉ DES RETOURS STRUCTURELS : par case, moyenne de l'intensité
+    AU-DESSUS d'un seuil (max(intensité - seuil, 0)). Une case forte = beaucoup
+    de réflecteurs puissants → signature géométrique du lieu.
 
-    En mode cartésien Aracati, l'image est déjà projetée (colonnes ~ azimuth,
-    lignes ~ range). On fait un max-pooling par blocs vers (num_azimuth, num_range).
+    Pourquoi pas le max-pooling de l'intensité brute (formulation d'origine du
+    papier) : sur le P900 (basse résolution, fort fond de mer, retours proches
+    saturants), le max sature partout → descripteur quasi uniforme, non
+    discriminant. Mesuré sur sc_descriptor_bench.py : max brut AUC=0.55 (aléatoire)
+    vs densité au-dessus du seuil AUC=0.86 (vraies/fausses revisites bien séparées).
+
+    En mode cartésien Aracati, l'image fournie est déjà REPOLARISÉE
+    (lignes = range, colonnes = azimuth ; cf. feature_extraction._polar_remap).
 
     Args:
-        image       : image sonar 2D (H x W), niveaux de gris (uint8 ou float).
-        num_azimuth : A, nombre de cases en azimuth (sortie).
-        num_range   : R, nombre de cases en range (sortie).
+        image              : image sonar 2D (H x W), niveaux de gris.
+        num_azimuth        : A, nombre de cases en azimuth (sortie).
+        num_range          : R, nombre de cases en range (sortie).
+        intensity_threshold: seuil sous lequel l'intensité est ignorée (fond/bruit).
 
     Returns:
         contexte (num_azimuth, num_range) en float [0, 1].
@@ -36,22 +43,22 @@ def build_sonar_context(image, num_azimuth=40, num_range=40):
     if img.ndim != 2:
         raise ValueError("build_sonar_context attend une image 2D en niveaux de gris")
 
-    H, W = img.shape
-    # On veut que l'axe AZIMUTH soit l'axe 0 du contexte. Dans l'image Aracati
-    # cartésienne, les colonnes (W) = azimuth et les lignes (H) = range.
+    # On ne garde que l'intensité au-dessus du seuil (retours structurels).
+    if intensity_threshold > 0:
+        img = np.clip(img - float(intensity_threshold), 0.0, None)
+
+    # On veut que l'axe AZIMUTH soit l'axe 0 du contexte. Dans l'image
+    # repolarisée, les colonnes (W) = azimuth et les lignes (H) = range.
     # On transpose donc pour avoir (azimuth, range) = (W, H) avant le pooling.
     img = img.T  # maintenant (W=azimuth, H=range)
     A_src, R_src = img.shape
 
-    # Max-pooling par blocs vers (num_azimuth, num_range).
-    # On rogne au multiple inférieur pour des blocs réguliers.
+    # Mean-pooling par blocs vers (num_azimuth, num_range) : la MOYENNE (densité)
+    # discrimine, là où le max saturait. On rogne au multiple inférieur.
     a_blk = max(A_src // num_azimuth, 1)
     r_blk = max(R_src // num_range, 1)
-    a_used = a_blk * num_azimuth
-    r_used = r_blk * num_range
-    cropped = img[:a_used, :r_used]
-    # reshape en (num_azimuth, a_blk, num_range, r_blk) puis max sur les blocs
-    pooled = cropped.reshape(num_azimuth, a_blk, num_range, r_blk).max(axis=(1, 3))
+    cropped = img[:a_blk * num_azimuth, :r_blk * num_range]
+    pooled = cropped.reshape(num_azimuth, a_blk, num_range, r_blk).mean(axis=(1, 3))
 
     # Normalisation en [0, 1] pour stabiliser la distance cosinus
     m = pooled.max()

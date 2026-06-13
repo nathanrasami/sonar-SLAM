@@ -41,10 +41,11 @@ min_pcm: 6
 sonar_context:
   enable: True
   knn: 5                 # candidats présélectionnés par la Polar Key
-  # 0.25 : test synthétique → lieu revisité ~0.0, lieu inconnu ~0.18.
-  # À CALIBRER après le 1er run avec l'histogramme sc_dist de loops_detected.csv
-  # (les faux candidats restent filtrés par ICP + PCM en aval).
-  dist_threshold: 0.25
+  # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
+  # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
+  # Youden 0.695 (TPR 84%, FPR 24%). 0.65 = un peu conservateur (moins de fausses,
+  # les restantes filtrées par ICP+PCM). Affiner sur loops_detected.csv du run.
+  dist_threshold: 0.65
   max_azimuth_shift: 10  # ±10 cases × 3.25°/case = ±32.5° de rotation testée
   max_range_shift: 5     # ±5 cases × ~1.2 m/case de translation testée
 

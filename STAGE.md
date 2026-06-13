@@ -1202,3 +1202,34 @@ que 0 boucle). Réf. run 154852 : 3,35 m.
 **À refaire** : relancer le run SC → vérifier nssm_constraints > 0 et ATE < 4,5 m,
 puis calibrer dist_threshold sur l'histogramme (actuel 0,25 trop permissif : 84%
 retenus, distribution unimodale 0,07–0,33).
+
+## 2026-06-13 (suite) — Descripteur SC non-discriminant : reconstruit sur la structure
+
+**Run run_aracati_2026-06-13_171435** (après fix shgo) : 28 boucles se ferment enfin,
+MAIS l'ATE explose à 17,65 m (vs 4,71 m odom) → boucles FAUSSES.
+
+**Diagnostic (via GT)** : sur 525 candidats retenus par SC, 28% sont à >30 m dans le
+GT. Corrélation sc_dist ↔ vraie distance GT = **−0,02 (nulle)** : le descripteur ne
+distinguait PAS un lieu revisité d'un lieu lointain. Baisser le seuil n'aurait rien
+changé (vraies et fausses se chevauchent : médianes 0,169 vs 0,185).
+
+**Cause** : `build_sonar_context` faisait un MAX-POOLING de l'intensité brute. Sur le
+P900 (basse résolution, fort fond, retours proches saturants), le max sature partout
+→ descripteur quasi uniforme.
+
+**Banc d'essai hors-ligne** (`sc_descriptor_bench.py`, sans run SLAM) : extrait du bag
+les images aux revisites connues (GT), mesure l'AUC de séparation vraies/fausses.
+Résultat :
+- max intensité brute (actuel) : **AUC 0,55** (aléatoire)
+- densité d'intensité au-dessus d'un seuil (clip(I−95) + mean-pool) : **AUC 0,86**
+  → seuil cosinus de Youden 0,695, TPR 84%, FPR 24%.
+
+**Fix livré** : `build_sonar_context` encode désormais la densité des retours forts
+(param `sonar_context/intensity_threshold: 95`), mean-pool au lieu de max.
+`dist_threshold` recalibré 0,25 → 0,65 (nouvelle échelle de distance). Validé : le
+module réel donne bien AUC 0,86 sur le banc.
+Fichiers : sonar_context.py, feature_extraction.py, feature_aracati.yaml, slam_aracati.yaml.
+
+**À refaire** : relancer le run SC → vérifier ATE < odométrie. Si des fausses boucles
+persistent (FPR 24% résiduel), 2 leviers prêts : porte géométrique (rejeter candidat
+trop loin dans l'estimé) + monter min_pcm 6→8.

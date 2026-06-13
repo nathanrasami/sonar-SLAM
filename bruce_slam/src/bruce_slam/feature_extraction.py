@@ -134,6 +134,10 @@ class FeatureExtraction(object):
         self.sonar_context_enable = rospy.get_param(ns + "sonar_context/enable", False)
         self.sc_num_azimuth = rospy.get_param(ns + "sonar_context/num_azimuth", 40)
         self.sc_num_range = rospy.get_param(ns + "sonar_context/num_range", 40)
+        # seuil d'intensité du descripteur (densité des retours forts ; cf.
+        # build_sonar_context et sc_descriptor_bench : AUC 0.55→0.86)
+        self.sc_intensity_threshold = rospy.get_param(
+            ns + "sonar_context/intensity_threshold", 95)
         if self.sonar_context_enable:
             self.descriptor_pub = rospy.Publisher(
                 SONAR_DESCRIPTOR_TOPIC, Float32MultiArray, queue_size=10)
@@ -296,7 +300,8 @@ class FeatureExtraction(object):
         # Publié avec le MÊME header.stamp que les features → le SLAM les associe.
         if self.sonar_context_enable:
             polar_img = self._polar_remap(img)
-            ctx = build_sonar_context(polar_img, self.sc_num_azimuth, self.sc_num_range)
+            ctx = build_sonar_context(polar_img, self.sc_num_azimuth,
+                                      self.sc_num_range, self.sc_intensity_threshold)
             pkey = build_polar_key(ctx)
             self._publish_descriptor(msg.header, ctx, pkey)
 
