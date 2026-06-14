@@ -2,6 +2,10 @@
     <arg name="rviz" default="true"/>
     <arg name="enable_slam" default="true"/>
     <arg name="bag_file" default="$(find bruce_slam)/../ARACATI_2017_8bits_full.bag"/>
+    <!-- vitesse de rejeu du bag. DISO (méthode directe) se dégrade sous contention
+         CPU en combiné (2.1 m standalone -> 3.2-5.5 m combiné). rate:=0.5 laisse
+         à DISO le temps de converger comme en standalone (cf. FABLE.md §5 #1). -->
+    <arg name="rate" default="1.0"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -23,7 +27,7 @@
 
     <!-- rosbag playback -->
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
-          args="$(arg bag_file) --clock -r 1.0 -q"/>
+          args="$(arg bag_file) --clock -r $(arg rate) -q"/>
 
     <!-- DISO sonar odometry front-end -->
     <node pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"

@@ -40,7 +40,7 @@ export SLAM_RESULTS_DIR="$RUN_DIR"
 echo "[run_slam] Résultats dans : $RUN_DIR"
 
 case "$TYPE" in
-  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" ;;
+  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
   diso)
     # le launch DISO ne joue pas le bag : on le lance, on attend que les nodes

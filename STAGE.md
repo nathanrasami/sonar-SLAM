@@ -1258,3 +1258,34 @@ Fichiers : slam.py, slam_ros.py, slam_aracati.yaml.
 
 **Attendu au prochain run** : ATE SLAM < odométrie (les vraies boucles corrigent enfin
 la dérive sans pollution). Si l'ATE passe sous ~3 m → objectif du stage atteint.
+
+## 2026-06-13 (suite) — Pourquoi Odom DISO 5,5 m en combiné vs 2,1 m standalone
+
+**Question** : run combiné donne Odom 5,5 m, `./run_slam.sh diso` donne 2,1 m. Mensonge ?
+**Réponse : ni l'un ni l'autre, mais 2 pièges + 1 vrai problème.**
+
+1. **Piège de fichier** : dans un run DISO standalone, `odometry.csv` est la GT republiée
+   (ATE 0,00 m) — PAS DISO. Le vrai DISO standalone est `diso_trajectory.csv` = 2,07 m
+   (confirmé, le 2,1 m est réel). Ne jamais comparer les `odometry.csv` entre run diso
+   et run combiné : ce ne sont pas la même grandeur.
+
+2. **DISO combiné genuinely worse + très variable** : odometry.csv (= DISO via odom_bridge)
+   sur les runs combinés : 3,21 / 3,25 / 3,55 / 3,87 / 4,44 / 4,52 / 4,71 / 4,93 / 5,46 m.
+   Standalone 2,07 m. Le run 200714 a tiré le pire DISO (5,46 m) → d'où le SLAM décevant.
+   Fréquence quasi identique (5,0 vs 5,2 Hz) → ce n'est pas du frame-drop grossier mais
+   la contention CPU (DISO direct partage le CPU avec CFAR+iSAM2+RViz) + non-déterminisme.
+
+3. **VRAI PROBLÈME — les boucles DÉGRADENT la trajectoire** (test sous-échantillonnage,
+   pas un artefact de métrique) :
+   - 183808 : SLAM 4,73 vs odom sous-éch. aux keyframes 3,08 → +1,6 m
+   - 200714 : SLAM 7,76 vs odom sous-éch. 5,60 → +2,2 m
+   Et ce, avec des candidats à 0% de fausses (la porte géométrique marche). Donc les
+   CANDIDATS sont bons mais les CONTRAINTES (transformée relative ICP) sont imprécises :
+   vraie revisite, mauvais recalage. C'est le prochain verrou.
+
+**Fix livré** : `rate` paramétrable dans aracati.launch + run_slam.sh (`RATE=0.5 ./run_slam.sh
+aracati`). Permet le test discriminant FABLE §5 #1 : à -r 0.5, DISO doit retrouver ~2-3 m.
+Prérequis à toute éval honnête (sinon odom oscille 3,2-5,5 m, > gain des boucles).
+
+**Prochain levier (constraintes)** : init de l'ICP de boucle par le shift Sonar Context
+(best_azimuth_shift) au lieu de shgo (FABLE.md §4) → recalage plus précis.
