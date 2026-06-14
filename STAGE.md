@@ -1289,3 +1289,44 @@ Prérequis à toute éval honnête (sinon odom oscille 3,2-5,5 m, > gain des bou
 
 **Prochain levier (constraintes)** : init de l'ICP de boucle par le shift Sonar Context
 (best_azimuth_shift) au lieu de shgo (FABLE.md §4) → recalage plus précis.
+
+## 2026-06-13 (soir) — #2 (shift SC comme init ICP) ABANDONNÉ : preuve que le verrou est la donnée
+
+Objectif initial : initialiser l'ICP de boucle par le shift Sonar Context au lieu de
+shgo (FABLE.md §4). Avant d'implémenter, validation hors-ligne (sc_constraint_bench.py,
+sans run SLAM) → le diagnostic change la conclusion.
+
+**Étape 1 — le shift SC porte bien la rotation, mal réglée** : sur 115 vraies boucles,
+corrélation shift_azimuth ↔ yaw relatif estimé = **−0,83** (forte mais SIGNE INVERSÉ :
+convention de shift opposée). De plus le shift sature à ±32° (max_azimuth_shift=10) alors
+que les vraies rotations atteignent ±65°. Donc utilisable en principe… mais :
+
+**Étape 2 — les nuages ne s'alignent pas (le vrai verrou)** : ICP hors-ligne sur 30
+vraies revisites (CFAR répliqué + ICP 2D point-à-point) :
+- résidu médian après ICP = **7,7 m** (init estimé 8,2 m → ICP n'améliore quasi rien)
+- plancher de sparsité ~2 m (nuages ~170-430 pts ; voisins immédiats déjà à ~2,3 m)
+- ~1/3 des boucles s'alignent (résidu 1-3,5 m), 2/3 non (>5 m)
+
+**Étape 3 — une porte sur le cap ne sauve pas** : corrélation écart-cap ↔ résidu = 0,56 ;
+même à cap <10°, résidu médian 6,85 m. Le sonar est dépendant du point de vue et trop
+épars : deux passages d'un même lieu produisent des nuages trop différents pour un
+recalage fiable.
+
+**Conclusion** : le verrou n'est NI l'init (shgo/shift) NI le cap, mais l'ALIGNABILITÉ
+des nuages CFAR — une limite de la donnée (P900 basse résolution). #2 (shift→init ICP)
+n'aurait rien réglé. La place recognition de SC fonctionne (AUC 0,86, porte 0% fausses) ;
+c'est l'étape de CONTRAINTE géométrique qui est faible sur Aracati. Cohérent avec
+FABLE §2 : « impossible de battre DISO sans BONNES boucles ».
+
+**Pistes restantes (à valider AVEC données réelles, pas à l'aveugle)** :
+1. Instrumenter : logger le résidu ICP réel (libpointmatcher) par boucle → fixer un seuil
+   de rejet sur données pipeline (≠ proxy hors-ligne). Garde-fou « ne garder que le ~1/3
+   alignable » → les boucles cessent de nuire.
+2. SSM réactivé sur DISO (FABLE §3) : contraintes ICP SÉQUENTIELLES (faible baseline,
+   donc nuages proches → alignables), indépendantes de DISO. Levier plus prometteur que
+   les boucles longues sur cette donnée.
+3. Accepter que sur Aracati le gain des boucles longues est marginal : la contribution
+   est la méthodo (détection SC + porte géométrique + validation hors-ligne rigoureuse).
+
+Outils livrés : sc_descriptor_bench.py (qualité descripteur), sc_constraint_bench.py
+(qualité contrainte/alignement). Réutilisables sur tout run.
