@@ -61,7 +61,29 @@ case "$TYPE" in
     echo "[run_slam] Bag terminé. CTRL+C pour fermer DISO et sauver les CSV."
     wait $LAUNCH_PID
     ;;
-  *) echo "Type inconnu: $TYPE (aracati|diso|holoocean)"; exit 1 ;;
+  diso_nogt)
+    # ABLATION GT : DISO lit une GT volontairement DÉRIVÉE (/pose_gt_drift) au lieu
+    # de /pose_gt. Teste si DISO corrige la dérive par le sonar (vraie odométrie)
+    # ou la suit (dépendant de la GT). Le nœud gt_drift est un simple script python
+    # (pas de recompilation). DRIFT_LAT / DRIFT_YAW surchargent les défauts.
+    if [ ! -f "$BAG" ]; then
+      echo "[run_slam] ERREUR: bag introuvable: $BAG"; exit 1
+    fi
+    roslaunch direct_sonar_odometry aracati2017_drift.launch &
+    LAUNCH_PID=$!
+    sleep 3
+    python3 "$HERE/DISO/scripts/gt_drift_node.py" \
+        _lateral_drift_rate:="${DRIFT_LAT:-0.003}" _yaw_bias_deg:="${DRIFT_YAW:-3.0}" &
+    DRIFT_PID=$!
+    trap "kill $LAUNCH_PID $DRIFT_PID 2>/dev/null" EXIT
+    echo "[run_slam] DISO + injection de dérive GT... (5 s d'init)"
+    sleep 5
+    echo "[run_slam] Lecture du bag : $BAG"
+    rosbag play "$BAG" --clock -r "${RATE:-1.0}" -q
+    echo "[run_slam] Bag terminé. CTRL+C pour fermer et sauver les CSV."
+    wait $LAUNCH_PID
+    ;;
+  *) echo "Type inconnu: $TYPE (aracati|diso|diso_nogt|holoocean)"; exit 1 ;;
 esac
 
 echo "[run_slam] Terminé. Analyse avec :"
