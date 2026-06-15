@@ -1,0 +1,17 @@
+<launch>
+    <!-- Ablation GT : identique à aracati2017.launch mais DISO lit la GT DÉRIVÉE
+         (/pose_gt_drift, via config_aracati2017_drift.yaml). Le nœud gt_drift qui
+         produit /pose_gt_drift est lancé séparément par run_slam.sh (script python,
+         pas besoin de recompiler le paquet). -->
+    <param name="use_sim_time" value="true"/>
+    <node pkg="tf" type="static_transform_publisher" name="world2odom"
+    args="0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 1.0000 odom orb_slam 100"/>
+    <node pkg="direct_sonar_odometry" type="repub_gt" name="repub_gt_node"/>
+    <node pkg="direct_sonar_odometry" type="aracati2017_node" name="direct_sonar_odometry_node"
+          args="$(find direct_sonar_odometry)/config/config_aracati2017_drift.yaml" output="screen"/>
+
+    <node name="rviz_direct_sonar" pkg="rviz" type="rviz" args="-d $(find direct_sonar_odometry)/launch/sonar_odometry.rviz"/>
+
+    <node pkg="direct_sonar_odometry" type="bruce_save.py" name="bruce_save" output="screen"/>
+
+</launch>

@@ -1,0 +1,23 @@
+%YAML:1.0
+
+# Variante d'ABLATION : DISO reçoit une GT VOLONTAIREMENT DÉRIVÉE (/pose_gt_drift)
+# au lieu de la vraie GT (/pose_gt). But : tester si DISO corrige la dérive par le
+# sonar (=> vraie odométrie sonar) ou la suit (=> DISO dépend de l'exactitude GT).
+# Seule différence avec config_aracati2017.yaml : OdomTopic.
+SonarTopic: "/son"
+OdomTopic: "/pose_gt_drift"
+Range: 48.2896 # range was scaled by SIM3 alignment with GT because of the sacle issue mentioned in the paper
+GradientThreshold: 170.0 # 0~255
+PyramidLayer: 3
+FOV: 130.0
+GradientInlierThreshold: 50.0
+LossThreshold: 100
+#transformation matrix from sonar to body frame
+Tbs: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: f
+  data: [ 1.000000000,  0.000000000,  0.000000000,  0.0,
+          0.000000000,  1.000000000,  0.000000000,  0.0,
+          0.000000000,  0.000000000,  1.000000000,  0.0,
+          0.000000000,  0.000000000,  0.000000000,  1.0 ]

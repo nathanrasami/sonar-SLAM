@@ -56,7 +56,13 @@
       "Bash(bash -n run_slam.sh)",
       "Bash(git commit -q -m 'run_slam.sh: le mode diso joue aussi le rosbag \\(RViz vide sinon\\) *)",
       "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)",
-      "Bash(git ls-tree *)"
+      "Bash(chmod +x DISO/scripts/gt_drift_node.py)",
+      "Bash(~/.opt/bin/distrobox enter *)",
+      "Bash(python3 -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(python3 ablation_diso_gt.py)",
+      "Bash(git ls-tree *)",
+      "Bash(grep -E \"run_slam.sh|DISO/launch/aracati2017.launch$|DISO/scripts/bruce_save.py\")",
+      "Bash(git commit *)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
