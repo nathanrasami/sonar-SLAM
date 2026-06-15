@@ -55,7 +55,11 @@
       "Bash(python3 -m py_compile analyze_drift.py traj_eval.py bruce_slam/src/bruce_slam/slam_ros.py DISO/scripts/bruce_save.py)",
       "Bash(bash -n run_slam.sh)",
       "Bash(git commit -q -m 'run_slam.sh: le mode diso joue aussi le rosbag \\(RViz vide sinon\\) *)",
-      "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)"
+      "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)",
+      "Bash(chmod +x DISO/scripts/gt_drift_node.py)",
+      "Bash(~/.opt/bin/distrobox enter *)",
+      "Bash(python3 -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(python3 ablation_diso_gt.py)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"

@@ -1149,3 +1149,91 @@ Script idempotent : `setup_ros_noetic.sh` (relançable, étapes marquées dans `
 
 **Usage** : `./run_slam.sh aracati` depuis Fedora (le script entre tout seul dans le conteneur).
 Bag par défaut : `ARACATI_2017_8bits_full.bag` à la racine du repo.
+
+## 2026-06-15 — Ablation DISO/GT : DISO est largement une vraie odométrie sonar
+
+**Question** : DISO sur Aracati utilise `OdomTopic: /pose_gt` (la GT) comme prior
+d'odométrie par frame. Le résultat est-il de l'odométrie SONAR réelle ou un artefact
+de la GT ?
+
+**Protocole** : `gt_drift_node.py` republie `/pose_gt` → `/pose_gt_drift` en injectant
+une dérive connue (0,003 m/s latéral ≈ 7,9 m sur 2640 s + 3° de biais yaw). DISO
+consomme la GT dérivée (`config_aracati2017_drift.yaml`). Run `run_diso_nogt_2026-06-15_101108`.
+Analyse : `ablation_diso_gt.py` (Umeyama avec réflexion).
+
+**⚠️ Piège méthodologique corrigé** : la 1re version comparait DISO normal **sur VM**
+(2,07 m) à DISO dérivé **sur Docker** (5,87 m) → croisement d'environnements. Or DISO
+est très sensible à l'environnement (cf. section non-déterminisme ci-dessous) : sur Docker,
+DISO normal fait déjà **4,57 m** sans aucune corruption. La comparaison juste se fait
+**à environnement constant** (Docker normal vs Docker dérivé).
+
+**Résultats à environnement constant (Docker, référence vraie GT)** :
+
+| Config | ATE |
+|--------|-----|
+| DISO normal (prior = vraie GT) | **4,57 m** |
+| DISO + GT corrompue de 7,9 m | **5,97 m** |
+| DISO corrompu vs GT *dérivée* | 6,00 m |
+
+**Verdict : DISO corrige ~82 % de la dérive injectée → odométrie sonar réelle.**
+- Corrompre la GT de **7,9 m** ne dégrade DISO que de **+1,4 m** (4,57 → 5,97) →
+  seulement ~18 % de l'erreur GT se propage, le sonar corrige le reste.
+- DISO corrompu reste **plus proche de la vraie GT (5,97) que de la GT dérivée (6,00)**
+  → il ne suit PAS le prior, le sonar le ramène vers la réalité.
+- Le prior GT n'est donc qu'une **ancre faible** (init du tracker + scale), pas la source
+  principale de la trajectoire. C'est défendable devant le jury comme vraie odométrie sonar.
+
+**Implications** :
+1. La performance DISO de référence (~2-3 m) est **honnête** (mesurée VM) ; ce n'est pas
+   un artefact GT. Le prior GT aide à l'init mais le sonar fait le gros du travail.
+2. Le gain relatif Sonar Context (+0,63 m, run 212922) reste valide.
+3. **Une baseline « sonar pur » n'est PAS un simple changement de config.**
+   `System.cpp:158-160` synchronise l'image sonar ET l'odom via `ApproximateTime` :
+   sans message odom, le callback `frameLoad` ne se déclenche jamais → 0 frame. DISO
+   *exige* donc un topic odom. De plus le prior `T_b0_bi` sert d'**init au tracker direct**
+   (optimiseur local → converge près de son init) ET au placement du nuage de points.
+   - Fournir un prior identité figé ne donnerait pas un « sonar pur » honnête : le tracker
+     serait initialisé à l'origine pour *toutes* les frames (init absolu), donc faux dès que
+     le ROV s'éloigne → résultat artificiellement mauvais.
+   - Une vraie baseline sonar pur demande une **modif C++** : initialiser chaque frame avec
+     l'estimée sonar de la frame précédente (frame-to-frame) au lieu de la GT. À évaluer
+     si on veut ce chiffre.
+
+## 2026-06-15 — DISO dépend de l'environnement d'exécution (VM ≠ Docker)
+
+**Constat** : DISO standalone, MÊME bag / MÊME launch / MÊME config, donne :
+
+| Environnement | Frames traitées | ATE |
+|---------------|-----------------|-----|
+| VM Ubuntu (06-10, avant migration) | 13 143 | **2,07 m** |
+| Docker/Fedora (06-15, run 105930) | 14 298 | **4,57 m** |
+
+Même span temporel (462 → 459102). Donc ce n'est PAS du bruit run-à-run : c'est
+**systématique et lié à l'environnement** (le saut coïncide avec la migration du 12 juin).
+
+**Cause** : Docker traite ~9 % de frames en plus → le synchroniseur `ApproximateTime`
+(`System.cpp:158-159`) **apparie les couples (sonar, GT) différemment** selon
+l'ordonnancement CPU. Hypothèse : sur Docker, plus de frames passent mais certaines sont
+mal appariées dans le temps → init du tracker légèrement décalé → dérive accumulée.
+Ce n'est pas du bruit numérique (sinon le nombre de frames serait identique).
+
+**Conséquence** : pour les chiffres finaux du rapport, refaire le run DISO **sur la VM**
+(performance propre ~2-3 m), ou régler le synchro Docker (queue / `slop` de l'`ApproximateTime`,
+rate du bag) pour reproduire l'appariement VM.
+
+## 2026-06-15 — BUG : bruce_save n'écrit qu'1 CSV sur 5 (Docker)
+
+**Symptôme** : après un run DISO sur Docker, malgré le CTRL+C demandé, seul
+`diso_trajectory.csv` est créé (les 4 autres — diso_odom, odometry, pointcloud, groundtruth —
+manquent). Reproductible.
+
+**Cause** : `bruce_save.py` écrit les 5 CSV séquentiellement dans `rospy.on_shutdown(export)`.
+Seul le 1er (complet) survit → `export()` est **tué juste après le 1er fichier**. C'est une
+**course de signaux** dans `run_slam.sh` : le CTRL+C envoie SIGINT à roslaunch (arrêt propre →
+export), mais fait aussi sortir le script → le `trap ... EXIT` envoie `kill` (SIGTERM) à
+roslaunch → SIGTERM avorte l'arrêt propre avant la fin de l'export. Sur la VM le timing
+laissait passer les 5 écritures ; sur Docker non. Le code d'`export()` est correct.
+
+**Fix possible** (non appliqué) : dans `run_slam.sh`, remplacer le `kill` du trap par
+`kill -INT` + `sleep` pour laisser `bruce_save` finir ; ou faire écrire les CSV à la fin du
+bag plutôt qu'au shutdown.
