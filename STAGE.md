@@ -1330,3 +1330,20 @@ FABLE §2 : « impossible de battre DISO sans BONNES boucles ».
 
 Outils livrés : sc_descriptor_bench.py (qualité descripteur), sc_constraint_bench.py
 (qualité contrainte/alignement). Réutilisables sur tout run.
+
+## 2026-06-14 — TOURNANT : Sonar Context bat l'odométrie pour la première fois
+
+**Run run_aracati_2026-06-14_212922** (descripteur densité + porte géométrique + cap shgo) :
+- SLAM = 4,54 m vs Odom sous-échantillonné aux keyframes = 5,18 m → **gain +0,63 m**.
+  (Comparaison équitable : même base de keyframes ; avant le fix descripteur les
+  boucles DÉGRADAIENT de −1,6 à −2,2 m.)
+- 213 candidats retenus, **0% faux** (GT>30m), 54% vraies revisites, max retenu 20,7 m
+  (= la porte à 20 m, parfaitement efficace). 8 boucles intégrées par PCM.
+
+C'est la 1re fois que Bruce+DISO+Sonar Context passe SOUS l'odométrie pure → thèse du
+stage validée : la fermeture de boucle par apparence (avec vérification géométrique)
+ajoute de l'information. Les 3 correctifs se combinent :
+descripteur densité (AUC 0,55→0,86) → porte géométrique (FPR 24%→0%) → cap shgo.
+
+Réserve : ce run avait une odométrie DISO médiocre (4,96 m, variance de tirage 3,2-5,5 m).
+Sur un bon tirage DISO (~3 m) le SLAM absolu devrait viser ~2,5 m. À mesurer.
