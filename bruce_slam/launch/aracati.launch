@@ -25,9 +25,12 @@
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
           args="$(arg bag_file) --clock -r 1.0 -q"/>
 
-    <!-- DISO sonar odometry front-end -->
-    <node pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"
-          args="$(find direct_sonar_odometry)/config/config_aracati2017.yaml" output="screen"/>
+    <!-- Bruce base : odométrie = VÉRITÉ TERRAIN (config Aracati d'origine).
+         Aracati n'a ni DVL ni IMU et le package natif aracati2017 a disparu ;
+         l'odométrie d'origine venait de /pose_gt. On relaie /pose_gt → /odom_pose
+         (même type PoseStamped), qu'OdomBridge convertit en Odometry pour le SLAM.
+         (Pour une odométrie SONAR au lieu de la GT : voir la branche Bruce_DISO.) -->
+    <node pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /odom_pose"/>
 
     <group ns="bruce">
         <group ns="slam">

@@ -56,7 +56,8 @@
       "Bash(bash -n run_slam.sh)",
       "Bash(git commit -q -m 'run_slam.sh: le mode diso joue aussi le rosbag \\(RViz vide sinon\\) *)",
       "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(git commit -q -m 'main = Bruce base : retrait de DISO, odométrie = vérité terrain *)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
