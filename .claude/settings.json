@@ -61,7 +61,8 @@
       "Bash(git cherry-pick *)",
       "Bash(git rebase *)",
       "Bash(git commit *)",
-      "Bash(SLAM_RESULTS_DIR=results/run_aracati_2026-06-14_212922 python3 analyse_centre.py)"
+      "Bash(SLAM_RESULTS_DIR=results/run_aracati_2026-06-14_212922 python3 analyse_centre.py)",
+      "Bash(git mv *)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
