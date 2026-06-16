@@ -22,27 +22,34 @@ le biais de cap et de position**. Utile pour comparer des algos entre eux (même
 
 ---
 
-## Alignement Origine (départ commun)
+## Alignement Origine (départ aligné)
 **Script :** `analyze_origine.py` → produit `trajectory_centre.csv` + `trajectory_plot_origine.png`
 
-Épingle le **premier point** de chaque trajectoire à (0,0) en soustrayant simplement la première
-coordonnée. Aucune rotation.
+Aligne **uniquement le DÉBUT** de chaque trajectoire sur la GT, sans optimisation globale.
+On ajuste une transfo fixe (rotation OU réflexion, **sans échelle**) sur les ~15 % premiers
+points seulement, on l'applique à toute la trajectoire, puis on recentre à (0,0).
 
 **Formule :**
 ```
-est_aligné = est - est[0]
-gt_aligné  = gt  - gt[0]
+(R) = umeyama( est[:n] , gt[:n] )       # n = 15% des points, réflexion autorisée, sans échelle
+est_aligné = (R · est) - (R · est)[0]
+gt_aligné  = gt - gt[0]
 ATE = RMSE( est_aligné , gt_aligné )
 ```
 
-**Ce que ça fait concrètement :**
-- Tout le monde part du même point (0,0) — on "colle" les débuts
-- Aucune rotation : si SLAM a un biais de cap dès le départ, il reste dans l'ATE
-- Résultat : ATE **conservateur/honnête** (on sait où on a démarré, pas de triche)
+**Pourquoi pas une translation pure ?** Une translation seule laisse les flips/rotations de
+repère (DISO swap x/y, /cmd_vel sans cap absolu) → plots illisibles, ATE de 30 m+. Ajuster le
+**cap de départ** règle ça pour toutes les méthodes, avec une seule règle :
+- run main (odom = GT relayée) → R ≈ identité (rien à corriger)
+- DISO (swap x/y) → R = réflexion (corrige le flip)
+- Odom pure (/cmd_vel) → R = rotation du cap initial
 
-**Interprétation :** si Origine donne 16 m alors qu'Umeyama donne 3,5 m,
-l'écart (≈12 m) représente principalement la **dérive de cap** que Bruce-SLAM accumule
-et qu'Umeyama efface par rotation.
+**Ce que ça fait concrètement :**
+- On ne corrige QUE le début → la **dérive en aval reste visible** (≠ Umeyama qui la masque)
+- Résultat : ATE **conservateur** (on n'optimise pas globalement)
+
+**Interprétation :** si Origine donne 7 m alors qu'Umeyama donne 3,5 m, l'écart représente
+la **dérive de cap** accumulée que Bruce-SLAM produit et qu'Umeyama efface par rotation globale.
 
 ---
 
@@ -50,11 +57,12 @@ et qu'Umeyama efface par rotation.
 
 | | Umeyama | Origine |
 |---|---|---|
-| Transformation | Rotation + Translation | Translation seule |
+| Ajustement | Global (tous les points) | Début seulement (~15 %) |
+| Transformation | Rotation/réflexion + translation + échelle opt. | Rotation/réflexion (sans échelle), recentré (0,0) |
 | Point de départ | Libre (placé par l'optimum) | Toujours (0,0) |
-| ATE | Optimiste (meilleur fit) | Conservateur (dérive réelle) |
-| Sensible au biais de cap | Non (rotation l'absorbe) | Oui |
-| Utile pour | Comparer algos, publication | Évaluer dérive depuis départ connu |
+| ATE | Optimiste = **min(ATE)** | Conservateur (dérive visible) |
+| Dérive de cap | Masquée (rotation globale l'absorbe) | Visible (on ne corrige que le début) |
+| Rôle | **Chiffre officiel** (standard TUM/KITTI) | **Diagnostic** de dérive |
 
-**Les deux ATE encadrent la réalité.**
-La vérité terrain d'un SLAM opérationnel se situe entre les deux.
+**Les deux ATE encadrent la réalité.** On génère SYSTÉMATIQUEMENT les deux à chaque test :
+Umeyama = chiffre publiable, Origine = lecture honnête de la dérive depuis le départ.
