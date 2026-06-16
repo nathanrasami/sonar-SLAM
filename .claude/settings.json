@@ -55,7 +55,13 @@
       "Bash(python3 -m py_compile analyze_drift.py traj_eval.py bruce_slam/src/bruce_slam/slam_ros.py DISO/scripts/bruce_save.py)",
       "Bash(bash -n run_slam.sh)",
       "Bash(git commit -q -m 'run_slam.sh: le mode diso joue aussi le rosbag \\(RViz vide sinon\\) *)",
-      "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)"
+      "Bash(git commit -q -m 'Fix roslaunch: optenv ne peut pas imbriquer $\\(find\\) ; analyze_drift message clair si trajectory.csv absent *)",
+      "Bash(git ls-tree *)",
+      "Bash(git commit -q -m 'main = Bruce base : retrait de DISO, odométrie = vérité terrain *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git rebase *)",
+      "Bash(git commit *)",
+      "Bash(SLAM_RESULTS_DIR=results/run_aracati_2026-06-14_212922 python3 analyse_centre.py)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
