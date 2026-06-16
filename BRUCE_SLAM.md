@@ -1,2 +1,0 @@
-# BRUCE_SLAM
-
