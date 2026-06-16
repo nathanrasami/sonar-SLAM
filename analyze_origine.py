@@ -20,19 +20,15 @@ Usage :
     SLAM_RESULTS_DIR=results/run_... python3 analyze_origine.py
 """
 import os
-import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from traj_eval import associer_par_temps, calculer_ate, odometrie_pure_depuis_bag
+from traj_eval import associer_par_temps, calculer_ate
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
-bag_path = os.environ.get("BAG_PATH",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "ARACATI_2017_8bits_full.bag"))
-
 traj_path = os.path.join(results_dir, "trajectory.csv")
 if not os.path.exists(traj_path):
     raise SystemExit(f"trajectory.csv introuvable dans {results_dir} (analyse Bruce-SLAM).")
@@ -78,20 +74,11 @@ if os.path.exists(diso_path):
     diso = pd.read_csv(diso_path)
     est_d_p, ate_diso = aligner_origine(diso[["x", "y"]].to_numpy(), diso["time"], gt, "DISO")
 
-# Odométrie pure (dead-reckoning /cmd_vel) — la pire baseline
-est_p_p = ate_pure = None
-if os.path.exists(bag_path):
-    pure = odometrie_pure_depuis_bag(bag_path)
-    if pure is not None:
-        est_p_p, ate_pure = aligner_origine(np.column_stack([pure["x"], pure["y"]]),
-                                            pure["time"], gt, "Odom pure")
-
 # ── ATE en clair + sauvegarde ─────────────────────────────────────────────────
 print(f"=== alignement ORIGINE (départ→0,0, sans rotation) — {results_dir} ===")
 print(f"[Origine] Bruce-SLAM ATE = {ate:.2f} m")
 if ate_odom is not None: print(f"[Origine] Odométrie  ATE = {ate_odom:.2f} m")
 if ate_diso is not None: print(f"[Origine] DISO       ATE = {ate_diso:.2f} m")
-if ate_pure is not None: print(f"[Origine] Odom pure  ATE = {ate_pure:.2f} m")
 
 pd.DataFrame({"time": traj["time"].values,
               "x": est_b_p[:, 0], "y": est_b_p[:, 1]}).to_csv(
@@ -99,24 +86,26 @@ pd.DataFrame({"time": traj["time"].values,
 
 # ── Tracé (tout part de (0,0)) ────────────────────────────────────────────────
 ax.plot(gxy_p[:, 0], gxy_p[:, 1], "r--", label="Ground truth")
+ax.plot(gxy_p[0, 0], gxy_p[0, 1], marker="*", color="red", ms=16)
 ax.plot(gxy_p[-1, 0], gxy_p[-1, 1], "rX", ms=12)
-if est_p_p is not None:
-    ax.plot(est_p_p[:, 0], est_p_p[:, 1], color="purple", ls="--", lw=1.2,
-            label=f"Odom pure (ATE={ate_pure:.1f} m)")
 if est_o_p is not None:
     ax.plot(est_o_p[:, 0], est_o_p[:, 1], color="orange", ls="-.", lw=1.5,
             label=f"Odométrie (ATE={ate_odom:.1f} m)")
+    ax.plot(est_o_p[0, 0], est_o_p[0, 1], marker="*", color="orange", ms=16)
+    ax.plot(est_o_p[-1, 0], est_o_p[-1, 1], marker="X", color="orange", ms=12)
 if est_d_p is not None:
     ax.plot(est_d_p[:, 0], est_d_p[:, 1], color="steelblue", ls=":", lw=2.0,
             label=f"DISO standalone (ATE={ate_diso:.1f} m)")
+    ax.plot(est_d_p[0, 0], est_d_p[0, 1], marker="*", color="steelblue", ms=16)
+    ax.plot(est_d_p[-1, 0], est_d_p[-1, 1], marker="X", color="steelblue", ms=12)
 ax.plot(est_b_p[:, 0], est_b_p[:, 1], "k-", lw=1.5, label=f"Bruce-SLAM (ATE={ate:.1f} m)")
+ax.plot(est_b_p[0, 0], est_b_p[0, 1], marker="*", color="black", ms=16)
 ax.plot(est_b_p[-1, 0], est_b_p[-1, 1], "kX", ms=12, label="End")
-ax.plot(0, 0, marker="*", color="green", ms=16, label="Start commun (0,0)")
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
-ax.set_title("Alignement ORIGINE (départ commun à 0,0, sans rotation)\n"
-             "dérive brute depuis le départ — un Y-flip DISO restera décalé")
+ax.set_title("Alignement par point de départ commun (0,0) — sans rotation\n"
+             "ATE mesuré depuis l'origine : plus conservateur qu'Umeyama")
 ax.axis("equal")
 ax.grid(True)
 ax.legend()
