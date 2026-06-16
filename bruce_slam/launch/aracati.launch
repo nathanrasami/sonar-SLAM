@@ -31,10 +31,11 @@
 
     <!-- Bruce base : odométrie = VÉRITÉ TERRAIN (config Aracati d'origine).
          Aracati n'a ni DVL ni IMU et le package natif aracati2017 a disparu ;
-         l'odométrie d'origine venait de /pose_gt. On relaie /pose_gt → /odom_pose
-         (même type PoseStamped), qu'OdomBridge convertit en Odometry pour le SLAM.
+         l'odométrie d'origine venait de /pose_gt. OdomBridge écoute /direct_sonar/pose
+         (ODOM_BRIDGE_INPUT_TOPIC) : on y relaie /pose_gt (même type PoseStamped), et
+         OdomBridge le convertit en Odometry pour le SLAM.
          (Pour une odométrie SONAR au lieu de la GT : voir la branche Bruce_DISO.) -->
-    <node pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /odom_pose"/>
+    <node pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /direct_sonar/pose"/>
 
     <group ns="bruce">
         <group ns="slam">
