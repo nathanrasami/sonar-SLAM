@@ -1,4 +1,0 @@
-- Finir le diaporama 3_Soanr_Context
-- Intégrer Sonar_Context dans Bruce_SLAM
-- Carte 3D trajectoire : Bruce_SLAM 2D donc intégrer information DVL pour faire appaître z
-- Carte 3D Cloudpoint : Sonar feature en 3D.
