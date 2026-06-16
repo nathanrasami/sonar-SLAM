@@ -2,10 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from traj_eval import (associer_par_temps, umeyama, appliquer, calculer_ate)
+from traj_eval import (associer_par_temps, umeyama, appliquer, calculer_ate,
+                       odometrie_pure_depuis_bag)
 
 results_dir = os.environ.get("SLAM_RESULTS_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
+bag_path = os.environ.get("BAG_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "ARACATI_2017_8bits_full.bag"))
 
 traj_path = os.path.join(results_dir, "trajectory.csv")
 if not os.path.exists(traj_path):
@@ -55,19 +58,24 @@ if os.path.exists(gt_path):
         odom = pd.read_csv(odom_path)
         est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odom DISO")
 
-    # Odométrie PURE (dead-reckoning /cmd_vel) — celle de la doctorante, sans DISO
+    est_p = ate_pure = None
+    if os.path.exists(bag_path):
+        pure = odometrie_pure_depuis_bag(bag_path)
+        if pure is not None:
+            est_p, ate_pure, _ = aligner(np.column_stack([pure["x"], pure["y"]]),
+                                         pure["time"], gt, "Odom pure")
 else:
     print("groundtruth.csv not found — affichage en repère natif (pas d'ATE)")
     gt = None
     gxy = None
     est_b = traj[["x", "y"]].to_numpy(); ate = None
-    est_d = ate_diso = est_o = ate_odom = None
+    est_d = ate_diso = est_o = ate_odom = est_p = ate_pure = None
 
 # ── Plot FIDÈLE à Umeyama : on trace les coordonnées alignées TELLES QUELLES ──
 # Pas de forçage à (0,0) : le dessin reflète exactement l'alignement (rotation +
 # translation) qui a produit l'ATE. Les trajectoires ne partent pas forcément de
 # (0,0) — c'est normal et honnête (cf. analyze_origine.py pour la vue départ-commun).
-gxy_p, est_b_p, est_d_p, est_o_p = gxy, est_b, est_d, est_o
+gxy_p, est_b_p, est_d_p, est_o_p, est_p_p = gxy, est_b, est_d, est_o, est_p
 
 # Sauvegarde des coordonnées Bruce alignées Umeyama (inspection / réutilisation)
 if est_b is not None and gt is not None:
@@ -80,12 +88,19 @@ if ate is not None:
     print(f"[Umeyama] Bruce-SLAM ATE = {ate:.2f} m")
     if ate_odom is not None: print(f"[Umeyama] Odométrie  ATE = {ate_odom:.2f} m")
     if ate_diso is not None: print(f"[Umeyama] DISO       ATE = {ate_diso:.2f} m")
+    if ate_pure is not None: print(f"[Umeyama] Odom pure  ATE = {ate_pure:.2f} m")
 
 # ── Tracé ─────────────────────────────────────────────────────────────────────
 if gxy_p is not None:
     ax.plot(gxy_p[:, 0], gxy_p[:, 1], label="Ground truth (GPS)", color="red", linestyle="--")
     ax.plot(gxy_p[0, 0], gxy_p[0, 1], marker="*", color="red", markersize=16)
     ax.plot(gxy_p[-1, 0], gxy_p[-1, 1], marker="X", color="red", markersize=12)
+
+if est_p_p is not None:
+    lbl = f"Odom pure (ATE={ate_pure:.1f} m)" if ate_pure is not None else "Odom pure"
+    ax.plot(est_p_p[:, 0], est_p_p[:, 1], label=lbl, color="purple", linestyle="--", linewidth=1.2)
+    ax.plot(est_p_p[0, 0], est_p_p[0, 1], marker="*", color="purple", markersize=16)
+    ax.plot(est_p_p[-1, 0], est_p_p[-1, 1], marker="X", color="purple", markersize=12)
 
 if est_o_p is not None:
     lbl = f"Odom DISO (ATE={ate_odom:.1f} m)" if ate_odom is not None else "Odom DISO"
@@ -99,14 +114,14 @@ if est_d_p is not None:
     ax.plot(est_d_p[0, 0], est_d_p[0, 1], marker="*", color="steelblue", markersize=16)
     ax.plot(est_d_p[-1, 0], est_d_p[-1, 1], marker="X", color="steelblue", markersize=12)
 
-slam_label = f"Bruce-SLAM (DISO odom, iSAM2, ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM (DISO odom, iSAM2)"
+slam_label = f"Bruce-SLAM (DISO odom, Sonar Context, ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM (DISO odom, Sonar Context)"
 ax.plot(est_b_p[:, 0], est_b_p[:, 1], label=slam_label, color="black", linewidth=1.5)
-ax.plot(est_b_p[0, 0], est_b_p[0, 1], marker="*", color="black", markersize=16)
+ax.plot(est_b_p[0, 0], est_b_p[0, 1], marker="*", color="black", markersize=16, label="Start")
 ax.plot(est_b_p[-1, 0], est_b_p[-1, 1], marker="X", color="black", markersize=12, label="End")
 
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
-ax.set_title("Alignement UMEYAMA (rotation+translation optimales) — plot fidèle à l'ATE")
+ax.set_title("Alignement UMEYAMA (rotation+translation optimales)")
 ax.legend()
 ax.axis("equal")
 ax.grid(True)
