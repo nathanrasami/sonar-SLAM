@@ -17,6 +17,7 @@ SONAR_TOPIC_CARTESIAN = "/son/compressed"
 SONAR_VERTICAL_TOPIC = "/sonar_oculus_node/M1200d/ping"
 GYRO_TOPIC = "/gyro"
 ODOM_BRIDGE_INPUT_TOPIC = "/direct_sonar/pose"
+USBL_TOPIC = "/usbl_point"  # positionnement acoustique absolu (facteurs USBL)
 
 
 SLAM_NS = "/bruce/slam/"

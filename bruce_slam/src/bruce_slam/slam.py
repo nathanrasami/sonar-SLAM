@@ -122,6 +122,16 @@ class SLAM(object):
         self.sc_max_range_shift = 5
         self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
 
+        # USBL — facteurs de POSITION ABSOLUE acoustique (ancrage indépendant de
+        # la GT). Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m en
+        # dead-reckoning seul. Chaque fix devient un prior unaire robuste qui ne
+        # contraint que x,y (le cap reste géré par l'odométrie). cf. USBL_FACTEURS.md
+        self.usbl_enable = False
+        self.usbl_sigma = 1.4       # m, bruit d'un fix (médiane mesurée vs GT)
+        self.usbl_max_dt = 1.0      # s, fenêtre d'association fix ↔ keyframe
+        self.usbl_buffer = []       # (t, x, y) fixes acceptés, rempli par slam_ros
+        self.usbl_added = 0         # nb de facteurs USBL réellement ajoutés
+
         # Use fixed noise model in two cases
         # - Sequential scan matching
         # - ICP cov is too small in non-sequential scan matching
@@ -470,6 +480,34 @@ class SLAM(object):
         )
         self.graph.add(factor)
         self.values.insert(X(self.current_key), keyframe.pose)
+
+    def add_usbl(self, keyframe: Keyframe) -> None:
+        """Ajoute un facteur de POSITION ABSOLUE USBL sur le keyframe courant, si un
+        fix acoustique tombe dans la fenêtre ±usbl_max_dt autour de son timestamp.
+
+        C'est un prior unaire ROBUSTE (Cauchy) qui ne contraint QUE x,y : on met un
+        sigma θ énorme (1e6) → le cap reste libre, géré par l'odométrie. L'optimiseur
+        gtsam recolle ainsi la trajectoire sur les ancres USBL en moyennant leur bruit
+        (~1.4 m) et en rejetant les outliers acoustiques via le noyau robuste.
+        Indépendant de la GT (USBL = capteur acoustique distinct). cf. USBL_FACTEURS.md
+        """
+        if not self.usbl_enable or not self.usbl_buffer:
+            return
+        t = keyframe.time.to_sec()
+        # fix le plus proche en temps (recherche linéaire ; buffer ~1000 fixes max)
+        best, bdt = None, self.usbl_max_dt
+        for ut, ux, uy in self.usbl_buffer:
+            dt = abs(ut - t)
+            if dt < bdt:
+                bdt, best = dt, (ux, uy)
+        if best is None:
+            return
+        ux, uy = best
+        # prior position-only robuste : sigma x,y = usbl_sigma ; sigma θ = 1e6 (libre)
+        model = self.create_robust_noise_model(self.usbl_sigma, self.usbl_sigma, 1e6)
+        factor = gtsam.PriorFactorPose2(X(self.current_key), gtsam.Pose2(ux, uy, 0.0), model)
+        self.graph.add(factor)
+        self.usbl_added += 1
 
     def get_map(self, frames, resolution=None):
         # Implemented in slam_node

@@ -57,5 +57,15 @@ sonar_context:
   # de 20 m garde 112/112 vraies et rejette 41/41 fausses. Fiable car DISO est bon.
   gate_distance: 20.0
 
+# USBL — facteurs de POSITION ABSOLUE acoustique dans le graphe (cf. USBL_FACTEURS.md).
+# Ancre l'odométrie cmd_vel sur les fixes /usbl_point, indépendamment de la GT.
+# Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m dead-reckoning. Chaque fix =
+# prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
+usbl:
+  enable: False      # ablation : True pour ancrer sur USBL
+  sigma: 1.4         # m, bruit d'un fix (médiane mesurée vs GT)
+  max_dt: 1.0        # s, fenêtre d'association fix ↔ keyframe
+  max_speed: 3.0     # m/s, gate outliers (rejette les sauts ~73 m)
+
 pz_samples: 0
 pz_detection_rate: 0.3

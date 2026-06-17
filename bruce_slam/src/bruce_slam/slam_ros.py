@@ -10,7 +10,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, PointStamped
 
 # bruce imports
 from bruce_slam.utils.io import *
@@ -103,6 +103,16 @@ class SLAMNode(SLAM):
                              self._descriptor_callback, queue_size=50)
         print("SONAR CONTEXT: ", self.sc_enable)
 
+        # USBL — facteurs de position absolue acoustique (cf. slam.add_usbl, USBL_FACTEURS.md)
+        self.usbl_enable = rospy.get_param(ns + "usbl/enable", False)
+        self.usbl_sigma = rospy.get_param(ns + "usbl/sigma", 1.4)
+        self.usbl_max_dt = rospy.get_param(ns + "usbl/max_dt", 1.0)
+        self.usbl_max_speed = rospy.get_param(ns + "usbl/max_speed", 3.0)
+        self._usbl_last = None  # (t,x,y) dernier fix accepté (gate outliers par vitesse)
+        if self.usbl_enable:
+            rospy.Subscriber(USBL_TOPIC, PointStamped, self._usbl_callback, queue_size=20)
+        print("USBL FACTORS: ", self.usbl_enable)
+
         #cache the latest odom message; feature callback uses it directly
         self._latest_odom = None
         self._odom_buffer = []  # messages Odometry pour interpolation temporelle
@@ -167,6 +177,21 @@ class SLAMNode(SLAM):
         
         self.oculus.configure(ping)
         self.sonar_sub.unregister()
+
+    def _usbl_callback(self, msg: PointStamped) -> None:
+        """Reçoit un fix acoustique /usbl_point, rejette les outliers par gate de
+        VITESSE vs le dernier fix accepté (les glitches ~73 m impliquent une vitesse
+        physiquement impossible), puis l'empile dans usbl_buffer (lu par add_usbl).
+        Gate indépendant de la dérive de l'odométrie. cf. USBL_FACTEURS.md"""
+        t = msg.header.stamp.to_sec()
+        ux, uy = msg.point.x, msg.point.y
+        if self._usbl_last is not None:
+            lt, lx, ly = self._usbl_last
+            dt = t - lt
+            if dt > 0 and ((ux - lx) ** 2 + (uy - ly) ** 2) ** 0.5 / dt > self.usbl_max_speed:
+                return  # saut impossible → glitch acoustique
+        self._usbl_last = (t, ux, uy)
+        self.usbl_buffer.append((t, ux, uy))
 
     def _odom_cache_callback(self, msg: Odometry) -> None:
         self._latest_odom = msg
@@ -327,6 +352,11 @@ class SLAMNode(SLAM):
                 self.add_prior(frame)
             else:
                 self.add_sequential_scan_matching(frame)
+
+            # USBL : facteur de position absolue acoustique sur ce keyframe (si activé
+            # et qu'un fix tombe dans la fenêtre temporelle) — ancrage indépendant de GT
+            if self.usbl_enable:
+                self.add_usbl(frame)
 
             #update the factor graph with the new frame
             self.update_factor_graph(frame)
