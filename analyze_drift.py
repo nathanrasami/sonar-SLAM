@@ -52,11 +52,11 @@ if os.path.exists(gt_path):
         diso = pd.read_csv(diso_path)
         est_d, ate_diso, _ = aligner(diso[["x", "y"]].to_numpy(), diso["time"], gt, "DISO")
 
-    # Odométrie d'entrée du SLAM (= DISO sur Aracati, via odom_bridge)
+    # Odométrie d'entrée du SLAM (cmd_vel, DISO ou GT relayée selon la branche)
     est_o = ate_odom = None
     if os.path.exists(odom_path):
         odom = pd.read_csv(odom_path)
-        est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odom DISO")
+        est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odométrie")
 
     est_p = ate_pure = None
     if os.path.exists(bag_path):
@@ -103,7 +103,7 @@ if est_p_p is not None:
     ax.plot(est_p_p[-1, 0], est_p_p[-1, 1], marker="X", color="purple", markersize=12)
 
 if est_o_p is not None:
-    lbl = f"Odom DISO (ATE={ate_odom:.1f} m)" if ate_odom is not None else "Odom DISO"
+    lbl = f"Odométrie (ATE={ate_odom:.1f} m)" if ate_odom is not None else "Odométrie"
     ax.plot(est_o_p[:, 0], est_o_p[:, 1], label=lbl, color="orange", linestyle="-.", linewidth=1.5)
     ax.plot(est_o_p[0, 0], est_o_p[0, 1], marker="*", color="orange", markersize=16)
     ax.plot(est_o_p[-1, 0], est_o_p[-1, 1], marker="X", color="orange", markersize=12)
@@ -114,7 +114,7 @@ if est_d_p is not None:
     ax.plot(est_d_p[0, 0], est_d_p[0, 1], marker="*", color="steelblue", markersize=16)
     ax.plot(est_d_p[-1, 0], est_d_p[-1, 1], marker="X", color="steelblue", markersize=12)
 
-slam_label = f"Bruce-SLAM (DISO odom, Sonar Context, ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM (DISO odom, Sonar Context)"
+slam_label = f"Bruce-SLAM, Sonar Context (ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM, Sonar Context"
 ax.plot(est_b_p[:, 0], est_b_p[:, 1], label=slam_label, color="black", linewidth=1.5)
 ax.plot(est_b_p[0, 0], est_b_p[0, 1], marker="*", color="black", markersize=16, label="Start")
 ax.plot(est_b_p[-1, 0], est_b_p[-1, 1], marker="X", color="black", markersize=12, label="End")

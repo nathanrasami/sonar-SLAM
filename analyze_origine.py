@@ -99,9 +99,9 @@ if os.path.exists(bag_path):
 
 # ── ATE en clair + sauvegarde ─────────────────────────────────────────────────
 print(f"=== alignement ORIGINE (cap de départ aligné + départ→0,0) — {results_dir} ===")
-print(f"[Origine] Bruce-SLAM ATE = {ate:.2f} m")
-if ate_odom is not None: print(f"[Origine] DISO       ATE = {ate_odom:.2f} m")
-if ate_diso is not None: print(f"[Origine] DISO       ATE = {ate_diso:.2f} m")
+print(f"[Origine] Bruce-SLAM, Sonar Context ATE = {ate:.2f} m")
+if ate_odom is not None: print(f"[Origine] Odométrie  ATE = {ate_odom:.2f} m")
+if ate_diso is not None: print(f"[Origine] DISO stand. ATE = {ate_diso:.2f} m")
 if ate_pure is not None: print(f"[Origine] Odom pure  ATE = {ate_pure:.2f} m")
 
 pd.DataFrame({"time": traj["time"].values,
@@ -119,7 +119,7 @@ if est_p_p is not None:
     ax.plot(est_p_p[-1, 0], est_p_p[-1, 1], marker="X", color="purple", ms=12)
 if est_o_p is not None:
     ax.plot(est_o_p[:, 0], est_o_p[:, 1], color="orange", ls="-.", lw=1.5,
-            label=f"DISO (ATE={ate_odom:.1f} m)")
+            label=f"Odométrie (ATE={ate_odom:.1f} m)")
     ax.plot(est_o_p[0, 0], est_o_p[0, 1], marker="*", color="orange", ms=16)
     ax.plot(est_o_p[-1, 0], est_o_p[-1, 1], marker="X", color="orange", ms=12)
 if est_d_p is not None:
