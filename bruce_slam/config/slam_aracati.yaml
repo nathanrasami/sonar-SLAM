@@ -10,13 +10,18 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 
 point_resolution: 0.5
 
+# SSM activé : recalage sonar séquentiel (corrige la dérive LOCALE de l'odométrie
+# cmd_vel image par image). Indispensable avec odom_source:=cmd_vel — sans lui,
+# les loop closures seules ne rattrapent pas les ~15 m de dérive.
 ssm:
-  enable: False
+  enable: True
   min_points: 50
   max_translation: 3.0
   max_rotation: deg(30)
   target_frames: 3
 
+# Loops ON : avec odom_source:=cmd_vel (dérive réaliste ~15 m), les loop closures
+# Sonar Context corrigent la dérive GLOBALE (revisites) ; le SSM corrige le local.
 nssm:
   enable: True
   min_st_sep: 8
@@ -39,7 +44,7 @@ min_pcm: 6
 # apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
 # exporté dans loops_detected.csv.
 sonar_context:
-  enable: True
+  enable: True           # place recognition pour loop closure (cf. nssm ci-dessus)
   knn: 5                 # candidats présélectionnés par la Polar Key
   # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
