@@ -10,6 +10,10 @@
          (indépendante de GT, dérive ≈15 m, scénario réaliste) ; "gt" = relay
          /pose_gt (odométrie = vérité terrain, baseline ATE≈0). -->
     <arg name="odom_source" default="cmd_vel"/>
+    <!-- usbl:=true fusionne les fixes acoustiques /usbl_point dans l'odométrie
+         cmd_vel (ancrage absolu, indépendant de GT). Ablation : cmd_vel seul vs
+         cmd_vel+USBL. Sans effet si odom_source != cmd_vel. -->
+    <arg name="usbl" default="false"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -39,7 +43,9 @@
                        puis indépendant → dérive réaliste. SSM + loops doivent corriger.
          - "gt"      : relay /pose_gt → odométrie = vérité terrain (baseline ATE≈0). -->
     <node if="$(eval arg('odom_source') == 'cmd_vel')"
-          pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen"/>
+          pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen">
+        <param name="use_usbl" value="$(arg usbl)"/>
+    </node>
     <node if="$(eval arg('odom_source') == 'gt')"
           pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /direct_sonar/pose"/>
 

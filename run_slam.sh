@@ -33,7 +33,7 @@ export SLAM_RESULTS_DIR="$RUN_DIR"
 echo "[run_slam] Résultats dans : $RUN_DIR"
 
 case "$TYPE" in
-  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" ;;
+  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac
