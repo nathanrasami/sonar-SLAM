@@ -10,10 +10,10 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 
 point_resolution: 0.5
 
-# SSM activé : recalage sonar séquentiel (corrige la dérive LOCALE de l'odométrie
-# cmd_vel image par image). Indispensable avec odom_source:=cmd_vel.
+# SSM off : testé ON avec cmd_vel → dégradait 11.5→43.5 m (mauvais recalages ICP
+# sur cap cmd_vel imprécis). Archi Bruce standard = SSM off, loops corrigent.
 ssm:
-  enable: True
+  enable: False
   min_points: 50
   max_translation: 3.0
   max_rotation: deg(30)
