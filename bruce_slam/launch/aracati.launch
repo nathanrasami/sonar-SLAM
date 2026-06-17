@@ -6,6 +6,10 @@
          CPU en combiné (2.1 m standalone -> 3.2-5.5 m combiné). rate:=0.5 laisse
          à DISO le temps de converger comme en standalone (cf. FABLE.md §5 #1). -->
     <arg name="rate" default="1.0"/>
+    <!-- source d'odométrie : "diso" = Direct Sonar Odometry (défaut, dérive ≈3.75 m) ;
+         "cmd_vel" = intégration des vitesses commandées (dérive ≈15 m — pour ce mode,
+         activer ssm.enable:True dans slam_aracati.yaml) ; "gt" = relay /pose_gt (ATE≈0). -->
+    <arg name="odom_source" default="diso"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -29,9 +33,17 @@
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
           args="$(arg bag_file) --clock -r $(arg rate) -q"/>
 
-    <!-- DISO sonar odometry front-end -->
-    <node pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"
+    <!-- Odométrie d'entrée → /direct_sonar/pose (lu par OdomBridge). 3 sources (odom_source) :
+         - "diso"    : Direct Sonar Odometry (défaut, odométrie sonar réelle)
+         - "cmd_vel" : intégration des vitesses commandées (seedé GT à t=0, puis indépendant)
+         - "gt"      : relay /pose_gt → vérité terrain (baseline ATE≈0) -->
+    <node if="$(eval arg('odom_source') == 'diso')"
+          pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"
           args="$(find direct_sonar_odometry)/config/config_aracati2017.yaml" output="screen"/>
+    <node if="$(eval arg('odom_source') == 'cmd_vel')"
+          pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen"/>
+    <node if="$(eval arg('odom_source') == 'gt')"
+          pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /direct_sonar/pose"/>
 
     <group ns="bruce">
         <group ns="slam">
