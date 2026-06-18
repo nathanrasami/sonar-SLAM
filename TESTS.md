@@ -744,3 +744,48 @@ Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-17_215206/`.
 **Les facteurs USBL fonctionnent.** Résultat réel SLAM (non-artefact Umeyama), à la bonne
 échelle, sans dépendance GT. Prochaine étape : activer loops (nssm + sonar_context) pour
 le Run 2 (USBL + loops).
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 2 : USBL + loops (2026-06-18)
+
+NSSM + Sonar Context réactivés sur la base du Run 1. Objectif : corriger le cap via les
+loop closures pour améliorer ATE et qualité du point cloud.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_loops_2026-06-18_100943/`.
+
+### Configuration (différences vs Run 1)
+
+| Paramètre | Run 1 | Run 2 |
+|---|---|---|
+| nssm enable | False | **True** |
+| sonar_context enable | False | **True** |
+| min_st_sep | 8 | 8 |
+| gate_distance | — | 20.0 m |
+| dist_threshold | — | 0.65 |
+
+### Résultats
+
+![Trajectoire USBL + loops](TESTS_image/run_aracati_Bruce_Sonar_USBL_loops_2026-06-18_100943/trajectory_plot.png)
+
+| Métrique | Run 1 (USBL seul) | Run 2 (USBL + loops) |
+|---|---|---|
+| **ATE brut** | 2.69 m | **2.53 m** |
+| ATE Umeyama | 1.96 m | 1.9 m |
+| Trajet BRUT / GT | 612.5 / 614.4 m (0.997) | 609.0 / 625.9 m (0.973) |
+| Boucles acceptées (kf) | 0 | 19 (3 clusters) |
+| SC candidats retenus / total | — | 244 / 659 |
+
+### Observations
+
+- ATE légèrement amélioré (2.69 → 2.53 m) mais trajectoire **déformée** (courbe visible).
+- **Fausses boucles courte-terme** : les premiers candidats SC ciblent des kf à ~10 kf
+  d'écart (kf21→kf12, kf25→kf17…) — le ROV n'a pas encore fait de vraie revisite.
+  L'ICP les valide (scans similaires localement) → la trajectoire est tordue.
+- `gate_distance: 20.0` calibrée sur DISO (cap précis) est trop permissive avec cmd_vel :
+  244/659 candidats passent, dont beaucoup de faux court-terme.
+- Point cloud toujours tourbillon : le cap reste imprécis malgré les loops.
+
+### Conclusion
+
+Les fausses boucles court-terme dégradent la trajectoire. Paramètres à ajuster pour Run 3 :
+`min_st_sep: 30` (séparation temporelle ~200 s), `gate_distance: 10.0`, `dist_threshold: 0.60`.

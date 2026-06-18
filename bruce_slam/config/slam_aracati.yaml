@@ -21,7 +21,7 @@ ssm:
 
 nssm:
   enable: True
-  min_st_sep: 8
+  min_st_sep: 30
   min_points: 30
   max_translation: 8.0
   max_rotation: deg(45)
@@ -47,13 +47,12 @@ sonar_context:
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
   # Youden 0.695 (TPR 84%, FPR 24%). 0.65 = un peu conservateur (moins de fausses,
   # les restantes filtrées par ICP+PCM). Affiner sur loops_detected.csv du run.
-  dist_threshold: 0.65
+  dist_threshold: 0.60
   max_azimuth_shift: 10  # ±10 cases × 3.25°/case = ±32.5° de rotation testée
   max_range_shift: 5     # ±5 cases × ~1.2 m/case de translation testée
-  # porte géométrique : distance max (m) source<->candidat dans l'estimé courant.
-  # Validé sur le run 183808 : vraies boucles à <10 m, fausses à >34 m → un seuil
-  # de 20 m garde 112/112 vraies et rejette 41/41 fausses. Fiable car DISO est bon.
-  gate_distance: 20.0
+  # porte géométrique calibrée cmd_vel (cap imprécis → estimé moins fiable que DISO).
+  # Run 100943 : gate=20 m laissait passer 244/659 candidats dont des faux courts-terme.
+  gate_distance: 10.0
 
 # USBL — facteurs de POSITION ABSOLUE acoustique dans le graphe (cf. USBL_FACTEURS.md).
 # Ancre l'odométrie cmd_vel sur les fixes /usbl_point, indépendamment de la GT.
