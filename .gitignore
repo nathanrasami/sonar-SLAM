@@ -16,3 +16,5 @@ usbl_sim.png
 *.png
 *.jpg
 *.jpeg
+# Claude Code local settings (not to be tracked)
+.claude/settings.json
