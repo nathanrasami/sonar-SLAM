@@ -9,7 +9,7 @@
     <!-- source d'odométrie : "cmd_vel" = intégration des vitesses commandées
          (indépendante de GT, dérive ≈15 m, scénario réaliste) ; "gt" = relay
          /pose_gt (odométrie = vérité terrain, baseline ATE≈0). -->
-    <arg name="odom_source" default="cmd_vel"/>
+    <arg name="odom_source" default="gt"/>
     <!-- usbl:=true fusionne les fixes acoustiques /usbl_point dans l'odométrie
          cmd_vel (ancrage absolu, indépendant de GT). Ablation : cmd_vel seul vs
          cmd_vel+USBL. Sans effet si odom_source != cmd_vel. -->
