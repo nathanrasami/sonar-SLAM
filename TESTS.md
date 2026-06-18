@@ -696,3 +696,51 @@ Le NSSM natif sur Aracati2017 ne propose que des **fausses boucles** : soit on l
 closure**. C'est l'argument définitif pour **Sonar Context** : une détection de lieu qui
 propose de *vraies* boucles robustes, validables par le PCM. Le meilleur réglage actuel
 (min_pcm 6, ATE 5.2 m) sert de **baseline** à battre avec Sonar Context.
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 1 : USBL facteurs seuls (loops OFF) (2026-06-17)
+
+Branche dédiée à la fusion USBL par facteurs dans le graphe gtsam. Odométrie cmd_vel,
+SSM off, loops (nssm + sonar_context) off — on valide les facteurs USBL **isolément**.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-17_215206/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | cmd_vel (intégration /cmd_vel, seed GT à t=0 uniquement) |
+| SSM | False |
+| NSSM | False |
+| Sonar Context | False |
+| USBL facteurs | **True** |
+| usbl.sigma | 1.4 m |
+| usbl.max_dt | 1.0 s |
+| usbl.max_speed | 3.0 m/s |
+
+### Résultats
+
+![Trajectoire USBL facteurs](TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-17_215206/trajectory_plot.png)
+
+| Métrique | Valeur |
+|---|---|
+| **ATE brut** (trajectory.csv, sans alignement) | **2.69 m** |
+| ATE Umeyama (trajectory_umeyama.csv) | 1.96 m |
+| Trajet GT | 614.4 m |
+| Trajet BRUT | 612.5 m (ratio 0.997) |
+| Umeyama facteur d'échelle s | **1.018** (≈ 1) |
+| \|centre BRUT − centre GT\| | 1.69 m |
+
+### Observations
+
+- **ATE brut = 2.69 m sans aucun alignement** : le SLAM sort nativement dans le bon repère
+  métrique. Umeyama n'apporte qu'un léger recentrage (0.7 m de gain).
+- **Pas de dilatation d'échelle** : s=1.018 ≈ 1. Les facteurs USBL ancrent directement en
+  coordonnées métriques absolues → en vraie vie sans GT, la trajectoire est exploitable.
+- Conforme au sandbox `usbl_sim.py` (~3 m attendu → 2.69 m mesuré).
+
+### Conclusion
+
+**Les facteurs USBL fonctionnent.** Résultat réel SLAM (non-artefact Umeyama), à la bonne
+échelle, sans dépendance GT. Prochaine étape : activer loops (nssm + sonar_context) pour
+le Run 2 (USBL + loops).

@@ -19,8 +19,6 @@ ssm:
   max_rotation: deg(30)
   target_frames: 3
 
-# RUN 2 : loops ON, SSM off (archi Bruce standard) → les loop closures Sonar Context
-# corrigent seules la dérive cmd_vel (11.5 m), comme sur DISO (3.75→3.59).
 nssm:
   enable: True
   min_st_sep: 8
@@ -43,7 +41,7 @@ min_pcm: 6
 # apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
 # exporté dans loops_detected.csv.
 sonar_context:
-  enable: True           # RUN 2 : place recognition pour loop closure (cf. nssm ci-dessus)
+  enable: True
   knn: 5                 # candidats présélectionnés par la Polar Key
   # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
@@ -62,7 +60,7 @@ sonar_context:
 # Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m dead-reckoning. Chaque fix =
 # prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
 usbl:
-  enable: False      # ablation : True pour ancrer sur USBL
+  enable: True       # ablation : True pour ancrer sur USBL
   sigma: 1.4         # m, bruit d'un fix (médiane mesurée vs GT)
   max_dt: 1.0        # s, fenêtre d'association fix ↔ keyframe
   max_speed: 3.0     # m/s, gate outliers (rejette les sauts ~73 m)
