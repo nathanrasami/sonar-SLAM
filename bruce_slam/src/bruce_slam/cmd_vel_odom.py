@@ -36,8 +36,11 @@ class CmdVelOdom:
         self.last_t = None
         self.lock = threading.Lock()
         self.pub = rospy.Publisher(ODOM_BRIDGE_INPUT_TOPIC, PoseStamped, queue_size=10)
-        # GT uniquement pour la 1ère pose (cf. _seed_cb), puis ignorée
-        rospy.Subscriber(GT_TOPIC, PoseStamped, self._seed_cb, queue_size=1)
+        # GT uniquement pour seeder position + cap à t=0 (cf. _seed_cb), puis ignorée.
+        # Cap seedé depuis le déplacement GT (atan2) plutôt que le quaternion —
+        # le quaternion est bruité/mal calibré au démarrage → cap initial erroné.
+        self._seed_prev = None  # 1ère pose GT reçue, en attente d'une 2ème pour atan2
+        rospy.Subscriber(GT_TOPIC, PoseStamped, self._seed_cb, queue_size=5)
         rospy.Subscriber(CMD_VEL_TOPIC, TwistStamped, self._cmd_cb, queue_size=50)
 
         # Fusion USBL optionnelle (ancrage absolu acoustique, indépendant de GT)
@@ -55,16 +58,26 @@ class CmdVelOdom:
                           self.usbl_gain, self.usbl_max_speed)
 
     def _seed_cb(self, msg: PoseStamped) -> None:
-        """Initialise position + cap depuis la 1ère GT reçue, puis ne fait plus rien."""
+        """Seed position + cap depuis les 2 premières poses GT.
+        Cap = atan2(dy, dx) du déplacement réel — plus fiable que le quaternion
+        GT qui est bruité/mal calibré au démarrage (variabilité ±90° observée)."""
         if self.seeded:
             return
+        x = msg.pose.position.x
+        y = msg.pose.position.y
+        if self._seed_prev is None:
+            self._seed_prev = (x, y)
+            return
+        x0, y0 = self._seed_prev
+        dx, dy = x - x0, y - y0
+        # attend un déplacement minimal pour que atan2 soit significatif
+        if math.hypot(dx, dy) < 0.05:
+            return
         with self.lock:
-            self.x = msg.pose.position.x
-            self.y = msg.pose.position.y
-            q = msg.pose.orientation
-            _, _, self.theta = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+            self.x, self.y = x, y
+            self.theta = math.atan2(dy, dx)
             self.seeded = True
-        rospy.loginfo("cmd_vel_odom seedé sur GT : x=%.2f y=%.2f yaw=%.3f rad",
+        rospy.loginfo("cmd_vel_odom seedé (déplacement GT) : x=%.2f y=%.2f yaw=%.3f rad",
                       self.x, self.y, self.theta)
 
     def _cmd_cb(self, msg: TwistStamped) -> None:
