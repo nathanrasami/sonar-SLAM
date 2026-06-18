@@ -59,7 +59,8 @@
       "Bash(git ls-tree *)",
       "Bash(git commit -q -m 'main = Bruce base : retrait de DISO, odométrie = vérité terrain *)",
       "Bash(git commit -m ' *)",
-      "Bash(grep -nA2 -iE \"^ssm:|^nssm:|^sonar_context:\")"
+      "Bash(grep -nA2 -iE \"^ssm:|^nssm:|^sonar_context:\")",
+      "Bash(chmod +x /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/diso_launcher.sh)"
     ],
     "additionalDirectories": [
       "/home/nathanrasami"
