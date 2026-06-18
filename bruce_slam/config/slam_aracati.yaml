@@ -41,7 +41,7 @@ min_pcm: 6
 # apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
 # exporté dans loops_detected.csv.
 sonar_context:
-  enable: False
+  enable: True
   knn: 5                 # candidats présélectionnés par la Polar Key
   # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de

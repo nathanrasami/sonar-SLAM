@@ -12,3 +12,7 @@ __pycache__/
 *.bag
 DISO/Thirdparty/
 usbl_sim.png
+# Images SLAM/CFAR (lourdes, régénérables)
+*.png
+*.jpg
+*.jpeg

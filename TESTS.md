@@ -789,3 +789,56 @@ Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_loops_2026-06-18_100943/
 
 Les fausses boucles court-terme dégradent la trajectoire. Paramètres à ajuster pour Run 3 :
 `min_st_sep: 30` (séparation temporelle ~200 s), `gate_distance: 10.0`, `dist_threshold: 0.60`.
+
+---
+
+## Branche Bruce_Sonar_USBL — DISO odométrie seule (2026-06-18, 161831)
+
+Run **diagnostic décisif**. Après que cmd_vel (tourbillon) et GT (duplication en
+translation) aient tous deux échoué à produire un point cloud propre, retour à **DISO**
+(Direct Sonar Odometry) comme front-end d'odométrie — la config du bon run du 06-14.
+**NSSM off, Sonar Context off, USBL off** : odométrie pure, aucune correction.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_161831/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| odom_source | **diso** |
+| nssm / sonar_context / usbl | tous **False** |
+
+### Résultats
+
+![Trajectoire DISO seule](TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_161831/trajectory_plot.png)
+![Point cloud DISO](TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_161831/pointcloud_map.png)
+
+| Métrique | Valeur |
+|---|---|
+| **ATE brut** | 35.11 m *(désalignement de repère DISO, pas l'erreur réelle)* |
+| **ATE Umeyama (aligné)** | **3.16 m** |
+| Étendue traj / GT | x[-44.7, 35.1] / x[-42.5, 35.1] — formes ≈ identiques |
+| Boucles | 0 (NSSM off) |
+| Point cloud | **propre** (port reconnaissable, lignes droites) |
+
+### Observations — percée
+
+- **Point cloud propre confirmé** : DISO donne un cap *scan-consistent* (recalage
+  scan-à-scan) → les scans s'accumulent au bon angle. Le tourbillon des runs cmd_vel
+  venait bien de la **dérive de cap de l'odométrie**, pas d'une régression de code
+  (géométrie de projection `sonar.py` identique au bon run).
+- **ATE brut 35 m trompeur** : DISO démarre dans un repère tourné → désalignement
+  global. Après Umeyama, l'erreur réelle est **3.16 m** (forme correcte).
+- **Compromis central** mis en évidence :
+
+  | Config | Point cloud | ATE aligné | Cause |
+  |---|---|---|---|
+  | DISO seul | **propre** | 3.16 m | cap scan-consistent, mais aucune correction de dérive |
+  | cmd_vel + loops + USBL | tourbillon | ~1.9 m | USBL+loops corrigent la dérive, mais cap cmd_vel sale |
+
+### Conclusion
+
+DISO résout le point cloud ; il manque la correction de dérive pour baisser l'ATE.
+**Prochaine étape** : empiler loops + USBL *sur DISO* (config cible Bruce_DISO_Sonar_USBL)
+→ viser point cloud propre ET ATE bas. Tests NSSM sur DISO (min_st_sep 8 puis 30) ont
+créé de la dérive (fausses boucles) → privilégier Sonar Context (apparence + PCM) plutôt
+que la détection géométrique NSSM.
