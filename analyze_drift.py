@@ -114,7 +114,7 @@ if est_d_p is not None:
     ax.plot(est_d_p[0, 0], est_d_p[0, 1], marker="*", color="steelblue", markersize=16)
     ax.plot(est_d_p[-1, 0], est_d_p[-1, 1], marker="X", color="steelblue", markersize=12)
 
-slam_label = f"Bruce-SLAM, Sonar Context (ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM, Sonar Context"
+slam_label = f"Bruce-SLAM, Sonar Context, USBL (ATE={ate:.1f} m)" if ate is not None else "Bruce-SLAM, Sonar Context, USBL"
 ax.plot(est_b_p[:, 0], est_b_p[:, 1], label=slam_label, color="black", linewidth=1.5)
 ax.plot(est_b_p[0, 0], est_b_p[0, 1], marker="*", color="black", markersize=16, label="Start")
 ax.plot(est_b_p[-1, 0], est_b_p[-1, 1], marker="X", color="black", markersize=12, label="End")
