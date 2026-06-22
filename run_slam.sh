@@ -33,7 +33,8 @@ export SLAM_RESULTS_DIR="$RUN_DIR"
 echo "[run_slam] Résultats dans : $RUN_DIR"
 
 case "$TYPE" in
-  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" ;;
+  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" \
+                 odom_source:="${ODOM_SOURCE:-diso}" diso_prior:="${DISO_PRIOR:-gt}" diso_seed_gt:="${DISO_SEED_GT:-true}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac

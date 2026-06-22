@@ -14,6 +14,16 @@
          cmd_vel (ancrage absolu, indépendant de GT). Ablation : cmd_vel seul vs
          cmd_vel+USBL. Sans effet si odom_source != cmd_vel. -->
     <arg name="usbl" default="false"/>
+    <!-- diso_prior : source du PRIOR de mouvement de DISO (si odom_source=diso).
+         "gt"      = /pose_gt (vérité terrain — encore du GT dans la boucle).
+         "cmd_vel" = odomètre /cmd_vel intégré → DISO GT-FREE. cmd_vel_odom publie sur
+                     /cmd_vel/pose, lu par config_aracati2017_cmdvel.yaml. -->
+    <arg name="diso_prior" default="gt"/>
+    <!-- diso_seed_gt : True = cmd_vel_odom seedé UNE fois depuis /pose_gt (position
+         initiale connue + cap = COMPAS via quaternion), comme le nœud odom original
+         d'aracati2017. C'est le repère que DISO attend. Réaliste (pose départ connue
+         + compas embarqué). Ensuite odométrie cmd_vel pure. Défaut True. -->
+    <arg name="diso_seed_gt" default="true"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -48,11 +58,31 @@
     <node if="$(eval arg('odom_source') == 'cmd_vel')"
           pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen">
         <param name="use_usbl" value="$(arg usbl)"/>
+        <!-- heading_from_compass testé (offline_sim) : le compas est ~50° décorrélé de
+             la course DGPS sur ce dataset → n'améliore pas. Laissé false (cap = wz). -->
+        <param name="heading_from_compass" value="false"/>
     </node>
     <node if="$(eval arg('odom_source') == 'gt')"
           pkg="topic_tools" type="relay" name="gt_to_odom" args="/pose_gt /direct_sonar/pose"/>
-    <node if="$(eval arg('odom_source') == 'diso')"
+    <!-- DISO avec prior GT (OdomTopic=/pose_gt) -->
+    <node if="$(eval arg('odom_source') == 'diso' and arg('diso_prior') == 'gt')"
           pkg="bruce_slam" type="diso_launcher.sh" name="diso_node" output="screen"/>
+    <!-- DISO GT-FREE : prior = cmd_vel intégré (/cmd_vel/pose), pas de /pose_gt -->
+    <group if="$(eval arg('odom_source') == 'diso' and arg('diso_prior') == 'cmd_vel')">
+        <node pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen">
+            <param name="output_topic" value="/cmd_vel/pose"/>
+            <param name="seed_from_gt" value="$(arg diso_seed_gt)"/>
+            <!-- PRIOR DISO = cmd_vel PUR et LISSE (pas de fusion USBL). Ce que DISO
+                 consomme = le mouvement RELATIF ; seed θ=0 → RPE direction 11° (vs 52°
+                 avec seed GT). La fusion USBL injecte des jumps qui dégradent le recalage
+                 DISO (RPE 11°→15°). La dérive absolue est sans effet (DISO recalcule au
+                 sonar) ; l'USBL ancre dans le BACK-END (facteurs graphe), pas ici.
+                 cf. offline_sim/rpe.py. -->
+            <param name="use_usbl" value="false"/>
+        </node>
+        <node pkg="bruce_slam" type="diso_launcher.sh" name="diso_node" output="screen"
+              args="/home/nathanrasami/ros1_ws/src/sonar-SLAM/DISO/config/config_aracati2017_cmdvel.yaml"/>
+    </group>
 
     <group ns="bruce">
         <group ns="slam">
@@ -68,6 +98,12 @@
             <!-- SLAM node -->
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_aracati.yaml" subst_value="true"/>
+                <!-- flip_y dépend du repère de l'odométrie : DISO a un repère Y réfléchi
+                     (det(R)=-1) → fixes USBL à négliger en Y (True) ; cmd_vel est en repère
+                     monde direct (compas) → pas de flip (False). Surcharge la valeur du yaml
+                     selon odom_source pour éviter l'erreur de repère (ATE 13.9 m sans flip
+                     en DISO). cf. add_usbl slam.py. -->
+                <param name="usbl/flip_y" value="$(eval arg('odom_source') == 'diso')"/>
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>

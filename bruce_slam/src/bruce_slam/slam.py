@@ -128,6 +128,7 @@ class SLAM(object):
         # contraint que x,y (le cap reste géré par l'odométrie). cf. USBL_FACTEURS.md
         self.usbl_enable = False
         self.usbl_sigma = 1.4       # m, bruit d'un fix (médiane mesurée vs GT)
+        self.usbl_flip_y = False    # néger Y des fixes (repère DISO réfléchi) ; cf. add_usbl
         self.usbl_max_dt = 1.0      # s, fenêtre d'association fix ↔ keyframe
         self.usbl_buffer = []       # (t, x, y) fixes acceptés, rempli par slam_ros
         self.usbl_added = 0         # nb de facteurs USBL réellement ajoutés
@@ -503,11 +504,26 @@ class SLAM(object):
         if best is None:
             return
         ux, uy = best
+        # flip-Y : met le fix USBL (repère monde) dans le repère DISO (axe Y inversé,
+        # det(R)=-1). Indispensable avec odom_source=diso, sinon handedness opposés →
+        # gtsam déforme la trajectoire (ATE 13.9 m vs ~0.9 m avec flip). cf. offline_sim.
+        if self.usbl_flip_y:
+            uy = -uy
         # prior position-only robuste : sigma x,y = usbl_sigma ; sigma θ = 1e6 (libre)
         model = self.create_robust_noise_model(self.usbl_sigma, self.usbl_sigma, 1e6)
         factor = gtsam.PriorFactorPose2(X(self.current_key), gtsam.Pose2(ux, uy, 0.0), model)
         self.graph.add(factor)
         self.usbl_added += 1
+        # DIAG : trace chaque facteur USBL ajouté (fix vs pose odom courante) pour
+        # vérifier que l'USBL agit réellement sur le back-end (sinon 0 correction).
+        try:
+            import rospy as _rospy
+            px, py = keyframe.pose.x(), keyframe.pose.y()
+            _rospy.loginfo("USBL factor #%d on KF%d: fix=(%.2f,%.2f) odom=(%.2f,%.2f) dist=%.2fm dt=%.2fs",
+                           self.usbl_added, self.current_key, ux, uy, px, py,
+                           ((ux - px) ** 2 + (uy - py) ** 2) ** 0.5, bdt)
+        except Exception:
+            pass
 
     def get_map(self, frames, resolution=None):
         # Implemented in slam_node

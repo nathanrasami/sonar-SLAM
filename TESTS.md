@@ -842,3 +842,145 @@ DISO résout le point cloud ; il manque la correction de dérive pour baisser l'
 → viser point cloud propre ET ATE bas. Tests NSSM sur DISO (min_st_sep 8 puis 30) ont
 créé de la dérive (fausses boucles) → privilégier Sonar Context (apparence + PCM) plutôt
 que la détection géométrique NSSM.
+
+---
+
+## Branche Bruce_Sonar_USBL — DISO + Sonar Context (2026-06-18, 200146)
+
+Étape 1 de la config cible : loops sur DISO (USBL encore off). NSSM on (machinerie),
+Sonar Context on (détection par apparence), USBL off.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_200146/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| odom_source | diso |
+| nssm enable | True (machinerie de boucle) |
+| sonar_context enable | True |
+| usbl enable | False |
+| min_st_sep / gate / dist_threshold | 30 / 10 m / 0.60 |
+
+### Résultats
+
+| Métrique | DISO seul (161831) | DISO + SC (200146) |
+|---|---|---|
+| **ATE Umeyama** | 3.16 m | **5.97 m** (+89 %, pire) |
+| ATE brut | 35.1 m | 38.3 m |
+| Candidats SC retenus (SC+ICP) | — | 104 / 437 |
+| **Boucles appliquées (post-PCM)** | 0 | **10** |
+
+### Observations
+
+- **min_st_sep=30 a éliminé les faux court-terme** : séparation des 104 retenus min 37,
+  médiane 272 kf, 103/104 sont des revisites ≥100 kf. Plus aucun faux court-terme.
+- **Mais les loops dégradent l'ATte** : PCM rejette 94/104, **10 boucles appliquées**
+  suffisent à passer 3.16 → 5.97 m.
+- **Cause racine** : DISO est déjà localement précis. Les retenus ont une distance SC
+  médiane 0.475 (43/104 borderline >0.50). Ces boucles "moyennement ressemblantes"
+  portent une erreur ICP **supérieure** à la précision locale DISO → le `BetweenFactor`
+  bruité tire la trajectoire optimisée loin de l'estimé DISO déjà bon.
+- Séparation nette retenus/rejetés (max 0.600 / min 0.606) : le seuil 0.60 coupe net.
+
+### Conclusion
+
+Sur Aracati, **DISO n'a pas besoin de loop closures** : localement précis, les boucles SC
+borderline injectent plus de bruit qu'elles n'en corrigent. Ce qui manque à DISO est
+l'**ancrage absolu** (l'erreur brute de 35 m est une dérive *globale*, pas locale) — rôle
+de l'**USBL**. Prochaine étape : **DISO + USBL sans loops** pour écraser l'offset global.
+
+---
+
+## Branche Bruce_Sonar_USBL — DISO + USBL (2026-06-18, 225022)
+
+DISO odométrie + facteurs USBL de position absolue, **loops off**. Objectif : ancrer la
+dérive globale de DISO (offset brut 35 m) sans recourir aux loops.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_225022/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| odom_source | diso |
+| nssm / sonar_context | False |
+| **usbl.enable** | **True** (σ=1.4 m, Cauchy) |
+
+### Résultats — USBL casse DISO
+
+| Métrique | DISO seul | DISO + SC | **DISO + USBL** | cmd_vel + USBL (Run 1) |
+|---|---|---|---|---|
+| ATE brut | 35.1 m | 38.3 m | **16.2 m** | 2.69 m |
+| ATE Umeyama | **3.16 m** | 5.97 m | **13.87 m** | **1.96 m** |
+| cov finale (xx/yy) | 202 / 338 | — | **3.5 / 9.1** | — |
+| Point cloud | propre | propre | propre | tourbillon |
+
+### Diagnostic — incompatibilité de repère
+
+L'USBL réduit l'offset brut (35→16 m) mais **détruit la forme** (Umeyama 3.16→13.87 m) :
+
+- DISO est localement précis mais son repère **tourne globalement** vs le monde (l'offset
+  brut de 35 m est un quasi-pur décalage **rigide**, d'où l'excellent Umeyama de DISO seul).
+- Les facteurs USBL sont des priors de **position absolue seulement** (σ_θ=1e6, cap non
+  contraint). gtsam tire la chaîne DISO tournée vers des positions monde → **aucune rotation
+  unique ne satisfait tous les fixes** → l'optimiseur **gauchit** la trajectoire (non-rigide).
+- Preuve : DISO seul s'aligne parfaitement (offset rigide alignable, 3.16 m) ; après USBL
+  l'alignement échoue (13.87 m). La covariance chute (202→3.5) → USBL contraint bien la
+  position, mais au prix de la déformation.
+- USBL marchait sur **cmd_vel** (Run 1, 1.96 m) car cmd_vel est seedé GT → déjà en repère
+  monde. DISO non → dérive en rotation que l'USBL (position-only) ne peut pas redresser.
+
+### Conclusion
+
+**USBL et DISO ne se combinent pas** : USBL contraint la position mais pas le cap, et le
+repère DISO tourne. Sur Aracati (ni IMU ni boussole), DISO manque d'une référence de cap
+absolue. Compromis acté :
+- **DISO seul** = carte propre + meilleure forme (3.16 m), mais offset global.
+- **cmd_vel + USBL** = meilleur ATE (1.96 m), mais carte tourbillon.
+
+Test à venir : **USBL plus doux** (σ 1.4→4-5 m) — laisser USBL corriger la dérive grossière
+sans gauchir, voir si la forme DISO est préservée.
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 3 : cmd_vel + USBL + Sonar Context (2026-06-18, 120154)
+
+Meilleur résultat sur pipeline **100% GT-free** (seed position initiale uniquement).
+cmd_vel comme odométrie, USBL pour l'ancrage absolu, Sonar Context pour les loop closures.
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_120154/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | **cmd_vel** (seed position GT à t=0 uniquement) |
+| SSM | False |
+| NSSM | True (machinerie loop closure) |
+| Sonar Context | **True** |
+| USBL facteurs | **True** (σ=1.4 m) |
+| min_st_sep | 30 |
+| gate_distance | 10.0 m |
+| dist_threshold | 0.60 |
+| min_pcm | 6 |
+
+### Résultats
+
+![Trajectoire](TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_120154/trajectory_plot.png)
+![Point cloud](TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_120154/pointcloud_map.png)
+
+| Métrique | Run 1 (USBL seul) | Run 2 (USBL+SC, gate 20m) | **Run 3 (USBL+SC, gate 10m)** |
+|---|---|---|---|
+| ATE brut | 2.69 m | 2.53 m | — |
+| **ATE Umeyama** | 1.96 m | 1.90 m | **1.44 m** |
+| Odométrie ATE | — | — | 11.51 m |
+| Boucles acceptées | 0 | 19 | **467** |
+
+### Observations
+
+- **Meilleur ATE sur pipeline cmd_vel : 1.44 m** (−26 % vs Run 1 USBL seul).
+- 467 loop closures acceptés — Sonar Context + gate 10 m + min_st_sep 30 élimine les faux court-terme.
+- **Point cloud tourbillon** : le cap cmd_vel dérive (~52° d'erreur médiane mesurée offline). Les loop closures corrigent la trajectoire globale mais pas l'orientation locale des scans accumulés.
+
+### Conclusion
+
+Pipeline cmd_vel + USBL + Sonar Context = **meilleur résultat GT-free** obtenu (1.44 m).
+Le problème restant est le point cloud (cap imprécis de cmd_vel). Résolu uniquement par DISO (cap scan-consistent) mais DISO nécessite un prior de qualité.

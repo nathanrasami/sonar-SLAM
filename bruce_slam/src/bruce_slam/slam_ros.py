@@ -108,6 +108,12 @@ class SLAMNode(SLAM):
         self.usbl_sigma = rospy.get_param(ns + "usbl/sigma", 1.4)
         self.usbl_max_dt = rospy.get_param(ns + "usbl/max_dt", 1.0)
         self.usbl_max_speed = rospy.get_param(ns + "usbl/max_speed", 3.0)
+        # flip_y : néger Y des fixes USBL pour les mettre dans le repère DISO (axe Y
+        # inversé, det(R)=-1 — cf. offline_sim). SANS ce flip, USBL (repère monde) et
+        # DISO (repère réfléchi) sont en handedness opposés → gtsam déforme la trajectoire
+        # (ATE 13.9 m). AVEC : ~0.9 m (validé offline). À True UNIQUEMENT avec odom_source=diso ;
+        # cmd_vel est déjà en repère monde → laisser False.
+        self.usbl_flip_y = rospy.get_param(ns + "usbl/flip_y", False)
         self._usbl_last = None  # (t,x,y) dernier fix accepté (gate outliers par vitesse)
         if self.usbl_enable:
             rospy.Subscriber(USBL_TOPIC, PointStamped, self._usbl_callback, queue_size=20)
