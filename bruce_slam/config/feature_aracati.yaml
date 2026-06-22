@@ -9,12 +9,13 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  # 65 : coupe le speckle résiduel du run 154852 (un bouton à la fois ;
-  # si halo encore visible, passer min_points 5→8 au run suivant)
-  threshold: 65
+  # 80 : durci (était 65). Test poses-GT (22 juin) : le swirl = écho du fond +
+  # speckle longue portée du CFAR, pas l'odométrie. On coupe les retours faibles.
+  threshold: 80
   resolution: 0.5
   radius: 1.0
-  min_points: 5
+  # 8 : retire les amas isolés de speckle (le speckle est épars, la structure dense)
+  min_points: 8
   skip: 1
 
 visualization:
@@ -31,6 +32,10 @@ cartesian:
   # même valeur que DISO (config_aracati2017.yaml, Range calibré par SIM3) :
   # le nuage et les poses DISO doivent partager la même échelle m/px
   max_range: 48.2896
+  # Cap de portée du NUAGE (pas du sonar) : coupe le speckle extrême lointain.
+  # Le fond diffus restant (mid-range) est retiré par le filtre de PERSISTANCE
+  # (slam_aracati.yaml). 35m garde les structures, le reste est filtré en aval.
+  max_cloud_range: 35.0
 
 # SONAR Context (place recognition pour loop closure)
 sonar_context:

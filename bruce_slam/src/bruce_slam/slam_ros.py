@@ -59,6 +59,14 @@ class SLAMNode(SLAM):
         #resultion for map downsampling
         self.point_resolution = rospy.get_param(ns + "point_resolution")
 
+        # Filtre de PERSISTANCE : ne garde que les voxels monde observés depuis
+        # >= min_obs keyframes différents. Les vraies structures (murs/quai, vues de
+        # plusieurs poses) restent ; le backscatter diffus du fond (vu brièvement à
+        # range ~constant qui balaie) part. Enlève les arcs sans cap de range.
+        self.persistence_enable = rospy.get_param(ns + "persistence/enable", False)
+        self.persistence_resolution = rospy.get_param(ns + "persistence/resolution", 1.0)
+        self.persistence_min_obs = rospy.get_param(ns + "persistence/min_obs", 3)
+
         #sequential scan matching parameters (SSM)
         self.ssm_params.enable = rospy.get_param(ns + "ssm/enable")
         self.ssm_params.min_points = rospy.get_param(ns + "ssm/min_points")
@@ -114,6 +122,10 @@ class SLAMNode(SLAM):
         # (ATE 13.9 m). AVEC : ~0.9 m (validé offline). À True UNIQUEMENT avec odom_source=diso ;
         # cmd_vel est déjà en repère monde → laisser False.
         self.usbl_flip_y = rospy.get_param(ns + "usbl/flip_y", False)
+        # Recalage auto repère monde→odométrie : nécessaire UNIQUEMENT avec DISO (repère
+        # réfléchi, System.cpp:89 swappe x↔y). En cmd_vel l'odométrie est déjà en repère
+        # monde → identité → on désactive (sinon risque d'estimer une transfo parasite).
+        self.usbl_align_enable = rospy.get_param(ns + "usbl/align_enable", False)
         self._usbl_last = None  # (t,x,y) dernier fix accepté (gate outliers par vitesse)
         if self.usbl_enable:
             rospy.Subscriber(USBL_TOPIC, PointStamped, self._usbl_callback, queue_size=20)
@@ -479,6 +491,27 @@ class SLAMNode(SLAM):
             traj_msg.header.frame_id = self.rov_id + "_map"
         self.traj_pub.publish(traj_msg)
 
+    def _persistence_filter(self, points: np.ndarray, keys: np.ndarray):
+        """Ne garde que les points dont le voxel monde (taille persistence_resolution)
+        a été observé depuis >= persistence_min_obs keyframes DISTINCTS. Les vraies
+        structures (murs/quai) sont vues de plusieurs poses → gardées ; le backscatter
+        diffus du fond, balayé à range ~constant, ne touche chaque voxel que brièvement
+        → retiré. 100% géométrique, GT-free."""
+        res = self.persistence_resolution
+        cx = np.floor(points[:, 0] / res).astype(np.int64)
+        cy = np.floor(points[:, 1] / res).astype(np.int64)
+        k = keys[:, 0].astype(np.int64)
+        # id de voxel compact (0..M-1)
+        cells = np.stack([cx, cy], axis=1)
+        uniq_cells, cell_id = np.unique(cells, axis=0, return_inverse=True)
+        # nb de keyframes distincts par voxel = nb de paires (voxel,key) uniques
+        pairs = np.stack([cell_id, k], axis=1)
+        uniq_pairs = np.unique(pairs, axis=0)
+        counts = np.bincount(uniq_pairs[:, 0], minlength=len(uniq_cells))
+        keep_cell = counts >= self.persistence_min_obs
+        mask = keep_cell[cell_id]
+        return points[mask], keys[mask]
+
     def publish_point_cloud(self)->None:
         """Publish downsampled 3D point cloud with z = 0.
         The last column represents keyframe index at which the point is observed.
@@ -506,6 +539,10 @@ class SLAMNode(SLAM):
 
         all_points = np.concatenate(all_points)
         all_keys = np.concatenate(all_keys)
+
+        # filtre de persistance : retire le backscatter du fond (vu d'un seul passage)
+        if self.persistence_enable and len(all_points):
+            all_points, all_keys = self._persistence_filter(all_points, all_keys)
 
         #use PCL to downsample this point cloud
         sampled_points, sampled_keys = pcl.downsample(

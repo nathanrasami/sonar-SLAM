@@ -71,3 +71,14 @@ usbl:
 
 pz_samples: 0
 pz_detection_rate: 0.3
+
+# Filtre de PERSISTANCE du nuage : ne garde que les voxels monde vus depuis >= min_obs
+# keyframes distincts. Retire le backscatter diffus du fond (vu brièvement, balayé) en
+# gardant les vraies structures (murs/quai, vues de plusieurs poses). 100% GT-free.
+# cf. test poses-GT : le swirl = fond, pas l'odométrie.
+persistence:
+  enable: False     # testé 22 juin : INEFFICACE ici (le fond est aussi persistant,
+                    # revu de plusieurs poses). Outil gardé, désactivé. Utile seulement
+                    # avec des poses locales précises (DISO/SSM), pas cmd_vel bruité.
+  resolution: 1.0   # m, taille du voxel de comptage
+  min_obs: 3        # nb de keyframes distincts minimum pour garder un voxel

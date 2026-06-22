@@ -135,7 +135,7 @@ class SLAM(object):
         # Recalage automatique repère monde→odométrie (rotation+réflexion, sans scale).
         # Remplace le flip_y codé en dur : DISO sort un repère réfléchi+TOURNÉ qu'un flip
         # d'axe fixe ne réconcilie pas. Estimé en ligne depuis (pose odom, fix USBL).
-        self.usbl_align_enable = True
+        self.usbl_align_enable = False    # activé via param usbl/align_enable (DISO seult)
         self.usbl_align_min_pairs = 8     # paires (pose,fix) avant d'estimer la transfo
         self.usbl_align_min_span = 4.0    # m, étendue min sur la 2e dim PCA (aire, pas ligne)
         self.usbl_align_lock_margin = 2.0  # m, écart résidu rotation vs réflexion pour trancher

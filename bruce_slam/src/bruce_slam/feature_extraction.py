@@ -121,6 +121,12 @@ class FeatureExtraction(object):
         if self.cartesian_mode:
             self.sonar_fov_deg = rospy.get_param(ns + "cartesian/fov_deg", 130.0)
             self.sonar_max_range = rospy.get_param(ns + "cartesian/max_range", 50.0)
+            # Cap de portée du NUAGE : au-delà, ce ne sont quasi que l'écho du fond et
+            # le speckle (test poses-GT : 86% des points à >20m, médiane 33m, = arcs).
+            # Couper à ~28m enlève les anneaux sans toucher les structures proches.
+            # Défaut = max_range (aucun cap) pour rester compatible.
+            self.max_cloud_range = rospy.get_param(ns + "cartesian/max_cloud_range",
+                                                   self.sonar_max_range)
             self.sonar_sub = rospy.Subscriber(
                 SONAR_TOPIC_CARTESIAN, CompressedImage, self.callback_cartesian, queue_size=10)
         elif self.compressed_images:
@@ -335,7 +341,7 @@ class FeatureExtraction(object):
         bearing = np.arctan2(y, x)
         keep = (
             (r > 0.3)
-            & (r < self.sonar_max_range - 0.3)
+            & (r < min(self.max_cloud_range, self.sonar_max_range - 0.3))
             & (np.abs(bearing) < half_fov_rad - 0.05)
         )
         points = points[keep]
