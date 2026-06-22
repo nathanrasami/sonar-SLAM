@@ -66,6 +66,10 @@ class SLAMNode(SLAM):
         self.persistence_enable = rospy.get_param(ns + "persistence/enable", False)
         self.persistence_resolution = rospy.get_param(ns + "persistence/resolution", 1.0)
         self.persistence_min_obs = rospy.get_param(ns + "persistence/min_obs", 3)
+        # Seuil d'intensité du MAP (découplé du seuil SLAM dans feature_aracati.yaml) :
+        # le SLAM garde toutes les features (dense → loops), la carte ne garde que les
+        # retours forts >= map_threshold (structures, pas le voile de fond). 0 = inactif.
+        self.map_threshold = rospy.get_param(ns + "map/threshold", 0.0)
 
         #sequential scan matching parameters (SSM)
         self.ssm_params.enable = rospy.get_param(ns + "ssm/enable")
@@ -332,6 +336,9 @@ class SLAMNode(SLAM):
 
         #convert the point cloud message to a numpy array of 2D
         points = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(feature_msg)
+        # col 1 (champ Z) transporte l'INTENSITÉ du retour (cf. feature_extraction) →
+        # sert au filtrage du MAP (le SLAM n'utilise que x,y). 0 si non fourni (NaN/skip).
+        point_intensity = points[:, 1].astype(np.float32) if len(points) else np.zeros(0, np.float32)
         points = np.c_[points[:,0] , -1 *  points[:,2]]
 
         # In case feature extraction is skipped in this frame
@@ -356,6 +363,8 @@ class SLAMNode(SLAM):
 
             #add the point cloud to the frame
             frame.points = points
+            # intensité parallèle aux points (même ordre) → filtrage du MAP
+            frame.point_intensity = point_intensity
 
             # attache le descripteur SONAR Context publié avec le même stamp
             # (ring_key/context : champs Keyframe déjà prévus, jamais utilisés)
@@ -510,39 +519,52 @@ class SLAMNode(SLAM):
         counts = np.bincount(uniq_pairs[:, 0], minlength=len(uniq_cells))
         keep_cell = counts >= self.persistence_min_obs
         mask = keep_cell[cell_id]
+        # DIAG calibration : fraction de POINTS gardés selon le seuil min_obs (n'est
+        # loggué qu'occasionnellement pour ne pas spammer). Permet de choisir min_obs.
+        if getattr(self, "_persist_diag_n", 0) % 40 == 0:
+            pc_per_cell = counts[cell_id]  # count du voxel de chaque point
+            line = " ".join("≥%d:%.0f%%" % (m, 100.0 * (pc_per_cell >= m).mean())
+                            for m in (5, 10, 15, 20, 30, 40))
+            rospy.loginfo("PERSIST counts(points) %s | voxels=%d pts=%d",
+                          line, len(uniq_cells), len(points))
+        self._persist_diag_n = getattr(self, "_persist_diag_n", 0) + 1
         return points[mask], keys[mask]
+
+    def _build_filtered_cloud(self):
+        """Assemble le nuage global (transf_points de tous les keyframes) et applique
+        les filtres du MAP : (1) seuil d'intensité map_threshold (ne garde que les
+        retours forts = structures, indépendant du seuil SLAM dense), (2) persistance
+        (retire le fond balayé). Utilisé par publish_point_cloud ET export_csv pour que
+        RViz et le CSV soient IDENTIQUES. Retourne (points Nx2, keys Nx1)."""
+        pts, keys, inten = [], [], []
+        for key in range(len(self.keyframes)):
+            tp = self.keyframes[key].transf_points
+            if tp is None or not len(tp):
+                continue
+            pts.append(tp)
+            keys.append(key * np.ones((len(tp), 1)))
+            pi = getattr(self.keyframes[key], "point_intensity", None)
+            if pi is None or len(pi) != len(tp):
+                pi = np.zeros(len(tp), np.float32)
+            inten.append(np.asarray(pi).reshape(-1))
+        if not pts:
+            return np.zeros((0, 2), np.float32), np.zeros((0, 1), np.float32)
+        P = np.concatenate(pts); K = np.concatenate(keys); I = np.concatenate(inten)
+        if self.map_threshold > 0:
+            m = I >= self.map_threshold
+            P, K = P[m], K[m]
+        if self.persistence_enable and len(P):
+            P, K = self._persistence_filter(P, K)
+        return P, K
 
     def publish_point_cloud(self)->None:
         """Publish downsampled 3D point cloud with z = 0.
         The last column represents keyframe index at which the point is observed.
         """
 
-        #define an empty array
-        all_points = [np.zeros((0, 2), np.float32)]
-
-        #list of keyframe ids
-        all_keys = []
-
-        #loop over all the keyframes, register 
-        #the point cloud to the orign based on the SLAM estinmate
-        for key in range(len(self.keyframes)):
-
-            #parse the pose
-            pose = self.keyframes[key].pose
-
-            #get the resgistered point cloud
-            transf_points = self.keyframes[key].transf_points
-
-            #append
-            all_points.append(transf_points)
-            all_keys.append(key * np.ones((len(transf_points), 1)))
-
-        all_points = np.concatenate(all_points)
-        all_keys = np.concatenate(all_keys)
-
-        # filtre de persistance : retire le backscatter du fond (vu d'un seul passage)
-        if self.persistence_enable and len(all_points):
-            all_points, all_keys = self._persistence_filter(all_points, all_keys)
+        all_points, all_keys = self._build_filtered_cloud()
+        if len(all_points) == 0:
+            return
 
         #use PCL to downsample this point cloud
         sampled_points, sampled_keys = pcl.downsample(
@@ -606,14 +628,15 @@ class SLAMNode(SLAM):
         rospy.loginfo("Trajectory saved to %s", traj_path)
 
         # --- Point cloud CSV ---
+        # MÊME filtre que RViz (intensité map_threshold + persistance) via le helper,
+        # sinon le CSV serait brut alors que RViz est filtré.
+        pts, keys = self._build_filtered_cloud()
         cloud_path = os.path.join(output_dir, "pointcloud.csv")
         with open(cloud_path, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["keyframe_id", "x", "y"])
-            for i, kf in enumerate(self.keyframes):
-                if kf.transf_points is not None and len(kf.transf_points):
-                    for pt in kf.transf_points:
-                        writer.writerow([i, pt[0], pt[1]])
+            for p, k in zip(pts, keys):
+                writer.writerow([int(k[0]), p[0], p[1]])
         rospy.loginfo("Point cloud saved to %s", cloud_path)
 
         # --- Journal SONAR Context (validation étape 5 : precision/recall) ---

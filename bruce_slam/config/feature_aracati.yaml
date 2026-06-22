@@ -8,14 +8,15 @@ CFAR:
   rank: 10
   alg: 'SOCA'
 
+  # 140 : seuil STRUCTURE-ONLY (calibré sur l'intensité réelle : fond p90~50-86,
+  # structures p99~200+). Meilleur pour le CLOUD (retire le voile) ET pour l'ICP des
+  # loops (s'aligne sur les structures, pas le fond). Le découplage seuil-bas a échoué :
+  # les features denses chargées de fond dégradent l'ICP des loops (6 vs 12 acceptés).
 filter:
-  # 80 : durci (était 65). Test poses-GT (22 juin) : le swirl = écho du fond +
-  # speckle longue portée du CFAR, pas l'odométrie. On coupe les retours faibles.
-  threshold: 80
+  threshold: 140
   resolution: 0.5
   radius: 1.0
-  # 8 : retire les amas isolés de speckle (le speckle est épars, la structure dense)
-  min_points: 8
+  min_points: 5
   skip: 1
 
 visualization:
@@ -32,10 +33,9 @@ cartesian:
   # même valeur que DISO (config_aracati2017.yaml, Range calibré par SIM3) :
   # le nuage et les poses DISO doivent partager la même échelle m/px
   max_range: 48.2896
-  # Cap de portée du NUAGE (pas du sonar) : coupe le speckle extrême lointain.
-  # Le fond diffus restant (mid-range) est retiré par le filtre de PERSISTANCE
-  # (slam_aracati.yaml). 35m garde les structures, le reste est filtré en aval.
-  max_cloud_range: 35.0
+  # Cap de portée du NUAGE désactivé : le seuil d'intensité 140 gère le fond à
+  # toute distance (les structures brillantes survivent, le fond non). = max_range.
+  max_cloud_range: 48.2896
 
 # SONAR Context (place recognition pour loop closure)
 sonar_context:

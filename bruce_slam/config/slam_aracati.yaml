@@ -22,7 +22,7 @@ ssm:
   target_frames: 3
 
 nssm:
-  enable: False
+  enable: True
   min_st_sep: 30
   min_points: 30
   max_translation: 8.0
@@ -43,7 +43,7 @@ min_pcm: 6
 # apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
 # exporté dans loops_detected.csv.
 sonar_context:
-  enable: False
+  enable: True
   knn: 5                 # candidats présélectionnés par la Polar Key
   # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
@@ -72,13 +72,24 @@ usbl:
 pz_samples: 0
 pz_detection_rate: 0.3
 
+# Seuil d'intensité du MAP (découplage SLAM/carte). DÉSACTIVÉ (0) : le découplage
+# seuil-bas a échoué (features denses chargées de fond → ICP loops dégradé). On garde
+# directement le seuil 140 STRUCTURE-ONLY côté feature_extraction, meilleur pour cloud
+# ET loops. L'infra (intensité portée + helper) reste si besoin futur. cf. point-cloud.
+map:
+  threshold: 0.0
+
 # Filtre de PERSISTANCE du nuage : ne garde que les voxels monde vus depuis >= min_obs
 # keyframes distincts. Retire le backscatter diffus du fond (vu brièvement, balayé) en
 # gardant les vraies structures (murs/quai, vues de plusieurs poses). 100% GT-free.
 # cf. test poses-GT : le swirl = fond, pas l'odométrie.
 persistence:
-  enable: False     # testé 22 juin : INEFFICACE ici (le fond est aussi persistant,
-                    # revu de plusieurs poses). Outil gardé, désactivé. Utile seulement
-                    # avec des poses locales précises (DISO/SSM), pas cmd_vel bruité.
-  resolution: 1.0   # m, taille du voxel de comptage
-  min_obs: 3        # nb de keyframes distincts minimum pour garder un voxel
+  enable: True      # EFFICACE avec seuil intensité 140 (pas 80). Le retour du fond,
+                    # à range ~constant (vehicle-relatif), balaie → un voxel monde n'est
+                    # vu que brièvement (faible persistance) ; un vrai mur reste en vue
+                    # longtemps (forte). 140 retire le voile faible, la persistance le
+                    # fond brillant balayé. Validé offline run 214019. cf. point-cloud.
+  resolution: 3.0   # m, voxel de comptage. 3m (pas 2) : tolère la dispersion des poses
+                    # cmd_vel → les structures restent CONNECTÉES (2m les fragmentait).
+  min_obs: 15       # calibré run complet 222220 : res=3+min_obs=15 → quai+bassin continus,
+                    # swirl supprimé. min_obs trop haut (20-25) fragmente le quai en amas.

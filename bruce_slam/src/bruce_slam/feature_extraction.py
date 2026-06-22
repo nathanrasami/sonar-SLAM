@@ -357,18 +357,32 @@ class FeatureExtraction(object):
                 points, self.outlier_filter_radius, self.outlier_filter_min_points
             )
 
-        self._publish_features_stamped(msg.header, points)
+        # Intensité par point, RELUE dans l'image (inversion pixel↔mètre). Permet de
+        # DÉCOUPLER : le SLAM utilise toutes les features (seuil bas, dense → loops),
+        # le MAP ne garde que les retours forts (seuil intensité côté slam_ros). On la
+        # transporte dans le champ Z du nuage feature (inutilisé : le map est 2D).
+        if len(points):
+            rows = np.clip((h - points[:, 0] / m_per_px).astype(int), 0, h - 1)
+            cols = np.clip((points[:, 1] / m_per_px + w / 2.0).astype(int), 0, w - 1)
+            intensity = img[rows, cols].astype(np.float32)
+        else:
+            intensity = np.zeros(len(points), np.float32)
 
-    def _publish_features_stamped(self, header, points):
+        self._publish_features_stamped(msg.header, points, intensity)
+
+    def _publish_features_stamped(self, header, points, intensity=None):
         """Publish features using a raw header (for cartesian mode).
 
         ATTENTION : le nœud SLAM (slam_ros.py) parse le nuage avec
-        (x, -z) — convention du pipeline polaire qui publie [x, 0, z].
-        On packe donc [x_avant, 0, -y_latéral] pour qu'il reconstruise
-        (x_avant, y_latéral). Publier [x, y, 0] écraserait la 2e
-        coordonnée à zéro → chaque keyframe deviendrait une ligne.
+        (x, -z) — convention du pipeline polaire qui publie [x, *, z].
+        On packe [x_avant, INTENSITÉ, -y_latéral] : le SLAM lit col0=x et
+        col2=-z=y (inchangé), et l'intensité voyage dans le champ Z (col1),
+        inutilisé en 2D, pour le filtrage du MAP. Publier [x, y, 0]
+        écraserait la 2e coordonnée → chaque keyframe deviendrait une ligne.
         """
-        points3d = np.c_[points[:, 0], np.zeros(len(points)), -points[:, 1]]
+        if intensity is None:
+            intensity = np.zeros(len(points), np.float32)
+        points3d = np.c_[points[:, 0], intensity, -points[:, 1]]
         feature_msg = n2r(points3d, "PointCloudXYZ")
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
