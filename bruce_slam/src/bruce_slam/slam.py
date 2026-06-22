@@ -132,6 +132,16 @@ class SLAM(object):
         self.usbl_max_dt = 1.0      # s, fenêtre d'association fix ↔ keyframe
         self.usbl_buffer = []       # (t, x, y) fixes acceptés, rempli par slam_ros
         self.usbl_added = 0         # nb de facteurs USBL réellement ajoutés
+        # Recalage automatique repère monde→odométrie (rotation+réflexion, sans scale).
+        # Remplace le flip_y codé en dur : DISO sort un repère réfléchi+TOURNÉ qu'un flip
+        # d'axe fixe ne réconcilie pas. Estimé en ligne depuis (pose odom, fix USBL).
+        self.usbl_align_enable = True
+        self.usbl_align_min_pairs = 8     # paires (pose,fix) avant d'estimer la transfo
+        self.usbl_align_min_span = 4.0    # m, étendue min sur la 2e dim PCA (aire, pas ligne)
+        self.usbl_align_lock_margin = 2.0  # m, écart résidu rotation vs réflexion pour trancher
+        self._usbl_align_pairs = []       # (odom_x, odom_y, world_x, world_y)
+        self._usbl_world2odom = None      # (R 2x2, t 2,) estimée ; None tant que pas prête
+        self._usbl_align_locked = False   # True quand la transfo est fiable et figée
 
         # Use fixed noise model in two cases
         # - Sequential scan matching
@@ -504,11 +514,25 @@ class SLAM(object):
         if best is None:
             return
         ux, uy = best
-        # flip-Y : met le fix USBL (repère monde) dans le repère DISO (axe Y inversé,
-        # det(R)=-1). Indispensable avec odom_source=diso, sinon handedness opposés →
-        # gtsam déforme la trajectoire (ATE 13.9 m vs ~0.9 m avec flip). cf. offline_sim.
+        # Recalage de repère monde→odométrie. DISO sort un repère RÉFLÉCHI+TOURNÉ par
+        # rapport au monde (det(R)=-1 + angle fixé au seed), qu'un flip d'axe codé en
+        # dur ne peut pas réconcilier (cf. offline_sim : meilleur flip = 20 m). On estime
+        # donc la transfo rigide+réflexion (Umeyama 2D AVEC réflexion, sans scale) à
+        # partir des paires (pose odométrie du KF, fix USBL) accumulées — GT-free.
+        # Tant que la transfo n'est pas estimée, on bufferise et on n'ajoute pas encore.
         if self.usbl_flip_y:
-            uy = -uy
+            uy = -uy  # legacy : flip Y explicite si demandé (modes non-DISO)
+        if self.usbl_align_enable:
+            self._usbl_align_pairs.append(
+                (keyframe.pose.x(), keyframe.pose.y(), ux, uy))
+            # Ré-estime tant que pas convergé : avec peu de paires (trajectoire quasi
+            # rectiligne) Umeyama ne distingue pas réflexion/rotation → on raffine au fil
+            # de l'eau jusqu'à ce que l'aire couverte soit suffisante (transfo stable).
+            if not self._usbl_align_locked:
+                self._estimate_usbl_alignment()
+            if self._usbl_world2odom is None:
+                return  # pas encore estimable (pas assez de paires/d'aire) → on attend
+            ux, uy = self._apply_usbl_alignment(ux, uy)
         # prior position-only robuste : sigma x,y = usbl_sigma ; sigma θ = 1e6 (libre)
         model = self.create_robust_noise_model(self.usbl_sigma, self.usbl_sigma, 1e6)
         factor = gtsam.PriorFactorPose2(X(self.current_key), gtsam.Pose2(ux, uy, 0.0), model)
@@ -524,6 +548,64 @@ class SLAM(object):
                            ((ux - px) ** 2 + (uy - py) ** 2) ** 0.5, bdt)
         except Exception:
             pass
+
+    def _estimate_usbl_alignment(self) -> None:
+        """Estime la transfo monde→odométrie (rotation OU réflexion + translation, sans
+        scale) sur les paires (pose odom, fix USBL) accumulées. GT-free.
+
+        Le repère DISO peut être réfléchi (det=-1) OU non (det=+1) selon le seed ; on ne
+        peut pas le savoir a priori. On estime DONC les DEUX hypothèses (Umeyama rotation
+        pure + Umeyama réflexion) et on garde celle au meilleur résidu. Cf. offline : avec
+        trop peu de courbure 2D les deux se valent → on ne verrouille que quand la
+        réflexion est tranchée (un cas nettement meilleur) ET l'aire 2D est suffisante."""
+        pairs = self._usbl_align_pairs
+        if len(pairs) < self.usbl_align_min_pairs:
+            return
+        P = np.array(pairs, dtype=float)
+        odom = P[:, :2]   # repère odométrie (cible)
+        world = P[:, 2:]  # repère monde (source = fixes USBL)
+        mw, mo = world.mean(0), odom.mean(0)
+        wc, oc = world - mw, odom - mo
+        H = wc.T @ oc / len(P)
+        U, S, Vt = np.linalg.svd(H)
+
+        def make(reflect):
+            D = np.eye(2)
+            if reflect:
+                D[1, 1] = -1
+            R = (U @ D @ Vt).T
+            t = mo - R @ mw
+            res = float(np.median(np.linalg.norm((world @ R.T + t) - odom, axis=1)))
+            return R, t, res
+
+        # Umeyama standard force det>0 ; on génère explicitement les deux signes.
+        rot = make(False)
+        refl = make(True)
+        best = min(rot, refl, key=lambda x: x[2])
+        R, t, res = best
+        self._usbl_world2odom = (R, t)
+        # Verrouille quand : (1) aire 2D suffisante (2e val. sing. PCA) — sinon le choix
+        # rotation/réflexion n'est pas observable ; (2) une hypothèse domine nettement
+        # l'autre (sinon ambiguïté). Évite de figer une transfo dégénérée trop tôt.
+        svals = np.linalg.svd(wc, compute_uv=False) / max(len(P) ** 0.5, 1.0)
+        margin = abs(rot[2] - refl[2])
+        if (svals[-1] >= self.usbl_align_min_span
+                and margin >= self.usbl_align_lock_margin
+                and len(P) >= 2 * self.usbl_align_min_pairs):
+            self._usbl_align_locked = True
+        try:
+            import rospy as _rospy
+            _rospy.loginfo("USBL alignment (%d paires): det(R)=%.2f résidu=%.2fm svals=[%.1f,%.1f] %s",
+                           len(P), np.linalg.det(R), res, svals[0], svals[-1],
+                           "LOCKED" if self._usbl_align_locked else "")
+        except Exception:
+            pass
+
+    def _apply_usbl_alignment(self, ux: float, uy: float):
+        """Applique la transfo monde→odométrie estimée à un fix USBL."""
+        R, t = self._usbl_world2odom
+        v = R @ np.array([ux, uy]) + t
+        return float(v[0]), float(v[1])
 
     def get_map(self, frames, resolution=None):
         # Implemented in slam_node
