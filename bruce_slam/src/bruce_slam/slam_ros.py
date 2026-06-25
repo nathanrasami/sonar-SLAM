@@ -70,6 +70,14 @@ class SLAMNode(SLAM):
         # le SLAM garde toutes les features (dense → loops), la carte ne garde que les
         # retours forts >= map_threshold (structures, pas le voile de fond). 0 = inactif.
         self.map_threshold = rospy.get_param(ns + "map/threshold", 0.0)
+        # Cap de RENDU du nuage (découplé de la trajectoire) : si activé, on rend chaque
+        # scan avec le cap COMPAS (-dr_theta + offset) au lieu du theta iSAM2. La position
+        # x,y reste celle d'iSAM2 (trajectoire inchangée). Le theta iSAM2 est optimisé pour
+        # la POSITION (USBL+loops) → tracke la direction de trajectoire → mauvais pour le
+        # cloud ; le compas (gyro) donne le vrai yaw → retire le swirl (= C2 inline).
+        # offset (deg) = calibration repère compas→monde (Aracati : +162°, cf c2_compass_offset).
+        self.cloud_use_compass_cap = rospy.get_param(ns + "cloud/use_compass_cap", False)
+        self.cloud_cap_offset = np.radians(rospy.get_param(ns + "cloud/cap_offset_deg", 0.0))
 
         #sequential scan matching parameters (SSM)
         self.ssm_params.enable = rospy.get_param(ns + "ssm/enable")
@@ -500,7 +508,7 @@ class SLAMNode(SLAM):
             traj_msg.header.frame_id = self.rov_id + "_map"
         self.traj_pub.publish(traj_msg)
 
-    def _persistence_filter(self, points: np.ndarray, keys: np.ndarray):
+    def _persistence_filter(self, points: np.ndarray, keys: np.ndarray, inten: np.ndarray):
         """Ne garde que les points dont le voxel monde (taille persistence_resolution)
         a été observé depuis >= persistence_min_obs keyframes DISTINCTS. Les vraies
         structures (murs/quai) sont vues de plusieurs poses → gardées ; le backscatter
@@ -528,17 +536,27 @@ class SLAMNode(SLAM):
             rospy.loginfo("PERSIST counts(points) %s | voxels=%d pts=%d",
                           line, len(uniq_cells), len(points))
         self._persist_diag_n = getattr(self, "_persist_diag_n", 0) + 1
-        return points[mask], keys[mask]
+        return points[mask], keys[mask], inten[mask]
 
     def _build_filtered_cloud(self):
         """Assemble le nuage global (transf_points de tous les keyframes) et applique
         les filtres du MAP : (1) seuil d'intensité map_threshold (ne garde que les
         retours forts = structures, indépendant du seuil SLAM dense), (2) persistance
         (retire le fond balayé). Utilisé par publish_point_cloud ET export_csv pour que
-        RViz et le CSV soient IDENTIQUES. Retourne (points Nx2, keys Nx1)."""
+        RViz et le CSV soient IDENTIQUES. Retourne (points Nx2, keys Nx1, intensité N)
+        — l'intensité par point sert au filtrage/découplage offline (build_final_map)."""
         pts, keys, inten = [], [], []
         for key in range(len(self.keyframes)):
-            tp = self.keyframes[key].transf_points
+            kf = self.keyframes[key]
+            if self.cloud_use_compass_cap and kf.points is not None and len(kf.points):
+                # rendu avec cap COMPAS (-dr_theta + offset), position iSAM2 conservée
+                cap = -kf.dr_pose.theta() + self.cloud_cap_offset
+                c, s = np.cos(cap), np.sin(cap)
+                bp = kf.points
+                tp = np.c_[c * bp[:, 0] - s * bp[:, 1] + kf.pose.x(),
+                           s * bp[:, 0] + c * bp[:, 1] + kf.pose.y()].astype(np.float32)
+            else:
+                tp = kf.transf_points
             if tp is None or not len(tp):
                 continue
             pts.append(tp)
@@ -548,21 +566,22 @@ class SLAMNode(SLAM):
                 pi = np.zeros(len(tp), np.float32)
             inten.append(np.asarray(pi).reshape(-1))
         if not pts:
-            return np.zeros((0, 2), np.float32), np.zeros((0, 1), np.float32)
+            return (np.zeros((0, 2), np.float32), np.zeros((0, 1), np.float32),
+                    np.zeros(0, np.float32))
         P = np.concatenate(pts); K = np.concatenate(keys); I = np.concatenate(inten)
         if self.map_threshold > 0:
             m = I >= self.map_threshold
-            P, K = P[m], K[m]
+            P, K, I = P[m], K[m], I[m]
         if self.persistence_enable and len(P):
-            P, K = self._persistence_filter(P, K)
-        return P, K
+            P, K, I = self._persistence_filter(P, K, I)
+        return P, K, I
 
     def publish_point_cloud(self)->None:
         """Publish downsampled 3D point cloud with z = 0.
         The last column represents keyframe index at which the point is observed.
         """
 
-        all_points, all_keys = self._build_filtered_cloud()
+        all_points, all_keys, _ = self._build_filtered_cloud()
         if len(all_points) == 0:
             return
 
@@ -630,13 +649,13 @@ class SLAMNode(SLAM):
         # --- Point cloud CSV ---
         # MÊME filtre que RViz (intensité map_threshold + persistance) via le helper,
         # sinon le CSV serait brut alors que RViz est filtré.
-        pts, keys = self._build_filtered_cloud()
+        pts, keys, inten = self._build_filtered_cloud()
         cloud_path = os.path.join(output_dir, "pointcloud.csv")
         with open(cloud_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["keyframe_id", "x", "y"])
-            for p, k in zip(pts, keys):
-                writer.writerow([int(k[0]), p[0], p[1]])
+            writer.writerow(["keyframe_id", "x", "y", "intensity"])
+            for p, k, it in zip(pts, keys, inten):
+                writer.writerow([int(k[0]), p[0], p[1], float(it)])
         rospy.loginfo("Point cloud saved to %s", cloud_path)
 
         # --- Journal SONAR Context (validation étape 5 : precision/recall) ---
