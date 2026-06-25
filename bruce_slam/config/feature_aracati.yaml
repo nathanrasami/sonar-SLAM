@@ -8,12 +8,12 @@ CFAR:
   rank: 10
   alg: 'SOCA'
 
-  # 140 : seuil STRUCTURE-ONLY (calibré sur l'intensité réelle : fond p90~50-86,
-  # structures p99~200+). Meilleur pour le CLOUD (retire le voile) ET pour l'ICP des
-  # loops (s'aligne sur les structures, pas le fond). Le découplage seuil-bas a échoué :
-  # les features denses chargées de fond dégradent l'ICP des loops (6 vs 12 acceptés).
+  # 65 : BASELINE 120154 (meilleure traj GT-free, 1.44 m). Features DENSES → assez de
+  # points pour l'ICP des loops (12 acceptés vs 6 à seuil 140). Le cloud swirle (fond
+  # inclus) — ASSUMÉ ici : on repart de la MEILLEURE TRAJECTOIRE, le nettoyage du cloud
+  # se fera séparément (le seuil 140 affamait les loops → traj dégradée 5.2 m). cf. 928d0a0.
 filter:
-  threshold: 140
+  threshold: 65
   resolution: 0.5
   radius: 1.0
   min_points: 5

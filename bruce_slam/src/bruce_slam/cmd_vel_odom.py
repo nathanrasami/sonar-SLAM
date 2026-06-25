@@ -20,12 +20,13 @@ import math
 import threading
 import rospy
 import tf
-from geometry_msgs.msg import PoseStamped, PointStamped, TwistStamped
+from geometry_msgs.msg import PoseStamped, PointStamped, TwistStamped, PoseWithCovarianceStamped
 
 from bruce_slam.utils.topics import ODOM_BRIDGE_INPUT_TOPIC
 
 CMD_VEL_TOPIC = "/cmd_vel"
 GT_TOPIC = "/pose_gt"
+INITIAL_POSE_TOPIC = "/initialpose"
 USBL_TOPIC = "/usbl_point"
 
 
@@ -44,6 +45,20 @@ class CmdVelOdom:
         # ancre la position absolue ; le cap initial absolu est non observable sans GT/IMU,
         # laissé à 0 et corrigé par la dérive). cf. extirpation /pose_gt.
         self.seed_from_gt = rospy.get_param("~seed_from_gt", True)
+        # seed_from_initial_pose : True = seed depuis /initialpose (PoseWithCovarianceStamped,
+        # publié une fois par le nœud odom au démarrage — position DGPS + cap compas à t=0,
+        # présent dans le bag). Aucune GT dans la boucle : /initialpose est la pose de
+        # départ connue (réaliste), pas la vérité terrain continue. Prioritaire sur seed_from_gt.
+        self.seed_from_initial_pose = rospy.get_param("~seed_from_initial_pose", False)
+        # seed_from_usbl : True = seed 100% GT-FREE. Position = 1er fix /usbl_point accepté
+        # (capteur acoustique, pas GT) ; cap = course-over-ground (atan2 du déplacement USBL
+        # jusqu'à usbl_seed_min_disp m). AUCUN /pose_gt. Prioritaire sur les autres seeds.
+        self.seed_from_usbl = rospy.get_param("~seed_from_usbl", False)
+        # usbl_seed_min_disp : deplacement min (m) pour figer le cap. 1.0 valide offline
+        # (test_usbl_seed) : le ROV vire vite → fenetre COURTE = meilleur cap (1 m → 13° d'ecart
+        # vs seed GT ; 3 m → 78°, la course-over-ground capte deja le virage). cf. test bag.
+        self.usbl_seed_min_disp = rospy.get_param("~usbl_seed_min_disp", 1.0)
+        self._usbl_seed_fixes = []   # (t,x,y) fixes accumulés pour le seed
         # heading_from_compass : cap = ANCRE monde (atan2 du 1er déplacement, repère
         # compatible USBL/DGPS) + DELTAS du compas (/pose_gt.orientation, capteur réel).
         # → sans dérive (compas) ET dans le bon repère (atan2) → point cloud propre +
@@ -68,7 +83,14 @@ class CmdVelOdom:
         self._theta_seed = 0.0       # cap initial (repère monde)
         self._compass_seed = None    # cap compas à l'instant du seed (réf des deltas)
 
-        if self.seed_from_gt or self.heading_from_compass:
+        if self.seed_from_usbl:
+            rospy.Subscriber(USBL_TOPIC, PointStamped, self._usbl_seed_cb, queue_size=10)
+            rospy.loginfo("cmd_vel_odom : seed 100%% GT-FREE depuis USBL "
+                          "(position 1er fix + cap course-over-ground)")
+        elif self.seed_from_initial_pose:
+            rospy.Subscriber(INITIAL_POSE_TOPIC, PoseWithCovarianceStamped,
+                             self._initialpose_cb, queue_size=1)
+        elif self.seed_from_gt or self.heading_from_compass:
             rospy.Subscriber(GT_TOPIC, PoseStamped, self._seed_cb, queue_size=5)
         else:
             self.seeded = True
@@ -80,6 +102,50 @@ class CmdVelOdom:
         if self.use_usbl:
             rospy.Subscriber(USBL_TOPIC, PointStamped, self._usbl_cb, queue_size=10)
             rospy.loginfo("cmd_vel_odom : fusion USBL ON (gain=%.2f)", self.usbl_gain)
+
+    def _usbl_seed_cb(self, msg: PointStamped) -> None:
+        """Seed 100% GT-FREE depuis l'USBL (capteur acoustique). Position = 1er fix accepté ;
+        cap = course-over-ground (atan2 du déplacement jusqu'à usbl_seed_min_disp). Gate
+        d'outlier par vitesse (glitch ~73 m) vs le dernier fix de seed accepté."""
+        if self.seeded:
+            return
+        t = msg.header.stamp.to_sec()
+        ux, uy = msg.point.x, msg.point.y
+        if self._usbl_seed_fixes:
+            lt, lx, ly = self._usbl_seed_fixes[-1]
+            dt = t - lt
+            if dt > 0 and math.hypot(ux - lx, uy - ly) / dt > self.usbl_max_speed:
+                return  # saut physiquement impossible → glitch acoustique
+        self._usbl_seed_fixes.append((t, ux, uy))
+        x0, y0 = self._usbl_seed_fixes[0][1], self._usbl_seed_fixes[0][2]
+        disp = math.hypot(ux - x0, uy - y0)
+        if disp < self.usbl_seed_min_disp:
+            return  # pas encore assez de déplacement pour un cap fiable
+        with self.lock:
+            self.x, self.y = ux, uy
+            self.theta = math.atan2(uy - y0, ux - x0)
+            self.seeded = True
+            self._usbl_snapped = True       # déjà sur un fix → pas de re-snap si fusion ON
+            self.last_usbl = (t, ux, uy)
+        rospy.loginfo("cmd_vel_odom seedé USBL (GT-free) : x=%.2f y=%.2f cap=%.3f "
+                      "(%d fixes, disp=%.2f m)", self.x, self.y, self.theta,
+                      len(self._usbl_seed_fixes), disp)
+
+    def _initialpose_cb(self, msg: PoseWithCovarianceStamped) -> None:
+        """Seed depuis /initialpose : position DGPS + cap compas publiés une fois par le
+        nœud odom au démarrage. Aucune GT continue — seul le point de départ est connu."""
+        if self.seeded:
+            return
+        q = msg.pose.pose.orientation
+        yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
+                         1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+        with self.lock:
+            self.x = msg.pose.pose.position.x
+            self.y = msg.pose.pose.position.y
+            self.theta = yaw
+            self.seeded = True
+        rospy.loginfo("cmd_vel_odom seedé depuis /initialpose : x=%.2f y=%.2f yaw=%.3f rad",
+                      self.x, self.y, self.theta)
 
     def _seed_cb(self, msg: PoseStamped) -> None:
         """Seed position (GT initiale = pose de départ connue) + cap initial = atan2 du

@@ -800,11 +800,20 @@ translation) aient tous deux échoué à produire un point cloud propre, retour 
 **NSSM off, Sonar Context off, USBL off** : odométrie pure, aucune correction.
 Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_161831/`.
 
+> ⚠️ **CORRECTION (2026-06-23) — CE RUN N'EST PAS GT-FREE.** DISO a besoin d'un *prior
+> de mouvement* et, à cette date, sa seule config (`DISO/config/config_aracati2017.yaml`)
+> avait `OdomTopic: /pose_gt`. La variante GT-free (prior `/cmd_vel/pose`) n'a été créée
+> que le **22 juin**. Donc DISO recalait le sonar **autour de la vérité terrain**. Le label
+> "DISO odométrie seule" est trompeur : le cloud propre est **assisté par la GT**. Idem
+> pour le run **120307** (16 juin). Le 1er cloud propre RÉELLEMENT GT-free est obtenu le
+> 23 juin (cmd_vel + seuil intensité 140 + filtre de persistance, section dédiée).
+
 ### Configuration
 
 | Paramètre | Valeur |
 |---|---|
 | odom_source | **diso** |
+| DISO `OdomTopic` (prior) | **`/pose_gt`** ⚠️ (= GT dans la boucle) |
 | nssm / sonar_context / usbl | tous **False** |
 
 ### Résultats
@@ -822,10 +831,15 @@ Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_161831/`.
 
 ### Observations — percée
 
-- **Point cloud propre confirmé** : DISO donne un cap *scan-consistent* (recalage
-  scan-à-scan) → les scans s'accumulent au bon angle. Le tourbillon des runs cmd_vel
-  venait bien de la **dérive de cap de l'odométrie**, pas d'une régression de code
-  (géométrie de projection `sonar.py` identique au bon run).
+- **Point cloud propre** : DISO donne un cap *scan-consistent* (recalage scan-à-scan,
+  **autour du prior GT**) → les scans s'accumulent au bon angle.
+  > ⚠️ **CORRECTION (2026-06-23)** : la conclusion "le tourbillon cmd_vel venait de la
+  > dérive de cap" est **FAUSSE** (établie ensuite à la source). Test poses-GT : avec des
+  > poses GT PARFAITES le cloud tourbillonne quand même. Le swirl = le **backscatter du
+  > fond du sonar** (intensité ~20-86, retour spéculaire à ~34m qui balaie en arcs), PAS
+  > l'odométrie. DISO paraissait propre car (a) prior GT + (b) trajectoire plus grande. La
+  > vraie solution GT-free : seuil intensité 140 (les structures sont à >140) + filtre de
+  > persistance. cf. section "Cloud propre GT-free (23 juin)".
 - **ATE brut 35 m trompeur** : DISO démarre dans un repère tourné → désalignement
   global. Après Umeyama, l'erreur réelle est **3.16 m** (forme correcte).
 - **Compromis central** mis en évidence :
@@ -972,15 +986,276 @@ Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-18_120154/`.
 | ATE brut | 2.69 m | 2.53 m | — |
 | **ATE Umeyama** | 1.96 m | 1.90 m | **1.44 m** |
 | Odométrie ATE | — | — | 11.51 m |
-| Boucles acceptées | 0 | 19 | **467** |
+| Boucles acceptées (graphe) | 0 | 19 | **12** |
+
+> ⚠️ Correction : **12** boucles FINALES (facteurs `nssm_constraints`, vérifié sur
+> trajectory.csv). Le « 467 » précédent était le nombre de **candidats Sonar Context retenus**
+> (colonne `retenu` de loops_detected.csv), AVANT ICP+PCM. Ne pas confondre les deux métriques.
 
 ### Observations
 
 - **Meilleur ATE sur pipeline cmd_vel : 1.44 m** (−26 % vs Run 1 USBL seul).
-- 467 loop closures acceptés — Sonar Context + gate 10 m + min_st_sep 30 élimine les faux court-terme.
-- **Point cloud tourbillon** : le cap cmd_vel dérive (~52° d'erreur médiane mesurée offline). Les loop closures corrigent la trajectoire globale mais pas l'orientation locale des scans accumulés.
+- 12 boucles finales acceptées dans le graphe (467 candidats SC retenus → 12 passent ICP+PCM).
+- **Point cloud tourbillon** : ce N'EST PAS le cap (prouvé offline : cap cmd_vel ≈ cap DISO,
+  ~6° médian vs course GT). Le swirl = **backscatter du fond** (retour iso-range ~30 m balayé le
+  long de la trajectoire). Ni le cap ni le lissage de trajectoire ne le retirent. cf. analyse 06-23.
 
 ### Conclusion
 
 Pipeline cmd_vel + USBL + Sonar Context = **meilleur résultat GT-free** obtenu (1.44 m).
 Le problème restant est le point cloud (cap imprécis de cmd_vel). Résolu uniquement par DISO (cap scan-consistent) mais DISO nécessite un prior de qualité.
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 4 : DISO + USBL (2026-06-20, 011733)
+
+⚠️ **RÉSULTAT TROMPEUR — PAS GT-FREE**
+
+Meilleur résultat combiné (cloud propre + trajectoire serrée) mais obtenu en trichant :
+DISO utilisait `/pose_gt` comme prior de mouvement.
+
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-20_011733/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | **DISO** (front-end sonar direct) |
+| **DISO prior** | **⚠️ `/pose_gt`** (GROUND TRUTH — donc PAS GT-free) |
+| DISO Range | 48.2896 m (calibré SIM3) |
+| DISO GradientThreshold | 170 |
+| SSM | False |
+| NSSM | False |
+| Sonar Context | False |
+| **USBL facteurs** | **True** (σ ≈ 1.4 m) |
+| flip_y | True (repère DISO réfléchi Y) |
+| Feature extraction | baseline (Pfa 0.1, threshold 65, res 0.5) |
+| Loop closures acceptés | 0 |
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| DISO odométrie seul | ATE 5.5 m |
+| **DISO + USBL** | **ATE 0.9 m** |
+| Point cloud | **propre** — quai + bassin, marina reconnaissable |
+| GT-free ? | **❌ NON** — GT est le prior de DISO |
+
+### Pourquoi le cloud est propre
+
+DISO s'aligne **par intensité d'image** (méthode directe) → les scans successifs sont
+cohérents localement → pas de swirl. Mais cela ne fonctionne bien ici que parce que le prior
+GT lui donne la pose globale correcte à chaque scan.
+
+### Conclusion
+
+Ce run représente le **plafond théorique avec GT** : cloud propre + 0.9 m de trajectoire.
+Sert de référence pour évaluer les résultats GT-free. **Ne pas présenter comme GT-free.**
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 5 : cmd_vel + filtres (2026-06-23, 095710)
+
+**Premier cloud propre 100% GT-free.** Compromis : 6 boucles seulement → trajectoire ≈ odométrie.
+
+Archivé dans `results/run_aracati_2026-06-23_095710/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | **cmd_vel** (seed position GT à t=0 uniquement) |
+| SSM | False |
+| NSSM | True (machinerie loop closure) |
+| Sonar Context | **True** (gate 10 m, min_st_sep 30, dist 0.60, min_pcm 6) |
+| USBL facteurs | **True** (σ = 5.0 m) |
+| **Feature threshold** | **140** (baseline = 65) — structure-only |
+| **Map persistence** | **True** — res 3 m, min_obs 35 |
+| Bag rate | 1× (rate complet) |
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| Keyframes | 654 |
+| Loop closures acceptés | **6** (vs **12** au run 120154 — boucles finales graphe) |
+| **ATE Umeyama** | **5.2 m** |
+| Points cloud (filtré) | 16 937 |
+| Point cloud | blocs de voxels + stries iso-range (encore ~66 % de fond > 25 m) |
+| GT-free ? | **✅ OUI** |
+
+### Pourquoi la trajectoire s'est dégradée (1.44 → 5.2 m) — analyse honnête
+
+Ce run a changé PLUSIEURS paramètres vs 120154, pas seulement le seuil :
+
+| Paramètre | 120154 (1.44 m) | 095710 (5.2 m) | Effet |
+|---|---|---|---|
+| `usbl.sigma` | 1.4 m | **5.0 m** | ancre USBL 3.5× plus molle → **cause principale** de la dérive |
+| `odom_sigmas` | [0.5] | **[0.2]** | trust accru de l'odométrie cmd_vel (cap imprécis) → aggrave |
+| `threshold` | 65 | 140 | loops 12 → 6 (effet **mineur** sur l'ATE) |
+
+→ La régression d'ATE vient surtout du **σ_usbl mou** (et σ_odom serré), **pas** de la famine de
+loops (12→6 est mineur). L'ancien récit « le seuil affame les loops → mauvaise traj » était trompeur.
+
+### Le point cloud
+
+Le seuil 140 + persistance N'A PAS donné un cloud propre : il reste des blocs de voxels (bords
+de la grille de persistance, res 3 m) et des **stries iso-range** = backscatter du fond balayé le
+long de l'axe (que la persistance ne retire pas quand le ROV avance droit). Vérifié offline
+(range body médian 30 m, 66 % des points > 25 m). cf. analyse 06-23.
+
+### Problème ouvert
+
+Découpler les features SLAM (threshold 65, dense) des features carte (threshold 140, fort + persistance).
+Première tentative effectuée (infrastructure portée par Z du PointCloud2) — pas encore concluant :
+les features denses incluent aussi du fond persistant, et l'ICP s'aligne dessus plutôt que sur les structures.
+
+### Conclusion
+
+Run NON concluant : ni cloud propre, ni bonne trajectoire. Sa valeur est **diagnostique** :
+il confirme que le swirl = backscatter du fond (pas l'odométrie, pas le cap), MAIS que
+seuil 140 + persistance ne suffisent PAS à le retirer (stries iso-range le long de l'axe
+survivent). Décision : repartir de la config 120154 (meilleure traj GT-free) et attaquer
+le cloud séparément. cf. analyse 06-23 (cap, lissage, variance-de-range).
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 6 : odom_pose (baseline aracati2017) (2026-06-24, 135228)
+
+**Retour à la config 120154** (la meilleure traj GT-free), avec l'odométrie en mode `odom_pose` :
+intégration cmd_vel façon nœud `odom` original d'aracati2017 (`main_odom.cpp`). Sert de
+baseline propre, reconnaissable par la doctorante.
+
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-24_135228/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | **odom_pose** = cmd_vel intégré (seed position+cap GT à t=0 uniquement) |
+| SSM | False |
+| NSSM | True (machinerie loop closure) |
+| Sonar Context | True (gate 10 m, min_st_sep 30, dist 0.60, min_pcm 6) |
+| USBL facteurs (back-end) | **True** (σ = 1.4 m) — **front-end USBL OFF** |
+| Feature threshold | 65 (baseline dense) |
+| Map persistence | False |
+| Bag rate | 1× |
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| **ATE Umeyama** | **1.49 m** (≈ 120154 à 0.04 m près) |
+| Odométrie brute ATE | 11.51 m (cmd_vel pur, sans front-end USBL) |
+| Loop closures | 469 candidats (cf. loops_detected.csv) |
+| GT-free ? | **⚠️ Sauf seed t=0** (position + cap initial venant de /pose_gt). Reste à enlever (priorité #1 : seed USBL) |
+| Point cloud | swirl du fond (non traité, priorité #2) |
+
+### Légitimité de l'ATE bas (audit GT)
+
+ATE 1.49 m **n'est pas une fuite GT** : audit complet du code → `/pose_gt` n'entre JAMAIS
+dans le back-end gtsam (seul usage = `_gt_callback` → export CSV pour calcul d'ATE a posteriori).
+L'ancrage vient de l'**USBL** (`/usbl_point`, capteur acoustique réel, dérivé de `/usbl` NavSatFix,
+indépendant du DGPS). **Erreur USBL mesurée vs GT : médiane 1.39 m** (moyenne 2.38, p90 4.21, max 73).
+Donc ATE ≈ erreur de l'ancre : c'est le comportement attendu d'un SLAM bien ancré, pas une triche.
+
+### ⚠️ Piège évité : double ancrage USBL
+
+Premier essai (run 111133) lancé avec `USBL=true` → fusion USBL AUSSI dans le front-end
+(`cmd_vel_odom`) en plus du back-end → l'odométrie snappe sur chaque fix bruité → **ZIGZAG**,
+ATE 1.45 → **4.66 m**. Corrigé en retirant `USBL=true` (front-end = dead-reckoning lisse,
+back-end = facteurs USBL). Documenté dans run_slam.sh et aracati.launch.
+
+### Seul GT restant
+
+Le seed t=0 (`_seed_cb`) prend de `/pose_gt` : position de départ + cap initial (`atan2` du
+1er déplacement). Ponctuel mais c'est encore du GT. **Priorité #1 : seed 100% GT-free** =
+position du 1er fix USBL + cap = course-over-ground des premiers fixes USBL (acoustique, pas GT).
+→ **Réalisé au Run 7 (150959).**
+
+---
+
+## Branche Bruce_Sonar_USBL — Run 7 : seed USBL 100% GT-FREE (2026-06-24, 150959)
+
+**Jalon : SLAM sonar VRAIMENT GT-free.** Plus AUCUN `/pose_gt` dans la boucle — ni seed, ni
+odométrie, ni ancrage. Le dernier GT (seed de pose à t=0) est remplacé par l'USBL acoustique.
+
+Archivé dans `TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-24_150959/`.
+
+### Configuration
+
+| Paramètre | Valeur |
+|---|---|
+| Odométrie | cmd_vel intégré |
+| **Seed initial** | **`seed_from_usbl=true`** : position = 1er fix `/usbl_point` ; cap = course-over-ground (atan2 du déplacement jusqu'à `usbl_seed_min_disp=1.0` m). **GT-FREE.** |
+| SSM | False |
+| NSSM | True |
+| Sonar Context | True (gate 10 m, min_st_sep 30, dist 0.60, min_pcm 6) |
+| USBL facteurs (back-end) | True (σ = 1.4 m) — front-end USBL OFF |
+| Feature threshold | 65 |
+| Map persistence | False |
+| Bag rate | 1× |
+
+### Résultats
+
+| Métrique | Valeur |
+|---|---|
+| **ATE Umeyama** | **1.43 m** (≤ baseline GT-seed 1.45-1.49 m) |
+| Odométrie brute ATE | 11.49 m (cmd_vel pur) |
+| Keyframes | 665 |
+| Loop closures | 465 candidats |
+| Seed réel | x=1.30 y=1.08 (= 1er fix USBL après 1 m de déplacement, t+12.6 s) |
+| **GT-free ?** | **✅ 100% — aucune trace de /pose_gt dans le code actif** |
+
+### Validation offline AVANT le run (test_usbl_seed + test_integration sur le bag)
+
+| Test | Résultat |
+|---|---|
+| Seed position vs GT | 0.93 m (dans le bruit USBL) |
+| Seed cap vs GT-seed | 13° d'écart (bruit USBL + courbure ; corrigé par back-end) |
+| Front-end USBL-seed vs GT-seed (ATE brute) | **10.75 m vs 10.78 m** → équivalents, seed non cassé |
+| Robustesse glitch (gate vitesse 3 m/s) | fenêtre de seed propre, 0 rejet |
+
+**Découverte : le ROV vire dès le départ** → fenêtre de seed COURTE = meilleur cap
+(1 m → 13° ; 3 m → la course-over-ground capte déjà le virage → 78° d'erreur). D'où `min_disp=1.0`.
+
+### Conclusion
+
+L'écart de cap initial de 13° est **entièrement absorbé par le back-end USBL** (ancrage absolu
+sur toute la trajectoire) : ATE 1.43 m, identique/meilleur que le seed GT. **Preuve que le seed
+GT n'était pas une triche déguisée** — le remplacer par l'USBL ne change pas le résultat.
+Baseline GT-free de référence. Reste : le point cloud (priorité #2).
+
+---
+
+## Priorité #2 (cloud) — Bilan et livrable B : carte GT-assistée (2026-06-24)
+
+### Ce qui NE marche PAS pour un cloud propre 100% GT-free (tout vérifié offline)
+
+| Approche | Résultat | Cause |
+|---|---|---|
+| Filtre variance / intensité / close-range / densité | blobs / arcs | structure lointaine (~30m) étalée |
+| Recalage local offline (refine_cloud) | 8% puis -6% | dérive inter-passages invisible au local |
+| Loop closures sur structure (verify_structure_loops) | ATE 1.24→1.98m | ICP épars globalement incohérent |
+| **DISO GT-free** (173049 rate=1, 203041 rate=0.5) | **swirl** | scan-matching diverge SANS prior GT |
+| Correction signe du cap (compas) | swirl réduit mais flou | corrige le cap GLOBAL, pas l'alignement LOCAL |
+
+**Cause racine identifiée :** le swirl = fond sonar (66% des points à ~30m) + **bruit de cap local
+±12°**. DISO+GT était propre car le **prior GT donnait le cap local exact** → scans alignés. GT-free,
+aucune source de cap (cmd_vel=-compas, DISO GT-free, compas) n'est assez précise localement.
+Découverte annexe : `dr_theta = -compas` (cap réfléchi, identité `wz=-d(compas)/dt`).
+
+### Livrable B : carte GT-ASSISTÉE (transparente)
+
+Fusion pose-graph **DISO-120307 local (prior GT) + cmd_vel-150959 global (GT-free)** :
+`python3 verify_fusion.py results/run_aracati_Bruce_DISO_Sonar_2026-06-16_120307 \
+  TESTS_image/run_aracati_Bruce_Sonar_USBL_2026-06-24_150959 --w_anchor 0.05 --save`
+
+| Métrique | Valeur |
+|---|---|
+| ATE poses fusionnées vs GT | **0.88 m** |
+| Cloud | **quai en T net** (210 398 pts) → `cloudmap_fusion.csv` + `cloudmap_fusion_final.png` |
+| Statut | **trajectoire GT-free, carte GT-assistée** (DISO utilise /pose_gt comme prior de mouvement) |
+
+C'est le meilleur cloud présentable. Le cloud propre **100% GT-free** reste ouvert → exploré en
+option C (estimateur de cap GT-free custom, branche dédiée).
