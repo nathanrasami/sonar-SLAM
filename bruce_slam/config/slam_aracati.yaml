@@ -19,8 +19,11 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 point_resolution: 0.5
 
 # Sequential scan matching (SSM)
+# OFF sur Aracati : l'ICP séquentiel sur sonar cartésien sans features produit de
+# mauvaises contraintes qui dégradent l'odométrie cmd_vel (cf. branche Bruce_Sonar :
+# SSM on dégradait cmd_vel 11.5→43.5 m). On garde l'odométrie + les loops NSSM.
 ssm:
-  enable: True # is this module enabled?
+  enable: False # is this module enabled?
   min_points: 50 # the min number of points to try SSM
   max_translation: 3.0 # the max translation allowed
   max_rotation: deg(30) # the max rotation allowed
@@ -28,7 +31,8 @@ ssm:
 
 # Non-sequential scan matching
 nssm:
-  enable: True # is this module enabled?
+  enable: False # TEST 1 : OFF pour isoler l'effet USBL (loops Aracati fausses).
+                # Test 2 : remettre True avec gating USBL des boucles.
   min_st_sep: 8 # the size of the exclusion zone around the most recent keyframe
   min_points: 50 #min number of points
   max_translation: 10.0 # max translation allowed
@@ -37,8 +41,19 @@ nssm:
   cov_samples: 30
 
 # the PCM params for rejecting outlier loop closures
+# min_pcm relevé 2→4 : Aracati génère des loops NSSM fausses (sonar peu discriminant) ;
+# exiger 4 boucles mutuellement cohérentes rejette ces faux positifs.
 pcm_queue_size: 5 # the sliding window size for PCM
-min_pcm: 2 # the min number of pairwise consistent loop closures
+min_pcm: 4 # the min number of pairwise consistent loop closures
+
+# Ancre USBL back-end (GT-free, /usbl_point) — ajoutée dans SLAMNode, slam.py reste pristine.
+# Prior position-only robuste : gtsam fusionne les fixes (~1.4 m) sur tout le graphe (lisseur)
+# → bien meilleur que le filtre front-end causal. Repère aligné par le seed USBL de cmd_vel_odom.
+usbl:
+  enable: False   # activé via le launch (arg usbl_backend) pour le test B
+  sigma: 1.0      # m. Légèrement < bruit médian (1.4) : serre l'ancrage, le noyau Cauchy
+                  # protège des outliers. Offline : 3.3 m (vs 3.8 m à 1.4). À retuner sur run réel.
+  max_dt: 1.0     # s, fenêtre d'association fix ↔ keyframe
 
 # TODO remove this param
 pz_samples: 0

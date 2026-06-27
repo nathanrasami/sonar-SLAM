@@ -31,7 +31,11 @@ mkdir -p "$RUN_DIR"
 export SLAM_RESULTS_DIR="$RUN_DIR"
 echo "[run_slam] Résultats dans : $RUN_DIR"
 
-roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}"
+# Modes :
+#   (défaut)                       A : filtre USBL front-end (gain 0.4) → ~3.4 m, Bruce pristine
+#   USBL_BACKEND=true USBL_GAIN=0  B : facteur USBL back-end (ancre gtsam) → vise <3 m, +loops après
+roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" \
+    usbl_gain:="${USBL_GAIN:-0.4}" usbl_backend:="${USBL_BACKEND:-false}"
 
 echo "[run_slam] Terminé. Analyse avec :"
 echo "  SLAM_RESULTS_DIR=$RUN_DIR python3 plot_trajectories.py"

@@ -4,12 +4,13 @@ import csv
 import threading
 import tf
 import rospy
+import gtsam
 import cv_bridge
 from nav_msgs.msg import Odometry
 from message_filters import  Subscriber
 from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, PointStamped
 from message_filters import ApproximateTimeSynchronizer
 
 # bruce imports
@@ -135,6 +136,16 @@ class SLAMNode(SLAM):
         rospy.Subscriber("/pose_gt", PoseStamped, self._gt_callback, queue_size=100)
         rospy.on_shutdown(self.export_csv)
 
+        # USBL back-end (GT-free) : facteur de position absolue sur /usbl_point.
+        # Le repère est déjà aligné par cmd_vel_odom (seed USBL) → ancre directe.
+        self.usbl_enable = rospy.get_param(ns + "usbl/enable", False)
+        self.usbl_sigma = rospy.get_param(ns + "usbl/sigma", 1.4)
+        self.usbl_max_dt = rospy.get_param(ns + "usbl/max_dt", 1.0)
+        self.usbl_buffer = []
+        if self.usbl_enable:
+            rospy.Subscriber("/usbl_point", PointStamped, self._usbl_callback, queue_size=20)
+            loginfo("USBL back-end activé (sigma=%.1f m)" % self.usbl_sigma)
+
         #call the configure function
         self.configure()
         loginfo("SLAM node is initialized")
@@ -143,6 +154,34 @@ class SLAMNode(SLAM):
         """Bufferise la position ground truth (DGPS) pour l'export CSV."""
         self.gt_poses.append((msg.header.stamp.to_sec(),
                               msg.pose.position.x, msg.pose.position.y))
+
+    def _usbl_callback(self, msg: PointStamped) -> None:
+        """Bufferise les fixes USBL (positionnement acoustique, GT-free)."""
+        self.usbl_buffer.append((msg.header.stamp.to_sec(), msg.point.x, msg.point.y))
+        if len(self.usbl_buffer) > 2000:
+            self.usbl_buffer = self.usbl_buffer[-2000:]
+
+    def add_usbl(self, keyframe: Keyframe) -> None:
+        """Facteur de POSITION ABSOLUE USBL (GT-free) sur le keyframe courant : prior unaire
+        ROBUSTE (Cauchy) qui ne contraint QUE x,y (sigma θ énorme → cap libre, géré par
+        l'odométrie). gtsam recolle la trajectoire sur les ancres USBL en moyennant leur
+        bruit (~1.4 m) sur tout le graphe (lisseur) et en rejetant les outliers acoustiques.
+        Repère déjà aligné (cmd_vel_odom seede depuis l'USBL) → ux,uy direct, sans Umeyama.
+        Ajouté dans SLAMNode (hérite de SLAM) → slam.py reste pristine."""
+        if not self.usbl_enable or not self.usbl_buffer:
+            return
+        t = keyframe.time.to_sec()
+        best, bdt = None, self.usbl_max_dt
+        for ut, ux, uy in self.usbl_buffer:
+            if abs(ut - t) < bdt:
+                bdt, best = abs(ut - t), (ux, uy)
+        if best is None:
+            return
+        ux, uy = best
+        cov = np.diag([self.usbl_sigma ** 2, self.usbl_sigma ** 2, 1e12])
+        model = self.create_robust_full_noise_model(cov)
+        self.graph.add(gtsam.PriorFactorPose2(X(self.current_key),
+                                              gtsam.Pose2(ux, uy, 0.0), model))
 
     def export_csv(self) -> None:
         """Exporte trajectoire / nuage / ground truth en CSV à l'arrêt (évaluation ATE).
@@ -248,6 +287,9 @@ class SLAMNode(SLAM):
                 self.add_prior(frame)
             else:
                 self.add_sequential_scan_matching(frame)
+
+            # USBL : ancre de position absolue (GT-free) sur ce keyframe (si activé)
+            self.add_usbl(frame)
 
             #update the factor graph with the new frame
             self.update_factor_graph(frame)
