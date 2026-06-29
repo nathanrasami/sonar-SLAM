@@ -39,7 +39,7 @@ cartesian:
 
 # SONAR Context (place recognition pour loop closure)
 sonar_context:
-  enable: True
+  enable: False
   num_azimuth: 40
   num_range: 40
   # seuil d'intensité du descripteur : ne garde que les retours forts (structure).

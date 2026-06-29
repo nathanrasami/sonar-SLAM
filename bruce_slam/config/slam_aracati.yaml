@@ -22,7 +22,7 @@ ssm:
   target_frames: 3
 
 nssm:
-  enable: True
+  enable: False
   min_st_sep: 30
   min_points: 30
   max_translation: 8.0
@@ -62,7 +62,7 @@ sonar_context:
 # Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m dead-reckoning. Chaque fix =
 # prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
 usbl:
-  enable: True       # ablation : True pour ancrer sur USBL
+  enable: False       # ablation : True pour ancrer sur USBL
   sigma: 1.4         # m, bruit médian d'un fix vs GT. BASELINE 120154 (ancre serrée → 1.44 m).
   flip_y: False      # False pour odom_source=cmd_vel (repère monde, compas). Mettre True
                      # UNIQUEMENT avec odom_source=diso (DISO sort en repère réfléchi Y :
