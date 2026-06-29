@@ -312,9 +312,13 @@ class FeatureExtraction(object):
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold
 
-        # Publish visualization
-        vis_img = cv2.applyColorMap(img, 2)
-        self.feature_img_pub.publish(ros_numpy.image.numpy_to_image(vis_img, "bgr8"))
+        # Publish visualization (non essentiel : protégé pour ne pas casser le callback,
+        # ex. "publish() to a closed topic" au démarrage/arrêt)
+        try:
+            vis_img = cv2.applyColorMap(img, 2)
+            self.feature_img_pub.publish(ros_numpy.image.numpy_to_image(vis_img, "bgr8"))
+        except Exception:
+            pass
 
         locs = np.c_[np.nonzero(peaks)]  # (row, col)
         if len(locs) == 0:

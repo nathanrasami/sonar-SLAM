@@ -37,9 +37,11 @@
          - "diso"    : Direct Sonar Odometry (défaut, odométrie sonar réelle)
          - "cmd_vel" : intégration des vitesses commandées (seedé GT à t=0, puis indépendant)
          - "gt"      : relay /pose_gt → vérité terrain (baseline ATE≈0) -->
+    <!-- DISO via binaire direct : le package direct_sonar_odometry n'est plus enregistré
+         (rospack ne le trouve plus), seul le binaire dans devel/.private existe → on l'appelle
+         via diso_launcher.sh (qui ignore les args ROS et charge config_aracati2017.yaml = prior GT). -->
     <node if="$(eval arg('odom_source') == 'diso')"
-          pkg="direct_sonar_odometry" type="aracati2017_node" name="diso_node"
-          args="$(find direct_sonar_odometry)/config/config_aracati2017.yaml" output="screen"/>
+          pkg="bruce_slam" type="diso_launcher.sh" name="diso_node" output="screen"/>
     <node if="$(eval arg('odom_source') == 'cmd_vel')"
           pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen"/>
     <node if="$(eval arg('odom_source') == 'gt')"
