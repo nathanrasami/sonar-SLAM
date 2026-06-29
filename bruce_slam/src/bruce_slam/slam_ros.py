@@ -607,9 +607,12 @@ class SLAMNode(SLAM):
         self.cloud_pub.publish(cloud_msg)
 
     def _gt_callback(self, msg):
+        q = msg.pose.orientation
+        yaw = tf.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         self.gt_poses.append((msg.header.stamp.to_sec(),
                               msg.pose.position.x,
-                              msg.pose.position.y))
+                              msg.pose.position.y,
+                              yaw))
 
     def export_csv(self):
         """Export trajectory, point cloud and ground truth to CSV files on shutdown."""
@@ -675,7 +678,7 @@ class SLAMNode(SLAM):
             gt_path = os.path.join(output_dir, "groundtruth.csv")
             with open(gt_path, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["time", "x", "y"])
+                writer.writerow(["time", "x", "y", "theta"])
                 for row in self.gt_poses:
                     writer.writerow(row)
             rospy.loginfo("Ground truth saved to %s", gt_path)

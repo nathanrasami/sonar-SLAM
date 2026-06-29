@@ -1,92 +1,62 @@
-# Architecture du Code et Pipeline de BRUCE SLAM
+# Trame de Présentation : Architecture & Intégration dans BRUCE SLAM
 
-Ce document explique comment le code Python de BRUCE SLAM est structuré, comment le lancement s'effectue, et comment les nouvelles méthodes (DISO, Sonar Context) ont été intégrées à cette architecture.
+Ce document est structuré pour suivre le fil de tes slides et expliquer comment BRUCE SLAM est architecturé, et pourquoi notre méthode d'intégration (via le launch file) est robuste et standard.
 
 ---
 
-## 1. Comment fonctionne le lancement de base (Aracati) ?
+## Slide 1 : L'organisation native du code (Séparation des tâches)
+**Objectif :** Montrer que le projet n'est pas un seul gros bloc de code, mais un assemblage modulaire dès sa conception.
 
-L'architecture ROS de BRUCE SLAM repose sur une hiérarchie stricte en 3 couches : **Le Bash**, **Le Launch**, et **Le Code Python**.
+*   **Le principe de ROS :** BRUCE SLAM repose sur des **nœuds indépendants**. Chaque nœud fait une tâche (ex: un pour l'odométrie, un pour le SLAM, un pour le filtrage) et ils communiquent entre eux.
+*   **L'organisation du répertoire (`src/bruce_slam/`) :** 
+    *   Même dans la version "de base" de BRUCE SLAM, les fonctionnalités sont séparées dans des fichiers distincts (`cmd_vel_odom.py`, `slam.py`, `feature_extraction.py`).
+    *   Le fichier `.launch` est le chef d'orchestre : c'est lui qui choisit dynamiquement d'allumer ou d'éteindre tel ou tel nœud. Activer ou désactiver des méthodes depuis le launch file n'est pas un "hack", c'est la façon dont BRUCE SLAM (et ROS en général) est prévu pour fonctionner.
 
-### A. Le Script Bash (`run_slam.sh`)
-Tout commence ici. C'est un script utilitaire qui prépare l'environnement et crée des dossiers de résultats horodatés. Il prend tes variables (`ODOM_SOURCE`, `USBL`, etc.) et les transmet au lanceur ROS.
+---
 
-### B. Le fichier ROS Launch (`aracati.launch`)
-Le fichier `.launch` est le chef d'orchestre. Son rôle n'est pas de calculer, mais d'instancier des **Nœuds ROS** avec des paramètres précis.
-Par exemple, il dit : *"Crée un nœud appelé `slam` à partir du fichier `slam_node.py`, et passe-lui les paramètres contenus dans `slam_aracati.yaml`"*.
+## Slide 2 : Comparaison de l'appel au Front-End (Base vs DISO)
+**Objectif :** Prouver visuellement que le remplacement se fait proprement, par des conditions dans le Launch file.
 
-### C. La transition vers Python (Dossier `scripts/`)
-Quand le launch appelle `slam_node.py` ou `cmd_vel_odom_node.py`, il va chercher dans le dossier `bruce_slam/scripts/`. 
-Ces fichiers sont de simples "wrappers" (des coquilles vides). Leur seul but est d'initialiser ROS, puis d'importer et d'instancier les vraies classes métiers.
-Exemple pour `cmd_vel_odom_node.py` :
-```python
-import rospy
-from bruce_slam.cmd_vel_odom import CmdVelOdom # Importe le vrai code
+Dans `aracati.launch`, on utilise des conditions (`if`) pour choisir quel bloc d'odométrie allumer :
 
-if __name__ == "__main__":
-    rospy.init_node("cmd_vel_odom_node")
-    CmdVelOdom() # Lance la logique
-    rospy.spin()
+**1. L'appel de base (Odometry Classique) :**
+```xml
+<!-- Si on demande l'odométrie classique (cmd_vel) -->
+<node if="$(eval arg('odom_source') == 'cmd_vel')"
+      pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" />
+```
+*Ici, le launch allume le script Python de base qui calcule le déplacement à l'aveugle.*
+
+**2. L'appel de DISO (Odometry Visuelle en mode GT-Free) :**
+```xml
+<!-- Si on demande la nouvelle méthode (DISO avec un prior réaliste) -->
+<group if="$(eval arg('odom_source') == 'diso' and arg('diso_prior') == 'cmd_vel')">
+    <node pkg="bruce_slam" type="diso_launcher.sh" name="diso_node" />
+</group>
+```
+*Ici, le launch éteint l'usage standard de l'odométrie Python et allume à la place l'exécutable C++ de DISO.*
+-> Le reste du pipeline SLAM ne se rend compte de rien, tant qu'il reçoit les bonnes données !
+
+---
+
+## Slide 3 : Gérer les incompatibilités (Le Rôle du "Bridge")
+**Objectif :** Répondre à l'inquiétude légitime : *"Si on remplace le nœud, est-ce que les objets en entrée/sortie sont les mêmes ?"*. La réponse est non, mais l'architecture gère ça proprement.
+
+### A. L'adaptation des types d'objets (Message Types)
+*   **Le problème :** L'exécutable DISO produit un message simple de type `PoseStamped` (juste x, y, z et orientation). BRUCE SLAM, lui, est plus exigeant : il attend un objet `Odometry` qui contient en plus une matrice d'incertitude (Covariance).
+*   **La solution :** Au lieu de modifier le code complexe du SLAM, on instancie un nœud traducteur appelé **`odom_bridge_node.py`**.
+    *   Il intercepte le message de DISO.
+    *   Il le formate en objet `Odometry`.
+    *   Il lui injecte la matrice de covariance requise.
+    *   Il l'envoie au SLAM.
+
+### B. L'adaptation des repères géométriques (Le Cap / Heading)
+*   **Le problème :** Changer de méthode change le repère spatial ! DISO a un repère mathématique avec un axe Y inversé par rapport à l'odométrie de base. Si on ne fait rien, la boussole (le cap) est complètement faussée.
+*   **La solution :** Le launch file est intelligent. Quand DISO est activé, il prévient le nœud SLAM de cette inversion géométrique grâce au paramètre `usbl/flip_y` :
+```xml
+<!-- Corrige l'erreur de repère induite par DISO (axe Y réfléchi) -->
+<param name="usbl/flip_y" value="$(eval arg('odom_source') == 'diso')"/>
 ```
 
-### D. Le vrai code "Métier" (Dossier `src/bruce_slam/`)
-C'est ici que la vraie logique mathématique et algorithmique se trouve.
-- `cmd_vel_odom.py` : Calcule l'odométrie à partir de la vitesse.
-- `feature_extraction.py` : Traite l'image sonar pour en extraire des points.
-- `slam_ros.py` & `slam.py` : Reçoit toutes les données, gère le graphe d'optimisation (GTSAM) et détecte les fermetures de boucles.
-
----
-
-## 2. Intégration de DISO et Sonar Context
-
-Une question fréquente est : *"Faut-il modifier le code pour intégrer DISO ou Sonar Context, ou le launch le fait-il déjà ?"*
-**La réponse est : Ils sont DÉJÀ intégrés de manière native dans la pipeline actuelle.** L'architecture a été conçue pour être modulaire, et le fichier `.launch` agit comme un simple "interrupteur" (Switch) pour les activer ou les désactiver.
-
-Voici comment ils prennent place dans l'organisation Python :
-
-### A. DISO (Direct Sonar Odometry) - L'approche modulaire ROS
-DISO est un exécutable séparé (souvent en C++), il ne modifie pas les fichiers Python internes de BRUCE SLAM. 
-Il s'intègre via le **Launch File** grâce à l'architecture modulaire de ROS.
-
-**Comment ça marche dans le code ?**
-1. Si tu passes `ODOM_SOURCE=diso`, le launch file ne démarre pas le code Python `cmd_vel_odom_node.py`.
-2. À la place, il démarre `diso_launcher.sh` qui publie l'odométrie sur le topic `/direct_sonar/pose`.
-3. Le nœud SLAM Python (`slam_node.py`) écoute ce topic de manière transparente. Pour lui, peu importe d'où vient l'odométrie, tant que le message ROS est correct.
-*-> C'est une intégration "par remplacement de nœud ROS".*
-
-### B. Sonar Context - L'approche par embranchement Python
-Contrairement à DISO, Sonar Context fait **partie intégrante de la pipeline Python**. 
-
-**Comment ça marche dans le code ?**
-L'activation se fait via le paramètre `sonar_context/enable` passé par le launch file. Ensuite, le code Python s'adapte dynamiquement :
-
-1. **Dans `feature_extraction.py` :**
-   ```python
-   if self.sonar_context_enable:
-       # Le code fait appel au nouveau fichier sonar_context.py
-       from bruce_slam.sonar_context import build_sonar_context
-       ctx = build_sonar_context(polar_img, ...)
-       # Il rajoute ce contexte au message envoyé au SLAM
-   ```
-
-2. **Dans `slam.py` (Le Backend) :**
-   Lors de la recherche d'une fermeture de boucle (`add_loop_closure`), le code lit le paramètre et décide quelle fonction exécuter :
-   ```python
-   if self.sc_enable:
-       # Utilise la NOUVELLE méthode visuelle Sonar Context
-       cand = self.sonar_context_candidate(target_frames)
-   else:
-       # Utilise l'ANCIENNE méthode géométrique de base
-       cand = self.get_geom_candidate(target_frames)
-   ```
-*-> C'est une intégration "par embranchement" directement dans le code source Python de BRUCE SLAM.*
-
----
-
-### Résumé de la Philosophie
-Tu n'as pas besoin d'écrire un nouveau script pour lier ces éléments. **BRUCE SLAM est conçu comme un arbre**. 
-- Le **Launch** est le tronc qui décide des branches à activer.
-- Les **Scripts** sont les racines qui connectent au système ROS.
-- Le **Src Python** contient toutes les branches (les méthodes classiques ET les nouvelles méthodes comme Sonar Context). 
-
-Quand tu modifies un `True` ou un `False` dans ton terminal, tu dis simplement à l'algorithme Python quel chemin (if/else) il doit emprunter lors de son exécution.
+**Conclusion de la présentation :**
+Le remplacement "ON/OFF" par launch file est robuste. Les différences d'objets et de repères sont gérées de manière explicite par des nœuds de traduction (`bridge`) et des paramètres conditionnels. Nos éventuels problèmes de cap ne viennent donc pas de l'architecture logicielle de l'intégration, mais potentiellement du calibrage ou des données des capteurs eux-mêmes.

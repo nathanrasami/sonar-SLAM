@@ -24,7 +24,7 @@
          "gt"      = /pose_gt (vérité terrain — encore du GT dans la boucle).
          "cmd_vel" = odomètre /cmd_vel intégré → DISO GT-FREE. cmd_vel_odom publie sur
                      /cmd_vel/pose, lu par config_aracati2017_cmdvel.yaml. -->
-    <arg name="diso_prior" default="gt"/>
+    <arg name="diso_prior" default="cmd_vel"/>
     <!-- diso_seed_gt : True = cmd_vel_odom seedé UNE fois depuis /pose_gt (position
          initiale connue + cap = COMPAS via quaternion), comme le nœud odom original
          d'aracati2017. C'est le repère que DISO attend. Réaliste (pose départ connue

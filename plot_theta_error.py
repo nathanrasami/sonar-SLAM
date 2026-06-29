@@ -27,13 +27,20 @@ t = traj.time.to_numpy(); rel_t = t - t[0]
 theta = traj.theta.to_numpy()            # cap SLAM (rend le cloud par défaut)
 compass = -traj.dr_theta.to_numpy()      # notre cap corrigé (RViz + CSV cloud), GT-free
 
-# cap GT = course (atan2 du déplacement DGPS sur ±1.5 s) — référence
-gtt, gx, gy = gt.time.to_numpy(), gt.x.to_numpy(), gt.y.to_numpy()
-def course(tq, dt=1.5):
-    i0 = max(bisect.bisect_left(gtt, tq-dt), 0); i1 = min(bisect.bisect_left(gtt, tq+dt), len(gtt)-1)
-    return np.arctan2(gy[i1]-gy[i0], gx[i1]-gx[i0]) if i1 > i0 else np.nan
-gt_cap = np.array([course(x) for x in t])
-ok = ~np.isnan(gt_cap)
+if "theta" in gt.columns:
+    gtt, gth = gt.time.to_numpy(), gt.theta.to_numpy()
+    gth_unwrapped = np.unwrap(gth)
+    gt_cap = np.interp(t, gtt, gth_unwrapped)
+    gt_cap = wrap(gt_cap)
+    ok = np.ones(len(gt_cap), dtype=bool)
+else:
+    # cap GT = course (atan2 du déplacement DGPS sur ±1.5 s) — fallback
+    gtt, gx, gy = gt.time.to_numpy(), gt.x.to_numpy(), gt.y.to_numpy()
+    def course(tq, dt=1.5):
+        i0 = max(bisect.bisect_left(gtt, tq-dt), 0); i1 = min(bisect.bisect_left(gtt, tq+dt), len(gtt)-1)
+        return np.arctan2(gy[i1]-gy[i0], gx[i1]-gx[i0]) if i1 > i0 else np.nan
+    gt_cap = np.array([course(x) for x in t])
+    ok = ~np.isnan(gt_cap)
 
 def align(v, ref):
     """retire l'offset/réflexion de repère : teste +v et -v, garde le mieux aligné sur ref."""
