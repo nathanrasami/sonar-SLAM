@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")          # pas de fenêtre Wayland : on sauvegarde en PNG
 import matplotlib.pyplot as plt
 import os
 from traj_eval import (associer_par_temps, umeyama, appliquer, calculer_ate,
@@ -129,7 +131,7 @@ plt.tight_layout()
 
 out = os.path.join(results_dir, "trajectory_plot.png")
 plt.savefig(out, dpi=150)
-plt.show()
+plt.close()
 print(f"Saved to {out}")
 
 # --- Point cloud map ---
@@ -149,7 +151,7 @@ if os.path.exists(cloud_path):
     plt.tight_layout()
     out2 = os.path.join(results_dir, "pointcloud_map.png")
     plt.savefig(out2, dpi=150)
-    plt.show()
+    plt.close()
     print(f"Saved to {out2}")
 else:
     print("pointcloud.csv not found")
