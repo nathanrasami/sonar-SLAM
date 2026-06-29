@@ -86,8 +86,10 @@ map:
 # la position x,y reste iSAM2 (trajectoire INCHANGÉE). RViz + CSV directement dé-swirlés.
 # Limite : retire le swirl mais ne reconstruit PAS les doigts du quai (cf. C_CAP_GTFREE).
 cloud:
-  use_compass_cap: True    # False = comportement d'origine (rendu avec theta iSAM2)
-  cap_offset_deg: 162.0    # offset repère compas→monde (Aracati, calibré c2_compass_offset)
+  use_compass_cap: False   # GT-free + USBL : la traj est bonne (1.4 m) → le theta POST-OPTIMISEUR
+                           # est le bon cap pour rendre le cloud. (True = ancien hack compas+offset,
+                           # utile seulement quand la traj était mauvaise.)
+  cap_offset_deg: 162.0    # offset repère compas→monde (Aracati) — ignoré si use_compass_cap False
 
 # Filtre de PERSISTANCE du nuage : ne garde que les voxels monde vus depuis >= min_obs
 # keyframes distincts. Retire le backscatter diffus du fond (vu brièvement, balayé) en
