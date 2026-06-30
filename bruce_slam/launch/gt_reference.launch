@@ -1,0 +1,35 @@
+<launch>
+    <!-- Référence GT SANS SLAM : trajectoire + cap = /pose_gt direct ;
+         nuage = features CFAR projetées sur les poses GT (carte la plus propre
+         possible, ATE=0 par construction). Aucun DISO, aucun iSAM2, aucune loop. -->
+    <arg name="rviz" default="true"/>
+    <arg name="bag_file" default="$(find bruce_slam)/../ARACATI_2017_8bits_full.bag"/>
+    <arg name="rate" default="1.0"/>
+
+    <param name="use_sim_time" value="true"/>
+
+    <!-- lecture du bag -->
+    <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
+          args="$(arg bag_file) --clock -r $(arg rate) -q"/>
+
+    <group ns="bruce">
+        <group ns="slam">
+            <!-- feature extraction (CFAR) : fournit les points sonar.
+                 Ce n'est PAS du SLAM — juste "quels pixels sont des cibles". -->
+            <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
+                <rosparam command="load" file="$(find bruce_slam)/config/feature_aracati.yaml" subst_value="true"/>
+            </node>
+        </group>
+        <!-- TF world->map (180°) pour aligner l'affichage RViz sur l'image aérienne -->
+        <node pkg="tf" name="map_to_world_tf_publisher" type="static_transform_publisher"
+              args="0 0 0 0 0 3.14159 world map 100"/>
+    </group>
+
+    <!-- nœud de référence GT : projette les features sur les poses GT -->
+    <node pkg="bruce_slam" name="gt_reference" type="gt_reference_node.py" output="screen">
+        <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
+    </node>
+
+    <node if="$(arg rviz)" type="rviz" name="rviz" pkg="rviz"
+          args="-d $(find bruce_slam)/rviz/video.rviz"/>
+</launch>

@@ -34,8 +34,9 @@ echo "[run_slam] Résultats dans : $RUN_DIR"
 
 case "$TYPE" in
   aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" ;;
+  gtref)     roslaunch bruce_slam gt_reference.launch bag_file:="$BAG" rate:="${RATE:-1.0}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
-  *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
+  *) echo "Type inconnu: $TYPE (aracati|gtref|holoocean)"; exit 1 ;;
 esac
 
 echo "[run_slam] Terminé. Analyse avec :"
