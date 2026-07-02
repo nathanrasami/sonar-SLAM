@@ -146,7 +146,7 @@ SSM/NSSM/USBL par variables d'env, s'arrête tout seul à la fin du bag).
 | Ordre | Config | Commande | Succès si |
 |---|---|---|---|
 | 2.1 | ✅ FAIT — **A — Bruce pur** (run `194559`) | `SSM=true NSSM=true USBL=false ./run_slam.sh` | **ATE 1.95 m**, cap 2.3°, NN 0.204 (seuil 65) — modules natifs ressuscités |
-| 2.2 | **B — A + ancre USBL back-end** | `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh` | B ≈ C (≤1.6 m) → « Bruce réparé suffit » ; sinon le bricolage est justifié |
+| 2.2 | ✅ FAIT — **B** (run `204329`) : **2.03 m**, cap 2.9°, NN 0.218 — PIRE que A partout : l'ancre USBL raide (sigma 1.0) casse la cohérence scan (murs doublés). Verdict : champion Bruce = **A (1.95)** ; C garde 0.42 m d'avance ATE → SC justifié. Option B' sigma relâché notée (ABLATION.md). | | |
 
 ### Phase 3 — à CRÉER (après les phases 1-2)
 
