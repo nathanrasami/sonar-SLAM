@@ -15,6 +15,12 @@
          mettre usbl_gain:=0 (cmd_vel_odom seede le repère mais ne corrige pas → ancrage
          UNIQUE au back-end, pas de double-ancrage). -->
     <arg name="usbl_backend" default="false"/>
+    <!-- ssm / nssm : modules NATIFS de Bruce (raffinement ICP séquentiel / loop closure).
+         Défaut false = comportement historique. Post-fix miroir (flip_bearing), leurs
+         échecs passés sont caducs → à re-tester via l'ablation A/B (cf. ABLATION.md) :
+         SSM=true NSSM=true dans l'environnement de run_slam.sh. -->
+    <arg name="ssm" default="false"/>
+    <arg name="nssm" default="false"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -43,7 +49,8 @@
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_aracati.yaml" subst_value="true"/>
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="usbl/enable" value="$(arg usbl_backend)"/>  <!-- test B : ancre USBL back-end -->
-                <param name="ssm/enable" value="false"/>                  <!-- SSM toujours off (nuit) -->
+                <param name="ssm/enable" value="$(arg ssm)"/>    <!-- pré-fix : nuisait ; à re-tester post-fix -->
+                <param name="nssm/enable" value="$(arg nssm)"/>  <!-- loop closures natives (surcharge le yaml) -->
                 <!-- dossier de sortie CSV hérité de l'environnement (cf. run_slam.sh) -->
                 <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
             </node>

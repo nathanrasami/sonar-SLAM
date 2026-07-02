@@ -151,9 +151,14 @@ class SLAMNode(SLAM):
         loginfo("SLAM node is initialized")
 
     def _gt_callback(self, msg: PoseStamped) -> None:
-        """Bufferise la position ground truth (DGPS) pour l'export CSV."""
+        """Bufferise la position ground truth (DGPS) pour l'export CSV.
+        theta = yaw du quaternion /pose_gt (cap COMPAS, convention NED :
+        gtheta ~ -theta_map + 90.7 deg — cf. bilan_run.py qui fait le fit s,beta)."""
+        q = msg.pose.orientation
+        yaw = np.arctan2(2.0 * (q.w * q.z + q.x * q.y),
+                         1.0 - 2.0 * (q.y * q.y + q.z * q.z))
         self.gt_poses.append((msg.header.stamp.to_sec(),
-                              msg.pose.position.x, msg.pose.position.y))
+                              msg.pose.position.x, msg.pose.position.y, yaw))
 
     def _usbl_callback(self, msg: PointStamped) -> None:
         """Bufferise les fixes USBL (positionnement acoustique, GT-free)."""
@@ -216,7 +221,7 @@ class SLAMNode(SLAM):
         if self.gt_poses:
             with open(os.path.join(output_dir, "groundtruth.csv"), "w", newline="") as f:
                 w = csv.writer(f)
-                w.writerow(["time", "x", "y"])
+                w.writerow(["time", "x", "y", "theta"])
                 w.writerows(self.gt_poses)
         loginfo("CSV exportés dans %s" % output_dir)
 
