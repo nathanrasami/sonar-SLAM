@@ -83,9 +83,18 @@ SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh
 - **C (bricolage) garde 0.42 m d'avance ATE** → Sonar Context justifié pour l'ATE ;
   mais A gagne le cap (2.3° vs 3.4°) et son cloud est au plafond de ses poses
   (0.204 → 0.190 avec poses parfaites, 7 % de marge).
-- **Option non testée (1 run, si temps)** : B' = USBL back-end à sigma RELÂCHÉ
-  (2.5–3.0) — ancre douce qui pourrait donner l'ATE de C sans casser la cohérence
-  de A. Cf. mémoire « trade-off » + CONFIGS.md §1.5.
+- **B' PRÉPARÉ (07-03)** : `usbl/sigma` passé à **2.5** dans slam_aracati.yaml → lancer
+  `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`
+  (mêmes envs que B ; seul le sigma du yaml change). Ancre douce = donner l'ATE
+  de C sans casser la cohérence de A. Succès si ATE < 1.8 ET NN ≤ 0.205.
+
+## Complément (re-run A-bis `214846`, avec export des loops)
+
+- A-bis : ATE 2.04 m, cap 2.9°, NN 0.205, **124 constraints natives** (> les 82 de SC !)
+  → variabilité run-à-run de A ≈ ±0.1 m (aléas ICP/shgo non seedés, connu).
+- **ZÉRO constraint dans t=13-16.5 min** — exactement la fenêtre du décrochage 5.5 m,
+  malgré 33-49 revisites spatiales : la détection/PCM y échoue. B' plafonne l'excursion
+  par les fixes USBL ; alternative ciblée si B' ne suffit pas : `min_pcm 6→5`.
 
 ## Lecture des résultats (grille d'origine)
 

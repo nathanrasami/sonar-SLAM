@@ -50,9 +50,13 @@ min_pcm: 4 # the min number of pairwise consistent loop closures
 # Prior position-only robuste : gtsam fusionne les fixes (~1.4 m) sur tout le graphe (lisseur)
 # → bien meilleur que le filtre front-end causal. Repère aligné par le seed USBL de cmd_vel_odom.
 usbl:
-  enable: False   # activé via le launch (arg usbl_backend) pour le test B
-  sigma: 1.0      # m. Légèrement < bruit médian (1.4) : serre l'ancrage, le noyau Cauchy
-                  # protège des outliers. Offline : 3.3 m (vs 3.8 m à 1.4). À retuner sur run réel.
+  enable: False   # activé via le launch (arg usbl_backend) pour les tests B/B'
+  sigma: 2.5      # m — RUN B' (ancre DOUCE). Le test B (sigma 1.0, run 204329) a montré
+                  # qu'une ancre raide DÉGRADE la solution scan-cohérente de SSM+NSSM
+                  # (ATE 2.03 vs 1.95 pour A, murs doublés, cap 2.9° vs 2.3°). B' relâche
+                  # l'ancre pour rabattre le warp uniforme ~1.35 m de A ET l'excursion
+                  # t≈14-15 min (ZÉRO constraint NSSM dans t=13-16.5, mesuré run 214846)
+                  # sans écraser la cohérence locale. Cf. ABLATION.md verdict + B'.
   max_dt: 1.0     # s, fenêtre d'association fix ↔ keyframe
 
 # TODO remove this param

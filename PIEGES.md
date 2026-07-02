@@ -48,10 +48,11 @@ branches différentes. Un seul run à la fois, toujours.
 
 ## 5. Arrêt des runs (sinon AUCUN CSV)
 
-- Branches **Bruce** et **holoocean** : rosbag_play a `required="true"` → le run
-  s'arrête TOUT SEUL à la fin du bag et écrit les CSV. Ne rien faire.
-- Branche **Bruce_Sonar_USBL** : PAS de required → envoyer **SIGINT** (Ctrl-C dans le
-  terminal, ou `kill -INT <pid roslaunch>` dans le conteneur ros1). **JAMAIS kill -9** :
+- Les 3 branches de run (**Bruce**, **Bruce_Sonar_USBL** depuis le 07-03, **holoocean**) :
+  rosbag_play a `required="true"` → le run s'arrête TOUT SEUL à la fin du bag et écrit
+  les CSV. Ne rien faire.
+- Pour interrompre un run AVANT la fin : **SIGINT** (Ctrl-C dans le terminal, ou
+  `kill -INT <pid roslaunch>` dans le conteneur ros1). **JAMAIS kill -9** :
   les CSV ne sont écrits qu'au on_shutdown.
 
 ## 6. Ne pas toucher au dépôt pendant qu'un run tourne
