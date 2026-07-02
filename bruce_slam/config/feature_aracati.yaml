@@ -36,6 +36,13 @@ cartesian:
   # Cap de portée du NUAGE désactivé : le seuil d'intensité 140 gère le fond à
   # toute distance (les structures brillantes survivent, le fond non). = max_range.
   max_cloud_range: 48.2896
+  # FIX TOURBILLON (2026-07-02) : y latéral en convention PROPRE (y=+gauche),
+  # cohérente avec le cap de l'odométrie cmd_vel (θ≈ψ monde). L'ancien signe
+  # ("même signe que DISO") peignait chaque scan EN MIROIR du cap → la carte
+  # entière se smearait en arcs (tourbillon). Prouvé offline sur 150034/150959 :
+  # NN médian 0.365→0.208, aire 0.5m 24223→11673 cellules, quai en T visible.
+  # ⚠ Mettre False si odom_source=diso (le repère DISO est lui-même réfléchi).
+  flip_bearing: True
 
 # SONAR Context (place recognition pour loop closure)
 sonar_context:
