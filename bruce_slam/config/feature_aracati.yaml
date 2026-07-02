@@ -33,3 +33,9 @@ cartesian:
   fov_deg: 130.0
   max_range: 48.2896       # portée calibrée (échelle m/px de l'image Aracati)
   max_cloud_range: 48.2896 # cap de portée du nuage = portée max
+  # FIX TOURBILLON (2026-07-02, porté depuis Bruce_Sonar_USBL) : y latéral en
+  # convention PROPRE (y=+gauche), cohérente avec le cap cmd_vel. L'ancien signe
+  # (« même signe que DISO ») peignait chaque scan EN MIROIR du cap → carte
+  # tourbillon + SSM/NSSM initialisés à contre-sens (leurs échecs pré-fix sont
+  # caducs, cf. ABLATION.md). ⚠ False si odométrie DISO (repère réfléchi).
+  flip_bearing: True

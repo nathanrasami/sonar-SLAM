@@ -125,6 +125,13 @@ class FeatureExtraction(object):
             # Défaut = max_range (aucun cap) pour rester compatible.
             self.max_cloud_range = rospy.get_param(ns + "cartesian/max_cloud_range",
                                                    self.sonar_max_range)
+            # flip_bearing : True = y latéral en convention PROPRE (y = +gauche),
+            # cohérente avec l'odométrie cmd_vel/USBL (θ≈ψ monde, det=+1). L'ancien
+            # signe (y = +droite, "même signe que DISO") est un repère MIROITÉ : les
+            # scans se peignent du mauvais côté du cap → carte "tourbillon" (prouvé
+            # offline : NN 0.365→0.208, cellules 0.5m 24223→11673 sur run 150034).
+            # Mettre False UNIQUEMENT en mode odom_source=diso (repère DISO réfléchi).
+            self.flip_bearing = rospy.get_param(ns + "cartesian/flip_bearing", False)
             self.sonar_sub = rospy.Subscriber(
                 SONAR_TOPIC_CARTESIAN, CompressedImage, self.callback_cartesian, queue_size=10)
         elif self.compressed_images:
@@ -306,7 +313,9 @@ class FeatureExtraction(object):
         # faux : ça transforme toute structure verticale en traînée radiale)
         m_per_px = self.sonar_max_range / float(h)
         x = (h - locs[:, 0]) * m_per_px        # avant (forward) — même repère que DISO
-        y = (locs[:, 1] - w / 2.0) * m_per_px  # latéral — même signe que DISO
+        y = (locs[:, 1] - w / 2.0) * m_per_px  # latéral — même signe que DISO (miroité)
+        # NB : le flip_bearing est appliqué DANS _publish_features_stamped (packing),
+        # APRÈS la relecture d'intensité qui inverse pixel↔mètre avec CE signe-ci.
         points = np.column_stack((x, y))
 
         # Masque du fan : retire les fausses détections CFAR sur la frontière
@@ -356,7 +365,11 @@ class FeatureExtraction(object):
         """
         if intensity is None:
             intensity = np.zeros(len(points), np.float32)
-        points3d = np.c_[points[:, 0], intensity, -points[:, 1]]
+        # FIX TOURBILLON : flip_bearing inverse le y latéral livré au SLAM (convention
+        # propre y=+gauche, cohérente avec le cap cmd_vel). Appliqué ICI, après la
+        # relecture d'intensité (qui dépend du signe image d'origine).
+        y_out = points[:, 1] if getattr(self, "flip_bearing", False) else -points[:, 1]
+        points3d = np.c_[points[:, 0], intensity, y_out]
         feature_msg = n2r(points3d, "PointCloudXYZ")
         feature_msg.header.stamp = header.stamp
         feature_msg.header.frame_id = "base_link"
