@@ -65,6 +65,15 @@ Sans ça, impossible de savoir combien de loops NSSM natives sont actives.
 
 ## 3.1 — DISO GT-free « wz inversé » (chiralité du prior) {#31-diso-wz}
 
+> ✅ **PRÉPARÉ (07-03) sur la branche `Bruce_DISO_wz`** — rien à éditer :
+> ```bash
+> git checkout Bruce_DISO_wz
+> ODOM_SOURCE=diso DISO_PRIOR=cmd_vel RATE=0.5 ./run_slam.sh
+> ```
+> (RATE=0.5 : DISO = méthode directe, sensible à la contention CPU, PIEGES §3.
+> flip_bearing passe automatiquement à False en mode diso — surcharge launch.)
+> Verdict sur l'odométrie BRUTE (colonnes dr_* / odometry.csv) : < 5 m = jackpot.
+
 - **Hypothèse** : DISO+prior cmd_vel divergeait (ATE 22 m) parce que le cap ENU du
   prior tourne À CONTRE-SENS du repère DISO (réfléchi, det=−1) — même famille de bug
   que le miroir des scans (PIEGES §1, §3).

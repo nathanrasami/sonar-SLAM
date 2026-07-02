@@ -65,6 +65,11 @@ class CmdVelOdom:
         # USBL ne déforme pas. Le compas ABSOLU seul est ~50° tourné du repère monde
         # (run 153433 → Umeyama 28 m) ; ses DELTAS, eux, sont justes.
         self.heading_from_compass = rospy.get_param("~heading_from_compass", False)
+        # invert_wz : LOTERIE DISO (CONFIGS.md #31). Le repère de DISO est RÉFLÉCHI
+        # (det=-1) : un prior au cap ENU propre tourne À CONTRE-SENS pour lui → échec
+        # d'association (ATE 22 m). wz inversé => cap intégré en convention réfléchie,
+        # celle que DISO attend. À utiliser UNIQUEMENT pour le prior DISO (/cmd_vel/pose).
+        self.invert_wz = rospy.get_param("~invert_wz", False)
 
         # Fusion USBL optionnelle (ancrage absolu acoustique, indépendant de GT)
         self.use_usbl = rospy.get_param("~use_usbl", False)
@@ -200,6 +205,8 @@ class CmdVelOdom:
             return
         vx = msg.twist.linear.x
         wz = msg.twist.angular.z
+        if self.invert_wz:
+            wz = -wz  # chiralité DISO (cf. init) : cap intégré en repère réfléchi
         with self.lock:
             # Euler avant : position au cap courant
             self.x += vx * math.cos(self.theta) * dt
