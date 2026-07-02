@@ -1,16 +1,19 @@
 <launch>
-    <!-- Bruce-SLAM 2D sur bag HoloOcean (test_2.bag : /sonar Image polaire 5 Hz,
+    <!-- Bruce-SLAM 2D sur bag HoloOcean (test.bag : /sonar Image polaire 5 Hz,
          /dvl TwistStamped, /imu, /depth, /ground_truth Odometry, /sonar_points
          PointCloud2 3D — inutilisé en 2D, cf. SLAM_3D_MIGRATION.md pour la 3D).
          Lancement : ./run_slam.sh holoocean   (ODOM_SOURCE=dvl pour le DR réaliste) -->
     <arg name="rviz" default="true"/>
-    <arg name="bag_file" default="$(find bruce_slam)/../test_2.bag"/>
+    <arg name="bag_file" default="$(find bruce_slam)/../test.bag"/>
     <arg name="rate" default="1.0"/>
     <!-- odom_source :
          "gt"  = relay /ground_truth → odométrie parfaite. Valide la CHAÎNE SONAR
                  (bridge, CFAR, keyframes, export) indépendamment de l'odométrie.
          "dvl" = dead-reckoning /dvl + /imu (dvl_imu_odom.py) → réaliste embarqué. -->
     <arg name="odom_source" default="gt"/>
+    <!-- nssm:=true : active les loop closures natives (la trajectoire carrée revient
+         au point de départ → 1-2 vraies boucles possibles sur 61 s). Défaut off. -->
+    <arg name="nssm" default="false"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -50,6 +53,7 @@
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
                 <param name="enable_slam" value="true"/>
+                <param name="nssm/enable" value="$(arg nssm)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
                 <!-- dossier de sortie hérité de run_slam.sh ; défaut results/ -->

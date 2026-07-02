@@ -1,11 +1,11 @@
 # Cadrage migration SLAM 2D → 3D (Bruce-SLAM / HoloOcean)
 
 **MAJ 2026-07-02** — branche dédiée : **`holoocean`** (ex `slam3-d`). À exécuter **après**
-la clôture d'Aracati. Bag cible : **`test_2.bag`** (le dernier reçu du collègue).
+la clôture d'Aracati. Bag cible : **`test.bag`** (le dernier reçu du collègue).
 
 **Cible : HoloOcean uniquement.** Aracati2017 reste 2D (sonar matériel sans élévation).
 
-**MAJ 07-03 — vérifié sur test_2.bag : `/sonar_points` a z=0 PARTOUT** (projection plate,
+**MAJ 07-03 — vérifié sur test.bag : `/sonar_points` a z=0 PARTOUT** (projection plate,
 ~120k pts/msg, portée max 39.9 m) → **pas de vraie 3D possible avec ce bag**. La demande
 au collègue (§ ci-dessous) reste LE prérequis de la vraie 3D. En attendant, la **2.5D est
 implémentée** : z GT et z=-/depth (dvl_imu_odom) alimentent pose3 ; trajectory.csv,
@@ -17,14 +17,14 @@ Validation : `./run_slam.sh holoocean` (61 s) puis vérifier la colonne z non nu
 
 ## Plan HoloOcean en 2 temps (branche `holoocean`)
 
-### Temps 1 — SLAM 2D sur test_2.bag (livrable minimal)
+### Temps 1 — SLAM 2D sur test.bag (livrable minimal)
 Bruce-SLAM tel quel sur le bag : RViz (trajectoire + cloud) + les CSV standard
 (`groundtruth.csv`, `trajectory.csv`, `pointcloud.csv`, `loops_detected.csv`).
 - Vérifier d'abord les topics du bag (`rosbag info`) : format du sonar (image polaire type
   Oculus ? cartésienne ? PointCloud2 ?), odométrie dispo (IMU/DVL simulés ?), GT.
 - Adapter `slam_holoocean.yaml`/launch en conséquence (le pont
   `holoocean_sonar_bridge.py` existe déjà).
-- Dans `test_2.bag` le véhicule ne bouge pas en z et le sonar est à élévation fixe →
+- Dans `test.bag` le véhicule ne bouge pas en z et le sonar est à élévation fixe →
   la **projection horizontale 2D est exactement valide** (pas une approximation dégradée).
 - ⚠ Leçon d'Aracati : vérifier la **chiralité** (signe du y latéral des features vs convention
   de cap de l'odométrie) AVANT tout run long — cf. FABLE.md §1. Un `bilan_run.py` sur un
@@ -50,6 +50,9 @@ En complément dans le bag : **IMU** (roll/pitch/yaw + biais réalistes), **pres
 **DVL** si possible (vx,vy,vz), GT avec z et orientation, et **figer les conventions** :
 repère monde (ENU ou NED ?), sens de z, convention du quaternion — c'est LE point qui nous a
 coûté 3 semaines sur Aracati (bug de miroir).
+4. **⚠ Artefact constaté (07-03)** : des ARCS sont visibles dans l'image sonar BRUTE du
+   bag actuel (donc côté simulateur, pas notre pipeline) → vérifier la config du sonar
+   simulé (bruit/multipath/anneaux de portée) avant de générer le prochain bag.
 
 ---
 

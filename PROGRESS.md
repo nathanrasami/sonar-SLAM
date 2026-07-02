@@ -1,43 +1,41 @@
-# PROGRESS — état au 2026-07-02 (soir), branche `Bruce_Sonar_USBL`
+# PROGRESS — état au 2026-07-03
 
-> Doc d'investigation détaillé : **FABLE.md** (v2). Historique : STAGE.md (journal 07-02).
+> Docs : **FABLE.md** (investigations) · **CONFIGS.md** (recettes) · **PIEGES.md** (à ne
+> jamais faire) · **ABLATION.md** (A/B, branche Bruce). Branches : main, Bruce,
+> Bruce_Sonar_USBL, holoocean (les autres = tags `archive/*`).
 
-## ✅ Fait aujourd'hui — le tourbillon est RÉSOLU et VALIDÉ
+## Aracati — état des runs
 
-- **Cause racine** : bug de miroir — features `y latéral = +droite` (repère réfléchi « même
-  signe que DISO ») vs odométrie cmd_vel propre → chaque scan peint en miroir de son cap.
-- **Fix** : `cartesian/flip_bearing` (feature_extraction.py, dans le packing APRÈS la relecture
-  d'intensité) + `flip_bearing: True` (feature_aracati.yaml ; **False si odom_source=diso**).
-- **Run de validation `run_aracati_2026-07-02_141223`** (100 % GT-free, natif) :
-  **NN 0.203** (vs 0.365), aire ÷2.2, **quai en T visible**, ATE 1.53 m, cap 3.4° méd/5.8° RMS,
-  82 loops (vs ~122 — à investiguer, cf. FABLE §4.2). Figure : `bilan_run.png` du run.
-- Run `111934` = INVALIDE (1er essai du flip avant la relecture d'intensité → 4 325 pts).
-- Post-traitement des anciens runs : `fix_mirror_cloud.py` (150034 : 0.365→0.208 ;
-  150959 : 0.469→0.271). ⚠ Pas pour 111746 (rendu use_compass_cap).
-- Audit GT-free ✅ (nuance : wz de /cmd_vel = dérivé compas, cf. README aracati — assumé).
-- Nouveaux outils : `bilan_run.py` (1 image bilan/run, branché dans `analyse.sh`).
-- Ménage : PROMPT_FABLE.md supprimé ; branche `slam3-d` → `holoocean` ; retour sur
-  `Bruce_Sonar_USBL` (modifs portées, RIEN de commité). FABLE.md réécrit (v2) ;
-  SLAM_3D_MIGRATION.md et STAGE.md à jour.
-- NB : CODE.md / IMU_ISSUE_REPORT.md / PISTE.md apparaissent supprimés dans l'arbre de
-  travail (pas par moi — ménage utilisateur présumé).
+| Run | Config | ATE | NN | Cap méd | Loops |
+|---|---|---|---|---|---|
+| A `194559` (+A-bis `214846`) | champion Bruce pur (SSM+NSSM, 0 USBL) | 1.95–2.04 | 0.204* | 2.3–2.9° | 124 natives |
+| B `204329` | A + USBL sigma 1.0 (raide) | 2.03 | 0.218* | 2.9° | — |
+| **1.2a `003823`** | **champion New** (SC seuil 0.70 + USBL 1.4) | **1.50** | 0.204 | **2.6°** | 230 retenus / 116 |
+| Réf GT `011733` | DISO+GT (pas GT-free) | 0.89 | 0.199 | 1.7° | — |
 
-## 🎯 Prochaines étapes — suivre **FABLE.md §4** (matrice de configs, ordre imposé)
+*seuil 65 non filtré (≠ seuil 255 des runs BSU) — comparer au même seuil via filter_cloud.
 
-- **Phase 1** (cette branche) : 1.1 diagnostic loops (offline) → 1.2 loops renforcés →
-  1.3 SSM on → 1.4 combo → 1.5 USBL sigma. Un changement par run + `bilan_run.py`.
-- **Phase 2** (branche `Bruce`) : ablation **A puis B** — tout est prêt, suivre
-  **`ABLATION.md`** sur la branche `Bruce` (runs lancés par Nathan, arrêt automatique).
-- **Phase 3** (à créer) : 3.1 DISO wz inversé, 3.2 MCFAR. Cible : **ATE < 1 m** + quai en T,
-  puis **mini-papier** (FABLE §7).
-- **HoloOcean** : branche `holoocean` reconstruite, config 2D prête :
-  `./run_slam.sh holoocean` (bag test_2.bag, 61 s, odom GT par défaut, `ODOM_SOURCE=dvl` sinon).
+- Découvertes clés : fix miroir → PCM 6→82→116 constraints ; ancre raide dégrade la
+  cohérence scan (B) ; ZÉRO constraint à t=13-16.5 min = fenêtre du décrochage 5.5 m de A.
+- **PRÊTS À LANCER** (un à la fois, arrêt auto partout) :
+  - **1.3** (Bruce_Sonar_USBL) : SSM on + export cloud complet → `./run_slam.sh`
+  - **B′** (Bruce) : sigma 2.5 → `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`
+- Ensuite : 1.4 combo → champion New figé ; loterie 3.1 DISO wz inversé ; **comparaison
+  finale champion vs champion → mini-papier** (FABLE §7).
 
-## Chiffres de référence (à jour)
+## HoloOcean (branche holoocean, bag `test.bag` — ex test_2, renommé)
 
-| Config | ATE | Cloud NN | Note |
-|---|---|---|---|
-| GT-free post-fix (141223) | 1.53 m | **0.203** | LE run courant |
-| GT-free pré-fix (150034) | 1.46 m | 0.365 (0.208 dé-miroité) | |
-| Réf DISO+GT (011733) | 0.89 m | 0.199 | pas GT-free (cible visuelle) |
-| Plafond poses GT (mêmes détections) | — | 0.138 | marge restante via les poses |
+- **2D validé** (carrés visibles après assouplissement extraction 50/5) ; **2.5D en place**
+  (colonne z dans les 3 CSV ; z = /depth en mode dvl, z GT en mode gt).
+- ⚠ **ATE en mode gt = circulaire (~0 par construction : l'odométrie EST la GT).**
+  L'ATE qui compte = `ODOM_SOURCE=dvl ./run_slam.sh holoocean` (0.13 m au smoke).
+- **Arcs dans l'image sonar BRUTE = artefact simulateur** (pas notre pipeline) → à signaler
+  au collègue avec la spec vraie-3D (SLAM_3D_MIGRATION.md §proposition, point 4).
+- `/sonar_points` du bag : z=0 partout → vraie 3D = bag collègue requis.
+- Opt-in loop closure : `NSSM=true ./run_slam.sh holoocean` (la boucle carrée revient au
+  départ → 1-2 vraies boucles possibles).
+- `test.bag` (714 Mo) désindexé de git (limite GitHub 100 Mo) — le fichier reste sur disque.
+
+## Papier à présenter
+
+**SONIC** (CMU/Kaess) — `Paper/Sonar/SONIC.md`. Réserve : INS/USBL/DVL FGO (Paper/Factor Graph/).
