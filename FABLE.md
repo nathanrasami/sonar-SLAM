@@ -192,7 +192,7 @@ Console : 1 ligne de chiffres. À appeler depuis `analyse.sh` (ajout d'une ligne
 
 ## 6. HoloOcean (branche `holoocean`, ex-slam3-d) — après Aracati
 
-Bag : `test_2.bag` (le dernier). Objectif : Bruce-SLAM dessus, RViz + CSV (gt, traj,
+Bag : `test.bag` (le dernier). Objectif : Bruce-SLAM dessus, RViz + CSV (gt, traj,
 pointcloud, loops), en **2D** d'abord, **3D** ensuite. Cf. `SLAM_3D_MIGRATION.md` (mis à jour) :
 - **2D** : pipeline actuel (features cartésiennes ou polaires selon le format sonar du bag).
 - **« 2.5D » honnête** : z (pression) + roll/pitch (IMU) injectés dans `dr_pose3` → trajectoire
