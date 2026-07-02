@@ -5,6 +5,14 @@ la clôture d'Aracati. Bag cible : **`test_2.bag`** (le dernier reçu du collèg
 
 **Cible : HoloOcean uniquement.** Aracati2017 reste 2D (sonar matériel sans élévation).
 
+**MAJ 07-03 — vérifié sur test_2.bag : `/sonar_points` a z=0 PARTOUT** (projection plate,
+~120k pts/msg, portée max 39.9 m) → **pas de vraie 3D possible avec ce bag**. La demande
+au collègue (§ ci-dessous) reste LE prérequis de la vraie 3D. En attendant, la **2.5D est
+implémentée** : z GT et z=-/depth (dvl_imu_odom) alimentent pose3 ; trajectory.csv,
+groundtruth.csv et pointcloud.csv exportent une colonne `z` ; extraction assouplie
+(threshold 50, min_points 5 — les murs lointains étaient détectés mais épars, ~29 pts/KF).
+Validation : `./run_slam.sh holoocean` (61 s) puis vérifier la colonne z non nulle.
+
 ---
 
 ## Plan HoloOcean en 2 temps (branche `holoocean`)

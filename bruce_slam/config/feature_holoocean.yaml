@@ -8,10 +8,12 @@ CFAR:
   alg: 'SOCA'
 
 filter:
-  threshold: 80
+  # 07-03 : 80/10 ne laissait que ~29 pts/KF (murs lointains détectés mais quasi
+  # invisibles). Le simu est propre (peu de speckle) → extraction plus généreuse.
+  threshold: 50
   resolution: 0.5
   radius: 1.0
-  min_points: 10
+  min_points: 5
   skip: 1
 
 visualization:

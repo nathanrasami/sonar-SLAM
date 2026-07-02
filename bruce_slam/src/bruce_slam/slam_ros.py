@@ -612,7 +612,8 @@ class SLAMNode(SLAM):
         self.gt_poses.append((msg.header.stamp.to_sec(),
                               msg.pose.position.x,
                               msg.pose.position.y,
-                              yaw))
+                              yaw,
+                              msg.pose.position.z))  # 2.5D : z GT (profondeur)
 
     def export_csv(self):
         """Export trajectory, point cloud and ground truth to CSV files on shutdown."""
@@ -632,7 +633,7 @@ class SLAMNode(SLAM):
                              "x", "y", "theta",
                              "dr_x", "dr_y", "dr_theta",
                              "cov_xx", "cov_yy", "cov_tt",
-                             "nssm_constraints"])
+                             "nssm_constraints", "z"])
             for i, kf in enumerate(self.keyframes):
                 x = kf.pose.x()
                 y = kf.pose.y()
@@ -646,7 +647,7 @@ class SLAMNode(SLAM):
                                  x, y, theta,
                                  dr_x, dr_y, dr_theta,
                                  cov[0][0], cov[1][1], cov[2][2],
-                                 nssm])
+                                 nssm, kf.pose3.z()])
         rospy.loginfo("Trajectory saved to %s", traj_path)
 
         # --- Point cloud CSV ---
@@ -656,9 +657,12 @@ class SLAMNode(SLAM):
         cloud_path = os.path.join(output_dir, "pointcloud.csv")
         with open(cloud_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["keyframe_id", "x", "y", "intensity"])
+            writer.writerow(["keyframe_id", "x", "y", "intensity", "z"])
             for p, k, it in zip(pts, keys, inten):
-                writer.writerow([int(k[0]), p[0], p[1], float(it)])
+                # 2.5D : les features n'ont pas d'élévation (z=0 capteur) → le z du point
+                # = z du véhicule au keyframe (pose3, alimentée par /depth ou la GT).
+                writer.writerow([int(k[0]), p[0], p[1], float(it),
+                                 self.keyframes[int(k[0])].pose3.z()])
         rospy.loginfo("Point cloud saved to %s", cloud_path)
 
         # --- Journal SONAR Context (validation étape 5 : precision/recall) ---
@@ -678,7 +682,7 @@ class SLAMNode(SLAM):
             gt_path = os.path.join(output_dir, "groundtruth.csv")
             with open(gt_path, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["time", "x", "y", "theta"])
+                writer.writerow(["time", "x", "y", "theta", "z"])
                 for row in self.gt_poses:
                     writer.writerow(row)
             rospy.loginfo("Ground truth saved to %s", gt_path)
