@@ -5,13 +5,19 @@
 > **Lire `PIEGES.md` AVANT toute modification.** Règles : 1 changement par run ;
 > après chaque run `python3 bilan_run.py results/<run>` ; reporter dans PROGRESS.md.
 
-**Références (2026-07-02)** :
+**Références (2026-07-02 soir, ablation complète)** :
 | Run | Config | ATE | NN | Cap méd | Loops |
 |---|---|---|---|---|---|
-| A `194559` | Bruce pur (SSM+NSSM, 0 USBL), branche Bruce | 1.95 m | 0.204* | 2.3° | non exporté |
-| C `141223` | bricolage (USBL+SC), branche Bruce_Sonar_USBL | 1.53 m | 0.203 | 3.4° | 82 |
+| **A** `194559` | **champion branche Bruce** (SSM+NSSM, 0 USBL) | **1.95 m** | 0.204* | **2.3°** | n/e |
+| B `204329` | A + USBL back-end (sigma 1.0) | 2.03 m | 0.218* | 2.9° | n/e (≫A) |
+| **C** `141223` | bricolage (USBL+SC), branche Bruce_Sonar_USBL | **1.53 m** | 0.203 | 3.4° | 82 |
 | DR pur | (colonnes dr_* de A) | 10.55 m | — | — | — |
 | Réf GT `011733` | DISO+GT (PAS GT-free) | 0.89 m | 0.199 | 1.7° | — |
+
+**Leçon d'ablation (cf. ABLATION.md verdict)** : l'ancre USBL raide (sigma 1.0) DÉGRADE
+la solution scan-cohérente (B < A partout, murs doublés). Trade-off ancre↔cohérence.
+Option B' non testée : sigma relâché 2.5-3.0. Le « n/e » loops est corrigé : la branche
+Bruce exporte désormais `nssm_constraints` (slam_ros.py).
 
 *cloud seuil 65 (A) vs seuil 255 (C) : NN non comparables entre eux, cf. PIEGES §8.
 
