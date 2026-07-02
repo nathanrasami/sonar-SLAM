@@ -109,6 +109,27 @@ Verdict par ATE + NN + nombre de loops saines. Si B ≈ C, le récit du stage se
 énormément (« Bruce réparé suffit ») ; si C garde 0.3–0.5 m d'avance, le bricolage est justifié
 par les chiffres.
 
+### Post-ablation (07-02 soir) — anatomie des 1.95 m de A, et le « miracle » possible
+
+Ablation FAITE : **A = 1.95 m** (champion Bruce pur), **B = 2.03 m** (l'ancre USBL sigma 1.0
+DÉGRADE tout — murs doublés), C = 1.53 m. Verdict complet : `ABLATION.md`.
+
+Décomposition offline du résidu de A :
+- **Pas un problème de loops** : zones très revisitées 1.28 m ≈ zones peu revisitées 1.43 m
+  (revisites abondantes partout, 33-49 passages proches des points à fort résidu).
+- Profil = gauchissement quasi UNIFORME ~1.3-1.4 m + **UN événement local 5.2-5.7 m à
+  t≈14-15 min** (vitesse GT normale → vrai décrochage SLAM, pas un artefact DGPS ;
+  cap local 3.5° vs 2.3° global).
+- Cloud de A au plafond de ses poses (0.204 → 0.190 avec poses parfaites, 7 %).
+
+**Le seul « miracle » crédible restant pour Bruce pur : B′ = USBL back-end à sigma RELÂCHÉ
+(2.5-3.0)** — une ancre douce rabat le warp uniforme ET l'excursion t=14-15, sans la raideur
+qui a cassé B (sigma 1.0). 1 run : `usbl/sigma: 2.5` dans slam_aracati.yaml (branche Bruce)
+puis `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`.
+Secondaire : le prochain run exporte `nssm_constraints` → vérifier si les loops de t=14-15
+sont rejetées par PCM (alors min_pcm 6→5 ciblé). Le reste (densité keyframes, icp.yaml) :
+coût > gain attendu — « run A déjà satisfaisant ».
+
 ---
 
 ## 4. Pistes vers ATE < 1 m — configurations à tester, PAR BRANCHE, DANS L'ORDRE
