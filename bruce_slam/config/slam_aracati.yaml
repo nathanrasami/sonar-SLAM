@@ -71,7 +71,13 @@ sonar_context:
 # prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
 usbl:
   enable: True       # ablation : True pour ancrer sur USBL
-  sigma: 1.4         # m, bruit médian d'un fix vs GT. BASELINE 120154 (ancre serrée → 1.44 m).
+  sigma: 2.5         # RUN 1.4 (07-03) : ancre DOUCE. Le run 1.3 (SSM on, sigma 1.4) a donné
+                     # LE meilleur cloud GT-free (NN I>=255 : 0.204→0.173) mais ATE 1.50→2.14 :
+                     # le SSM renforce la cohérence scan, l'ancre raide se bat contre → warp
+                     # global (même mécanisme que B sigma 1.0 sur la branche Bruce). 2.5
+                     # laisse SSM+loops tenir le local, l'USBL ne tient que le global.
+                     # Attendu : garder NN~0.17 ET revenir ATE<=1.5. Rollback : 1.4 (et
+                     # ssm/enable False pour retrouver exactement 1.2a).
   flip_y: False      # False pour odom_source=cmd_vel (repère monde, compas). Mettre True
                      # UNIQUEMENT avec odom_source=diso (DISO sort en repère réfléchi Y :
                      # sans flip → ATE 13.9 m, avec → ~0.9 m).
