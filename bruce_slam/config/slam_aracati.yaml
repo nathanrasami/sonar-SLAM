@@ -15,7 +15,7 @@ point_resolution: 0.5
 # SSM OFF : testé ON avec cmd_vel → dégradait 11.5→43.5 m (mauvais recalages ICP
 # sur cap cmd_vel imprécis). Architecture Bruce standard = SSM off, loops corrigent.
 ssm:
-  enable: False
+  enable: False    # TEST 2026-07-01 CONFIRMÉ à nouveau : ON → ATE 1.44→14.3m, cloud 0.32→0.38. ICP scan-à-scan mauvais sur sonar épars.
   min_points: 50
   max_translation: 3.0
   max_rotation: deg(30)
@@ -78,7 +78,7 @@ pz_detection_rate: 0.3
 # directement le seuil 140 STRUCTURE-ONLY côté feature_extraction, meilleur pour cloud
 # ET loops. L'infra (intensité portée + helper) reste si besoin futur. cf. point-cloud.
 map:
-  threshold: 0.0
+  threshold: 255.0   # 2026-07-01 : garde les 33% de retours SATURÉS (I=255), retire le voile diffus → cloud NN 0.322→~0.26 (proche DISO 0.242), poses INTACTES, structure préservée. Knob continu : seuil plus bas = plus de pts = bande plus épaisse (P50/194 → 0.278/109k pts).
 
 # Cap de RENDU du nuage, découplé de la trajectoire (= C2 inline). Le theta iSAM2 est
 # optimisé pour la POSITION (USBL+loops) → tracke la direction de trajectoire → swirl du

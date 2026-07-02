@@ -61,11 +61,16 @@
          - "diso"    : Direct Sonar Odometry, recalage scan-à-scan → carte
                        scan-consistent (baseline propre du 06-14, cf. ba8c20b).
                        Publie nativement sur /direct_sonar/pose. -->
+    <!-- heading_from_compass : DIAGNOSTIC (GT-assisté). true = cap = deltas compas /pose_gt
+         injectés dans l'odométrie (positions intègrent ce cap) au lieu de wz. Sert à tester
+         si un cap parfait dans l'ODOMÉTRIE affine le cloud (question pivot DFLSO). Défaut false
+         (GT-free, wz intégré). cf. branche Bruce_DFLSO. -->
+    <arg name="heading_from_compass" default="false"/>
     <!-- cmd_vel : intégration unicycle. seed = USBL (GT-free) ou /pose_gt t=0 (gt_free_seed) -->
     <node if="$(eval arg('odom_source') == 'cmd_vel')"
           pkg="bruce_slam" name="cmd_vel_odom" type="cmd_vel_odom_node.py" output="screen">
         <param name="use_usbl" value="$(arg usbl)"/>
-        <param name="heading_from_compass" value="false"/>
+        <param name="heading_from_compass" value="$(arg heading_from_compass)"/>
         <!-- seed_from_usbl prioritaire dans le code ; si false → retombe sur seed_from_gt (t=0) -->
         <param name="seed_from_usbl" value="$(arg gt_free_seed)"/>
         <param name="seed_from_initial_pose" value="false"/>
