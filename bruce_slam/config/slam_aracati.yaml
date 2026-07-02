@@ -12,12 +12,17 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 
 point_resolution: 0.5
 
-# SSM OFF : testé ON avec cmd_vel → dégradait 11.5→43.5 m (mauvais recalages ICP
-# sur cap cmd_vel imprécis). Architecture Bruce standard = SSM off, loops corrigent.
+# SSM — RUN 1.3 (07-03, cf. CONFIGS.md#13-ssm) : réactivé. Les verdicts « SSM dégrade »
+# (11.5→43.5 m, puis 14.3 m le 07-01) datent d'AVANT le fix miroir : l'ICP était
+# initialisé à contre-sens en rotation (scans miroités vs odométrie propre) → échec
+# STRUCTUREL, caduc (PIEGES.md §8). Preuve post-fix : branche Bruce, run A 194559 =
+# SSM+NSSM seuls → ATE 1.95 m et cap 2.3° (meilleur cap que cette branche, 2.6-3.4°).
+# Attendu ici : cap < 2.6°, cloud plus net (cohérence inter-scans). Rollback : False.
 ssm:
-  enable: False    # TEST 2026-07-01 CONFIRMÉ à nouveau : ON → ATE 1.44→14.3m, cloud 0.32→0.38. ICP scan-à-scan mauvais sur sonar épars.
+  enable: True
   min_points: 50
-  max_translation: 3.0
+  max_translation: 1.5   # serré (3.0→1.5) : l'odométrie cmd_vel+USBL est bonne à ~1.4 m,
+                         # un recalage SSM > 1.5 m est suspect → rejeté.
   max_rotation: deg(30)
   target_frames: 3
 
@@ -81,7 +86,11 @@ pz_detection_rate: 0.3
 # directement le seuil 140 STRUCTURE-ONLY côté feature_extraction, meilleur pour cloud
 # ET loops. L'infra (intensité portée + helper) reste si besoin futur. cf. point-cloud.
 map:
-  threshold: 255.0   # 2026-07-01 : garde les 33% de retours SATURÉS (I=255), retire le voile diffus → cloud NN 0.322→~0.26 (proche DISO 0.242), poses INTACTES, structure préservée. Knob continu : seuil plus bas = plus de pts = bande plus épaisse (P50/194 → 0.278/109k pts).
+  threshold: 0.0     # RUN 1.3 (07-03) : export COMPLET (rendu seulement, poses intactes).
+                     # Le filtre 255 se fait désormais OFFLINE (filter_cloud.py / analyse.sh)
+                     # → on peut ENFIN comparer les clouds A↔C au même seuil (65, 140, 255…)
+                     # au lieu de figer le choix au moment du run. L'intensité par point est
+                     # dans le CSV. (Ancien réglage : 255.0, cf. historique git.)
 
 # Cap de RENDU du nuage, découplé de la trajectoire (= C2 inline). Le theta iSAM2 est
 # optimisé pour la POSITION (USBL+loops) → tracke la direction de trajectoire → swirl du
