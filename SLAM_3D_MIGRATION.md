@@ -1,9 +1,47 @@
 # Cadrage migration SLAM 2D → 3D (Bruce-SLAM / HoloOcean)
 
-Document de pré-préparation. À exécuter **après** Sonar Context. Décrit ce qu'il faut changer
-pour passer le SLAM de 2D (3 DOF : x, y, θ) à 3D (6 DOF : x, y, z, roll, pitch, yaw).
+**MAJ 2026-07-02** — branche dédiée : **`holoocean`** (ex `slam3-d`). À exécuter **après**
+la clôture d'Aracati. Bag cible : **`test_2.bag`** (le dernier reçu du collègue).
 
 **Cible : HoloOcean uniquement.** Aracati2017 reste 2D (sonar matériel sans élévation).
+
+---
+
+## Plan HoloOcean en 2 temps (branche `holoocean`)
+
+### Temps 1 — SLAM 2D sur test_2.bag (livrable minimal)
+Bruce-SLAM tel quel sur le bag : RViz (trajectoire + cloud) + les CSV standard
+(`groundtruth.csv`, `trajectory.csv`, `pointcloud.csv`, `loops_detected.csv`).
+- Vérifier d'abord les topics du bag (`rosbag info`) : format du sonar (image polaire type
+  Oculus ? cartésienne ? PointCloud2 ?), odométrie dispo (IMU/DVL simulés ?), GT.
+- Adapter `slam_holoocean.yaml`/launch en conséquence (le pont
+  `holoocean_sonar_bridge.py` existe déjà).
+- Dans `test_2.bag` le véhicule ne bouge pas en z et le sonar est à élévation fixe →
+  la **projection horizontale 2D est exactement valide** (pas une approximation dégradée).
+- ⚠ Leçon d'Aracati : vérifier la **chiralité** (signe du y latéral des features vs convention
+  de cap de l'odométrie) AVANT tout run long — cf. FABLE.md §1. Un `bilan_run.py` sur un
+  run court suffit à le voir (fan ±FOV/2, carte qui « tourbillonne » = signe inversé).
+
+### Temps 2 — 3D : deux niveaux
+1. **« 2.5D » (recommandé, faible coût)** : z (capteur de pression simulé) + roll/pitch (IMU)
+   injectés dans `dr_pose3` → trajectoire 3D et carte extrudée SANS back-end Pose3 (c'est
+   l'architecture voulue par Bruce, cf. §ci-dessous). Étapes 0-2 du plan historique.
+2. **Vraie 3D volumétrique** : nécessite de l'information d'élévation → voir proposition
+   collègue ci-dessous, puis étapes 3-5 du plan historique.
+
+### 📨 Proposition à transmettre au collègue HoloOcean (pour une vraie 3D)
+Pour que le SLAM produise une carte 3D réelle (pas une extrusion), il faut de l'élévation.
+Trois options, par ordre de préférence :
+1. **Publier le PointCloud2 3D du simulateur** (HoloOcean sait donner les points sonar avec
+   élévation) → on court-circuite l'extraction 2D, gain maximal pour zéro traitement.
+2. **Osciller le tilt du sonar** (pitch du capteur balayé, ex. ±15° à ~0.5 Hz) pendant que le
+   véhicule avance → chaque ping échantillonne une tranche différente, la carte devient
+   volumétrique avec le pipeline existant + l'angle de tilt publié (indispensable).
+3. **Trajectoire avec variation de z** (le véhicule plonge/remonte) → même effet, plus lent.
+En complément dans le bag : **IMU** (roll/pitch/yaw + biais réalistes), **pression** (z),
+**DVL** si possible (vx,vy,vz), GT avec z et orientation, et **figer les conventions** :
+repère monde (ENU ou NED ?), sens de z, convention du quaternion — c'est LE point qui nous a
+coûté 3 semaines sur Aracati (bug de miroir).
 
 ---
 
