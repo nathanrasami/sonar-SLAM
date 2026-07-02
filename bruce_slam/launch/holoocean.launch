@@ -10,10 +10,19 @@
          "gt"  = relay /ground_truth → odométrie parfaite. Valide la CHAÎNE SONAR
                  (bridge, CFAR, keyframes, export) indépendamment de l'odométrie.
          "dvl" = dead-reckoning /dvl + /imu (dvl_imu_odom.py) → réaliste embarqué. -->
-    <arg name="odom_source" default="gt"/>
+    <arg name="odom_source" default="dvl"/>  <!-- MEILLEURE CONFIG (07-03) : dvl = ATE
+         signifiant 0.13 m ; "gt" = validation de chaîne seulement (ATE circulaire ~0).
+         NSSM laissé off (testé : 0.13 -> 2.36 m sur ce bag court). -->
     <!-- nssm:=true : active les loop closures natives (la trajectoire carrée revient
          au point de départ → 1-2 vraies boucles possibles sur 61 s). Défaut off. -->
     <arg name="nssm" default="false"/>
+    <!-- sonar_source : "image" (défaut) = chaîne image polaire -> CFAR (2D actuel).
+         "points3d" = consomme DIRECTEMENT /sonar_points (PointCloud2 du simulateur)
+         via sonar_points_bridge.py — À UTILISER quand le collègue fournira un bag
+         avec z réel (aujourd'hui z=0 partout). Le graphe reste 2D (projection) ;
+         la carte 3D vraie se reconstruit offline. Si le fix 3D n'arrive pas,
+         on reste simplement en "image". -->
+    <arg name="sonar_source" default="image"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -42,12 +51,16 @@
                  NATIF de Bruce — pas de flip_bearing ici, contrairement à Aracati).
                  ⚠ RANGE_M / FOV_DEG codés dans holoocean_sonar_bridge.py : à faire
                  correspondre à la config du simulateur du collègue. -->
-            <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
-
-            <!-- Feature extraction (mode polaire) -->
-            <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
-                <rosparam command="load" file="$(find bruce_slam)/config/feature_holoocean.yaml" subst_value="true"/>
-            </node>
+            <group if="$(eval arg('sonar_source') == 'image')">
+                <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
+                <!-- Feature extraction (mode polaire) -->
+                <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
+                    <rosparam command="load" file="$(find bruce_slam)/config/feature_holoocean.yaml" subst_value="true"/>
+                </node>
+            </group>
+            <!-- 3D-ready : features directes depuis le nuage du simulateur -->
+            <node if="$(eval arg('sonar_source') == 'points3d')" pkg="bruce_slam"
+                  name="sonar_points_bridge" type="sonar_points_bridge.py" output="screen"/>
 
             <!-- SLAM node (nssm off pour le 1er run — cf. slam_holoocean.yaml) -->
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
