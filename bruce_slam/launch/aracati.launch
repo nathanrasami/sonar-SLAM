@@ -49,8 +49,10 @@
         <param name="son_max_range" value="50.0"/>
     </node> -->
 
-    <!-- rosbag playback -->
-    <node pkg="rosbag" name="rosbag_play" type="play" output="screen"
+    <!-- rosbag playback. required=true : à la fin du bag, roslaunch arrête tous les
+         nœuds → le SLAM écrit les CSV au on_shutdown (plus besoin de Ctrl-C, comme
+         sur les branches Bruce et holoocean). PIEGES.md §5. -->
+    <node pkg="rosbag" name="rosbag_play" type="play" output="screen" required="true"
           args="$(arg bag_file) --clock -r $(arg rate) -q"/>
 
     <!-- Odométrie d'entrée du SLAM, publiée sur /direct_sonar/pose (PoseStamped),
