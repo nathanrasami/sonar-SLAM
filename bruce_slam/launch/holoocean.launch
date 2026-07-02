@@ -1,34 +1,65 @@
 <launch>
+    <!-- Bruce-SLAM 2D sur bag HoloOcean (test_2.bag : /sonar Image polaire 5 Hz,
+         /dvl TwistStamped, /imu, /depth, /ground_truth Odometry, /sonar_points
+         PointCloud2 3D — inutilisé en 2D, cf. SLAM_3D_MIGRATION.md pour la 3D).
+         Lancement : ./run_slam.sh holoocean   (ODOM_SOURCE=dvl pour le DR réaliste) -->
+    <arg name="rviz" default="true"/>
+    <arg name="bag_file" default="$(find bruce_slam)/../test_2.bag"/>
+    <arg name="rate" default="1.0"/>
+    <!-- odom_source :
+         "gt"  = relay /ground_truth → odométrie parfaite. Valide la CHAÎNE SONAR
+                 (bridge, CFAR, keyframes, export) indépendamment de l'odométrie.
+         "dvl" = dead-reckoning /dvl + /imu (dvl_imu_odom.py) → réaliste embarqué. -->
+    <arg name="odom_source" default="gt"/>
+
     <param name="use_sim_time" value="true"/>
+
+    <!-- rejeu du bag. required=true : à la fin du bag (61 s), roslaunch arrête tout
+         → le SLAM écrit les CSV au shutdown. Pas de Ctrl-C nécessaire. -->
+    <node pkg="rosbag" name="rosbag_play" type="play" output="screen" required="true"
+          args="$(arg bag_file) --clock -r $(arg rate) -q"/>
 
     <group ns="bruce">
         <group ns="slam">
 
-            <!-- GT as odometry source (IMU is broken in current bag — see IMU_ISSUE_REPORT.md) -->
-            <node pkg="topic_tools" type="relay" name="gt_odom_relay"
-                  args="/ground_truth /bruce/slam/localization/odom" output="screen"/>
+            <!-- Export GT : /ground_truth (Odometry) → /pose_gt (PoseStamped) ;
+                 slam_ros écrit groundtruth.csv depuis /pose_gt (évaluation SEULEMENT). -->
+            <node pkg="bruce_slam" name="gt_odom_to_pose" type="gt_odom_to_pose.py" output="screen"/>
 
-            <!-- HoloOcean polar sonar → OculusPingUncompressed -->
+            <!-- Odométrie (au choix, cf. arg odom_source) -->
+            <node if="$(eval arg('odom_source') == 'gt')" pkg="topic_tools" type="relay"
+                  name="gt_odom_relay" args="/ground_truth /bruce/slam/localization/odom"
+                  output="screen"/>
+            <group if="$(eval arg('odom_source') == 'dvl')">
+                <node pkg="bruce_slam" name="dvl_imu_odom" type="dvl_imu_odom.py" output="screen"/>
+                <node pkg="bruce_slam" name="odom_bridge" type="odom_bridge_node.py" output="screen"/>
+            </group>
+
+            <!-- Sonar polaire HoloOcean → OculusPingUncompressed (pipeline polaire
+                 NATIF de Bruce — pas de flip_bearing ici, contrairement à Aracati).
+                 ⚠ RANGE_M / FOV_DEG codés dans holoocean_sonar_bridge.py : à faire
+                 correspondre à la config du simulateur du collègue. -->
             <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
 
-            <!-- Feature extraction (polar mode) -->
+            <!-- Feature extraction (mode polaire) -->
             <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/feature_holoocean.yaml" subst_value="true"/>
             </node>
 
-            <!-- SLAM node -->
+            <!-- SLAM node (nssm off pour le 1er run — cf. slam_holoocean.yaml) -->
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
                 <param name="enable_slam" value="true"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
-                <env name="SLAM_RESULTS_DIR" value="$(find bruce_slam)/../results"/>
+                <!-- dossier de sortie hérité de run_slam.sh ; défaut results/ -->
+                <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
             </node>
 
         </group>
     </group>
 
-    <node type="rviz" name="rviz" pkg="rviz"
+    <node if="$(arg rviz)" type="rviz" name="rviz" pkg="rviz"
           args="-d $(find bruce_slam)/rviz/video.rviz"/>
 
 </launch>

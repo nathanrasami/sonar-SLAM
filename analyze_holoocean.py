@@ -52,13 +52,7 @@ print(f"  Bruce-SLAM KFs: {len(traj)}")
 
 # ── 3. Align + ATE ────────────────────────────────────────────────────────────
 src    = traj[["x", "y"]].to_numpy()
-try:
-    gt_xy = associer_par_temps(traj["time"], gt["time"], gt["x"], gt["y"])
-except ValueError as e:
-    print("ERREUR d'association temporelle :", e)
-    print("=> trajectory.csv et la GT du bag ne viennent pas du même run. "
-          "Relance la simu pour régénérer trajectory.csv depuis ce bag.")
-    exit(1)
+gt_xy  = associer_par_temps(traj["time"], gt["time"], gt["x"], gt["y"])
 s, R, t = umeyama(src, gt_xy)
 est    = appliquer(s, R, t, src)
 ate    = calculer_ate(est, gt_xy)

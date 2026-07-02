@@ -6,7 +6,8 @@ from sensor_msgs.msg import Image
 from sonar_oculus.msg import OculusPingUncompressed
 from bruce_slam.utils.topics import SONAR_TOPIC_UNCOMPRESSED
 
-# ── Set these to match the HoloOcean sonar configuration ──────────────────────
+# ── Défauts — surchargés par rosparam ~range_m / ~fov_deg (cf. holoocean.launch),
+#    à faire correspondre à la config du sonar du simulateur (collègue). ──────────
 RANGE_M  = 40.0   # max range in metres
 FOV_DEG  = 120.0  # total horizontal FOV in degrees
 # ──────────────────────────────────────────────────────────────────────────────
@@ -16,10 +17,11 @@ _bearings = None
 _range_resolution = None
 
 def _build_bearings(num_beams, fov_deg):
-    """Build bearings array in units of (degrees * 100) as int16, matching Oculus convention."""
+    """Bearings en CENTI-DEGRÉS (float), convention Oculus : feature_extraction
+    les convertit en rad via to_rad = b * pi / 18000."""
     half = fov_deg / 2.0
     angles_deg = np.linspace(-half, half, num_beams)
-    return (angles_deg * 100).astype(np.int16).tolist()
+    return (angles_deg * 100.0).astype(np.float32).tolist()
 
 def callback(msg: Image):
     global _bearings, _range_resolution
@@ -33,19 +35,21 @@ def callback(msg: Image):
         rospy.loginfo(f"[sonar_bridge] {num_ranges} ranges × {num_beams} beams, "
                       f"res={_range_resolution:.4f} m/bin, FOV={FOV_DEG}°")
 
+    # NB : OculusPingUncompressed n'a PAS de champ num_beams (déduit de len(bearings))
     ping = OculusPingUncompressed()
     ping.header          = msg.header
     ping.ping_id         = 0
     ping.bearings        = _bearings
     ping.range_resolution = _range_resolution
     ping.num_ranges      = num_ranges
-    ping.num_beams       = num_beams
     ping.ping            = msg
     _pub.publish(ping)
 
 def main():
-    global _pub
+    global _pub, RANGE_M, FOV_DEG
     rospy.init_node("holoocean_sonar_bridge")
+    RANGE_M = rospy.get_param("~range_m", RANGE_M)
+    FOV_DEG = rospy.get_param("~fov_deg", FOV_DEG)
     _pub = rospy.Publisher(SONAR_TOPIC_UNCOMPRESSED, OculusPingUncompressed, queue_size=10)
     rospy.Subscriber("/sonar", Image, callback, queue_size=10)
     rospy.loginfo("[sonar_bridge] ready — /sonar → " + SONAR_TOPIC_UNCOMPRESSED)
