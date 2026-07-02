@@ -1,45 +1,41 @@
 # PROGRESS — état au 2026-07-03
 
-> Docs : **FABLE.md** (investigations, v2) · **CONFIGS.md** (recettes par piste) ·
-> **PIEGES.md** (à ne jamais faire) · **ABLATION.md** (verdict A/B, branche Bruce) ·
-> STAGE.md (journal). Les 4 branches (main, Bruce, Bruce_Sonar_USBL, holoocean)
-> partagent docs + outils d'analyse ; les autres branches sont archivées en tags `archive/*`.
+> Docs : **FABLE.md** (investigations) · **CONFIGS.md** (recettes) · **PIEGES.md** (à ne
+> jamais faire) · **ABLATION.md** (A/B, branche Bruce). Branches : main, Bruce,
+> Bruce_Sonar_USBL, holoocean (les autres = tags `archive/*`).
 
-## État des runs (tout au 07-02 soir)
+## Aracati — état des runs
 
 | Run | Config | ATE | NN | Cap méd | Loops |
 |---|---|---|---|---|---|
-| **A** `194559` | **champion Bruce pur** (SSM+NSSM, 0 USBL), branche Bruce | **1.95 m** | 0.204* | **2.3°** | n/e |
-| B `204329` | A + USBL back-end sigma 1.0 | 2.03 m | 0.218* | 2.9° | n/e |
-| **C** `141223` | **champion actuel** (USBL+SC), branche Bruce_Sonar_USBL | **1.53 m** | 0.203 | 3.4° | 82 |
-| Réf GT `011733` | DISO+GT (PAS GT-free, cible visuelle) | 0.89 m | 0.199 | 1.7° | — |
+| A `194559` (+A-bis `214846`) | champion Bruce pur (SSM+NSSM, 0 USBL) | 1.95–2.04 | 0.204* | 2.3–2.9° | 124 natives |
+| B `204329` | A + USBL sigma 1.0 (raide) | 2.03 | 0.218* | 2.9° | — |
+| **1.2a `003823`** | **champion New** (SC seuil 0.70 + USBL 1.4) | **1.50** | 0.204 | **2.6°** | 230 retenus / 116 |
+| Réf GT `011733` | DISO+GT (pas GT-free) | 0.89 | 0.199 | 1.7° | — |
 
-*seuil 65 non filtré — comparable A↔B seulement. n/e = loops non exportées à l'époque
-(corrigé : la branche Bruce exporte désormais `nssm_constraints`).
+*seuil 65 non filtré (≠ seuil 255 des runs BSU) — comparer au même seuil via filter_cloud.
 
-## Acquis majeurs
+- Découvertes clés : fix miroir → PCM 6→82→116 constraints ; ancre raide dégrade la
+  cohérence scan (B) ; ZÉRO constraint à t=13-16.5 min = fenêtre du décrochage 5.5 m de A.
+- **PRÊTS À LANCER** (un à la fois, arrêt auto partout) :
+  - **1.3** (Bruce_Sonar_USBL) : SSM on + export cloud complet → `./run_slam.sh`
+  - **B′** (Bruce) : sigma 2.5 → `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`
+- Ensuite : 1.4 combo → champion New figé ; loterie 3.1 DISO wz inversé ; **comparaison
+  finale champion vs champion → mini-papier** (FABLE §7).
 
-1. **Tourbillon RÉSOLU** (bug de chiralité, fix `flip_bearing`) — quai en T GT-free,
-   loops PCM 6→82. Cf. FABLE §1, PIEGES §1.
-2. **Ablation FAITE** : Bruce pur réparé = 1.95 m sans AUCUN capteur absolu (DR 10.55 ÷5.4) ;
-   l'ancre USBL raide dégrade (B) ; le bricolage garde 0.42 m d'avance → SC justifié.
-3. Anatomie du résidu de A : warp uniforme ~1.35 m + UN décrochage local 5.5 m (t≈14-15 min),
-   pas un manque de loops. Cloud limité par les détections, plus par les poses.
+## HoloOcean (branche holoocean, bag `test.bag` — ex test_2, renommé)
 
-## 🎯 Prochaines étapes (plan resserré — plus de tests tous azimuts)
-
-1. **Run 1.2a** (branche Bruce_Sonar_USBL, PRÉPARÉ — dist_threshold 0.70 commité) :
-   `git checkout Bruce_Sonar_USBL && ./run_slam.sh` ; arrêt : Ctrl-C à la fin du bag
-   (PIEGES §5) ; éval `python3 bilan_run.py results/<run>`. Attendu : constraints 82→150+,
-   ATE <1.4. [CONFIGS.md#12a]
-2. **Run 1.3** (SSM on) puis **1.4** combo → **champion Bruce_New figé** (~1.2 m visé).
-3. Option Bruce pur : **B′ sigma relâché 2.5** (FABLE §3 post-ablation) — 1 run.
-4. Loterie **3.1 DISO wz inversé** — 1 run borné. [CONFIGS.md#31]
-5. **Comparaison finale champion Bruce vs champion Bruce_New** → mini-papier (FABLE §7),
-   fin de la contribution Aracati. Puis HoloOcean (2D prêt : `./run_slam.sh holoocean`).
+- **2D validé** (carrés visibles après assouplissement extraction 50/5) ; **2.5D en place**
+  (colonne z dans les 3 CSV ; z = /depth en mode dvl, z GT en mode gt).
+- ⚠ **ATE en mode gt = circulaire (~0 par construction : l'odométrie EST la GT).**
+  L'ATE qui compte = `ODOM_SOURCE=dvl ./run_slam.sh holoocean` (0.13 m au smoke).
+- **Arcs dans l'image sonar BRUTE = artefact simulateur** (pas notre pipeline) → à signaler
+  au collègue avec la spec vraie-3D (SLAM_3D_MIGRATION.md §proposition, point 4).
+- `/sonar_points` du bag : z=0 partout → vraie 3D = bag collègue requis.
+- Opt-in loop closure : `NSSM=true ./run_slam.sh holoocean` (la boucle carrée revient au
+  départ → 1-2 vraies boucles possibles).
+- `test.bag` (714 Mo) désindexé de git (limite GitHub 100 Mo) — le fichier reste sur disque.
 
 ## Papier à présenter
 
-**SONIC** (CMU/Kaess, arXiv 2310.15023) — résumé : `Paper/Sonar/SONIC.md`. Attaque notre
-goulot (association aux revisites), entraîné sur HoloOcean, code public. Réserve phase
-1.5/USBL : « INS/USBL/DVL factor graph » (Paper/Factor Graph/).
+**SONIC** (CMU/Kaess) — `Paper/Sonar/SONIC.md`. Réserve : INS/USBL/DVL FGO (Paper/Factor Graph/).
