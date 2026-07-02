@@ -65,15 +65,32 @@ SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh
 
 | Run | Config | ATE (m) | NN cloud | Cap méd (°) | Loops |
 |---|---|---|---|---|---|
-| A | SSM+NSSM, sans USBL | | | | |
-| B | A + USBL back-end | | | | |
-| C | bricolage (réf) | 1.53 | 0.203 | 3.4 | 82 |
+| A `194559` | SSM+NSSM, sans USBL | **1.95** | **0.204** | **2.3** | n/e* |
+| B `204329` | A + USBL back-end | 2.03 | 0.218 | 2.9 | n/e* (≫ A en RViz) |
+| C `141223` | bricolage (réf) | **1.53** | 0.203† | 3.4 | 82 |
 
-## Lecture des résultats
+*n/e = non exporté à l'époque du run (colonne `nssm_constraints` ajoutée depuis).
+†cloud C = filtré I≥255 ; A/B = seuil 65 non filtré — NN comparables A↔B, pas avec C.
 
-- **B ≈ C (≤ ~1.6 m)** → « Bruce réparé suffit » : le récit du stage se simplifie
-  (fix de chiralité + USBL back-end, sans Sonar Context). Vérifier aussi le cloud (NN).
-- **C garde > 0.3 m d'avance** → le bricolage (Sonar Context) est justifié par les chiffres.
+## ✅ VERDICT (2026-07-02)
+
+- **A bat B sur TOUT** (ATE, cloud, cap) : l'ancre USBL telle que branchée ici
+  (`usbl/sigma: 1.0`, raide) TIRE les poses hors de la solution scan-cohérente —
+  murs doublés visibles dans B, +loops mais moins bonnes. Trade-off mesuré :
+  ancre absolue (ATE global) vs cohérence scan (cloud/cap).
+- **Champion branche Bruce = A : 1.95 m, 100 % GT-free PUR (zéro capteur absolu).**
+  DR seul = 10.55 m → SSM+NSSM réparés corrigent ÷5.4. Erreur PLATE dans le temps.
+- **C (bricolage) garde 0.42 m d'avance ATE** → Sonar Context justifié pour l'ATE ;
+  mais A gagne le cap (2.3° vs 3.4°) et son cloud est au plafond de ses poses
+  (0.204 → 0.190 avec poses parfaites, 7 % de marge).
+- **Option non testée (1 run, si temps)** : B' = USBL back-end à sigma RELÂCHÉ
+  (2.5–3.0) — ancre douce qui pourrait donner l'ATE de C sans casser la cohérence
+  de A. Cf. mémoire « trade-off » + CONFIGS.md §1.5.
+
+## Lecture des résultats (grille d'origine)
+
+- **B ≈ C (≤ ~1.6 m)** → « Bruce réparé suffit » : NON ATTEINT (B=2.03).
+- **C garde > 0.3 m d'avance** → OUI : le bricolage (Sonar Context) est justifié par les chiffres.
 - **A** mesure la valeur propre de SSM+NSSM réparés : tout ATE < 3.7 m (meilleur DR-pur)
   = gain réel des modules natifs. A >> B est attendu (pas d'ancre globale).
 

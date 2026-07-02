@@ -202,10 +202,11 @@ class SLAMNode(SLAM):
         with open(os.path.join(output_dir, "trajectory.csv"), "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["keyframe_id", "time", "x", "y", "theta",
-                        "dr_x", "dr_y", "dr_theta"])
+                        "dr_x", "dr_y", "dr_theta", "nssm_constraints"])
             for i, kf in enumerate(self.keyframes):
                 w.writerow([i, kf.time.to_sec(), kf.pose.x(), kf.pose.y(), kf.pose.theta(),
-                            kf.dr_pose.x(), kf.dr_pose.y(), kf.dr_pose.theta()])
+                            kf.dr_pose.x(), kf.dr_pose.y(), kf.dr_pose.theta(),
+                            len(kf.constraints)])
 
         # nuage de points (transf_points monde de tous les keyframes)
         with open(os.path.join(output_dir, "pointcloud.csv"), "w", newline="") as f:
