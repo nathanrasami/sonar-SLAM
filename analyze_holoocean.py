@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Analyse HoloOcean simulation results:
-  1. Extract GT from test.bag
+  1. Extract GT from test_2.bag
   2. Load Bruce-SLAM trajectory from results/
   3. Compute ATE + plot
 """
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
 
-BAG_PATH     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.bag")
+BAG_PATH     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_2.bag")
 RESULTS_DIR  = os.environ.get("SLAM_RESULTS_DIR",
                os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
 
