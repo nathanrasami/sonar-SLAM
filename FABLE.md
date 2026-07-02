@@ -115,18 +115,29 @@ par les chiffres.
 
 Règles : **un changement par run** ; après chaque run → `python3 bilan_run.py results/run_...`
 (1 image + 1 ligne de chiffres) ; reporter le résultat dans PROGRESS.md.
+**Recettes d'implémentation détaillées : [CONFIGS.md](CONFIGS.md)** (une ancre par piste).
+**Pièges à lire avant toute modif : [PIEGES.md](PIEGES.md).**
 **Référence à battre : 141223 = ATE 1.53 m / NN 0.203 / cap 3.4°** (réf GT 011733 : 0.89 m / 0.199).
+
+> **État (2026-07-02 soir)** : 1.1 ✅ FAIT — les « 122 loops » historiques étaient les
+> candidats retenus ; les constraints PCM réelles sont passées de **6 (pré-fix) à 82
+> (post-fix)**. Marge : +108 vrais candidats (0 faux) entre sc_dist 0.60 et 0.70
+> → **1.2a = dist_threshold 0.70** ([CONFIGS.md](CONFIGS.md#12a-dist-threshold)).
+> 2.1 ✅ FAIT — run A `194559` : **ATE 1.95 m** (DR pur 10.55 → ÷5.4 sans aucune ancre),
+> cap 2.3° (meilleur que C !), erreur PLATE dans le temps → l'ancre USBL (B) doit
+> encore réduire. Plafond cloud de A par poses parfaites : 0.204→0.190 (7 %)
+> → le cloud est limité par les DÉTECTIONS, plus par les poses.
 
 ### Phase 1 — branche `Bruce_Sonar_USBL` (pipeline cmd_vel + USBL back-end + Sonar Context)
 Tout existe déjà : ce ne sont que des paramètres.
 
 | Ordre | Config | Quoi changer | Existant ? | Coût | Succès si |
 |---|---|---|---|---|---|
-| 1.1 | Diagnostic loops 82 vs 122 post-fix | rien — offline : comparer `loops_detected.csv` + `nssm_constraints` de 141223 vs 150034 (sc_dist ? PCM ? ICP rejeté ?) | ✅ | 0 run | cause identifiée → guide 1.2 |
-| 1.2 | Loops renforcés post-fix | `slam_aracati.yaml` : `icp_odom_sigmas` ↓ (plus de poids aux loops, enfin cohérentes), et/ou `min_pcm`, `sonar_context/dist_threshold` selon 1.1 | ✅ | 1 run | ATE < 1.4 m ou NN < 0.20 |
-| 1.3 | SSM réactivé (scans réparés) | `slam_aracati.yaml` : `ssm/enable: True` + `ssm/max_translation: 1.5` | ✅ | 1 run | ATE ≤ 1.4 m (pré-fix : 14 m → tout gain valide le fix) |
-| 1.4 | Meilleur combo 1.2 + 1.3 | les deux réglages gagnants | ✅ | 1 run | ATE < 1.2 m |
-| 1.5 | USBL sigma | offline d'abord (résidu fixes `/usbl_point` vs GT par segment), puis `usbl/sigma` 1.0 ou 2.0 | ✅ | 0-1 run | ATE ↓ (l'ancre globale domine l'ATE Umeyama) |
+| 1.1 | ✅ FAIT — diagnostic loops (cf. État ci-dessus) | — | ✅ | 0 run | fait : cause = PCM cassé pré-fix (6→82) ; marge = +108 vrais à 0.60-0.70 |
+| 1.2a | dist_threshold 0.60→0.70 — [CONFIGS.md](CONFIGS.md#12a-dist-threshold) | `slam_aracati.yaml sonar_context/dist_threshold` | ✅ | 1 run | constraints 82→150+, ATE < 1.4 m |
+| 1.3 | SSM réactivé — [CONFIGS.md](CONFIGS.md#13-ssm) | `slam_aracati.yaml ssm/enable: True` + `max_translation: 1.5` | ✅ | 1 run | cap < 3° (A le prouve : 2.3°), ATE ≤ 1.4 m |
+| 1.4 | Meilleur combo 1.2a + 1.3 — [CONFIGS.md](CONFIGS.md#14-combo) | les deux réglages gagnants | ✅ | 1 run | ATE < 1.2 m |
+| 1.5 | USBL sigma — [CONFIGS.md](CONFIGS.md#15-usbl-sigma) | offline d'abord (résidu fixes vs GT), puis `usbl/sigma` | ✅ | 0-1 run | ATE ↓ (l'ancre globale domine l'ATE Umeyama) |
 
 ### Phase 2 — branche `Bruce` (pipeline Bruce pur : cmd_vel + SSM + NSSM natif, sans SC)
 Préparé clé en main : **suivre `ABLATION.md` sur la branche `Bruce`** (fix miroir porté,
@@ -134,15 +145,16 @@ SSM/NSSM/USBL par variables d'env, s'arrête tout seul à la fin du bag).
 
 | Ordre | Config | Commande | Succès si |
 |---|---|---|---|
-| 2.1 | **A — Bruce pur** (SSM+NSSM, zéro USBL) | `SSM=true NSSM=true USBL=false ./run_slam.sh` | ATE < 3.7 m (le meilleur DR-pur historique) |
+| 2.1 | ✅ FAIT — **A — Bruce pur** (run `194559`) | `SSM=true NSSM=true USBL=false ./run_slam.sh` | **ATE 1.95 m**, cap 2.3°, NN 0.204 (seuil 65) — modules natifs ressuscités |
 | 2.2 | **B — A + ancre USBL back-end** | `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh` | B ≈ C (≤1.6 m) → « Bruce réparé suffit » ; sinon le bricolage est justifié |
 
 ### Phase 3 — à CRÉER (après les phases 1-2)
 
 | Ordre | Config | Branche / pipeline | À créer | Coût | Succès si |
 |---|---|---|---|---|---|
-| 3.1 | DISO GT-free « wz inversé » (chiralité du prior) | `Bruce_Sonar_USBL`, `ODOM_SOURCE=diso DISO_PRIOR=cmd_vel` | param `invert_wz` dans `cmd_vel_odom.py` (1 signe) + `flip_bearing: False` pour ce mode | petit + 1 run | l'odom DISO brute ne diverge plus (< 5 m vs 22 m) → ouvre DISO+SC+USBL vers < 1 m |
-| 3.2 | MCFAR (SIO-UV) | `Bruce_Sonar_USBL`, feature_extraction | débruitage multi-échelle avant CFAR | moyen + 1 run | NN ↓ ET loops ↑ |
+| 3.1 | DISO GT-free « wz inversé » — [CONFIGS.md](CONFIGS.md#31-diso-wz) | `Bruce_Sonar_USBL`, `ODOM_SOURCE=diso DISO_PRIOR=cmd_vel RATE=0.5` | param `invert_wz` dans `cmd_vel_odom.py` (1 signe) + `flip_bearing: False` pour ce mode | petit + 1 run | l'odom DISO brute ne diverge plus (< 5 m vs 22 m) → ouvre DISO+SC+USBL vers < 1 m |
+| 3.2 | MCFAR (SIO-UV) — [CONFIGS.md](CONFIGS.md#32-mcfar) | `Bruce_Sonar_USBL`, feature_extraction | débruitage multi-échelle avant CFAR | moyen + 1 run | NN ↓ ET loops ↑ (le cloud est désormais limité par les détections) |
+| 3.3 | SONIC (association loops) — [CONFIGS.md](CONFIGS.md#sonic-offline) + `Paper/Sonar/SONIC.md` | test OFFLINE d'abord (122 paires du run 141223) | pipeline de rejeu + inférence (code public rpl-cmu/sonic) | moyen, 0 run | transform SONIC > ICP sur les 40/122 candidats non convertis |
 | — | ISOPoT (arXiv 2606.23006) | biblio seulement | rien (code non publié) | — | citation rapport. ⚠ leur ATE 3.2–4.6 m = par section, alignée 1re pose — PAS comparable à notre Umeyama full-seq |
 
 ---
