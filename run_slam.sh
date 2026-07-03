@@ -51,7 +51,4 @@ case "$TYPE" in
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac
 
-echo "[run_slam] Terminé. Analyse avec :"
-echo "  SLAM_RESULTS_DIR=$RUN_DIR python3 analyze_drift.py"
-echo "  SLAM_RESULTS_DIR=$RUN_DIR python3 analyze_origine.py"
-echo "  SLAM_RESULTS_DIR=$RUN_DIR python3 plot_trajectories.py"
+echo "[run_slam] Terminé. Analyse : ./analyse.sh $(basename "$RUN_DIR")"

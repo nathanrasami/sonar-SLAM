@@ -15,7 +15,7 @@ cmd_vel/USBL, `False` avec l'odométrie DISO. Ne JAMAIS mélanger.**
   cmd_vel (repère propre), chaque scan était peint EN MIROIR de son cap.
 - Symptômes : carte « tourbillon » (arcs), PCM qui rejette presque toutes les loops
   (6 constraints au lieu de 82), SSM qui « diverge », loops NSSM « fausses ».
-- Détection en 1 run court : `python3 bilan_run.py results/<run>` → si le cloud est en
+- Détection en 1 run court : `python3 analysis/bilan_run.py results/<run>` → si le cloud est en
   arcs/spirale au lieu de structures, suspecter la chiralité EN PREMIER.
 - Historique : c'est cette inversion, héritée de DISO, qui a cassé le pointcloud de
   Bruce_Sonar_USBL pendant des semaines (« swirl = fond du sonar », « position = goulot »,
