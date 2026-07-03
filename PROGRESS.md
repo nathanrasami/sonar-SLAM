@@ -1,41 +1,37 @@
-# PROGRESS — état au 2026-07-03
+# PROGRESS — état au 2026-07-03 (soir) — ARACATI : comparaison finale BOUCLÉE
 
-> Docs : **FABLE.md** (investigations) · **CONFIGS.md** (recettes) · **PIEGES.md** (à ne
-> jamais faire) · **ABLATION.md** (A/B, branche Bruce). Branches : main, Bruce,
-> Bruce_Sonar_USBL, holoocean (les autres = tags `archive/*`).
+> Docs : **FABLE.md** (§4 = résultat final) · **CONFIGS.md** (réfs) · **PIEGES.md** ·
+> **ABLATION.md** (branche Bruce) · STAGE.md (journal). Éval : `./analyse.sh <run>`.
 
-## Aracati — état des runs
+## 🏁 CHAMPIONS (configs FIGÉES dans les yaml)
 
-| Run | Config | ATE | NN | Cap méd | Loops |
+| Champion | Run | ATE | Cap | Cloud NN | Loops |
 |---|---|---|---|---|---|
-| A `194559` (+A-bis `214846`) | champion Bruce pur (SSM+NSSM, 0 USBL) | 1.95–2.04 | 0.204* | 2.3–2.9° | 124 natives |
-| B `204329` | A + USBL sigma 1.0 (raide) | 2.03 | 0.218* | 2.9° | — |
-| **1.2a `003823`** | **champion New** (SC seuil 0.70 + USBL 1.4) | **1.50** | 0.204 | **2.6°** | 230 retenus / 116 |
-| Réf GT `011733` | DISO+GT (pas GT-free) | 0.89 | 0.199 | 1.7° | — |
+| **Bruce_New = 1.2a** (SC 0.70 + USBL σ1.4) — yaml BSU figé | `003823` | **1.50 m** | 2.6° | 0.204 | 116 |
+| **Bruce pur = B′** (SSM+NSSM + USBL σ2.5) — yaml Bruce figé | `120352-1` | **1.88 m** | 2.6° | 0.205 | 130 |
+| variante « champion cloud » = 1.3 (SC + SSM + σ1.4) | `015742` | 2.14 m | 4.3° | **0.173** | 103 |
 
-*seuil 65 non filtré (≠ seuil 255 des runs BSU) — comparer au même seuil via filter_cloud.
+- **Écart : +0.38 m pour la contribution (Sonar Context)** — mêmes capteurs des deux côtés.
+- Rejetés par les chiffres : B (σ1.0) 2.03 ; 1.4 (SSM+σ2.5 sur BSU) 3.13 ;
+  **loterie DISO wz inversé CLOSE** (odom brute 39.2 m — chiralité nécessaire mais pas
+  suffisante ; branche archivée en tag `archive/Bruce_DISO_wz`).
+- Leçon transversale (3× mesurée) : **le σ d'ancre optimal dépend du pipeline**
+  (loops SC → σ1.4 raide ; SSM/NSSM natifs → σ2.5 doux). Version principielle :
+  σ adaptatif par fix (papier INS/USBL/DVL FGO — présentation 6).
+- Fondation de tout : le **fix de chiralité** (PIEGES §1) — loops PCM 6→82→116/130,
+  quai en T GT-free, SSM ressuscité.
 
-- Découvertes clés : fix miroir → PCM 6→82→116 constraints ; ancre raide dégrade la
-  cohérence scan (B) ; ZÉRO constraint à t=13-16.5 min = fenêtre du décrochage 5.5 m de A.
-- **PRÊTS À LANCER** (un à la fois, arrêt auto partout) :
-  - **1.3** (Bruce_Sonar_USBL) : SSM on + export cloud complet → `./run_slam.sh`
-  - **B′** (Bruce) : sigma 2.5 → `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`
-- Ensuite : 1.4 combo → champion New figé ; loterie 3.1 DISO wz inversé ; **comparaison
-  finale champion vs champion → mini-papier** (FABLE §7).
+## 📌 Ce qui reste
 
-## HoloOcean (branche holoocean, bag `test.bag` — ex test_2, renommé)
+1. **Mini-papier** (FABLE §7) — quand Nathan est satisfait : toute la matière existe
+   (champions, ablation complète, figures bilan_run des runs cités, l'histoire du miroir).
+2. **HoloOcean** : re-copier le bag du collègue (`test.bag`, cf. PIEGES §10) ; bag 3D
+   à venir avec `HOLOOCEAN_3D_GUIDE.md` (donné au collègue) ; côté SLAM tout est prêt
+   (`sonar_source:=points3d`).
+3. Optionnel si temps : SONIC offline (CONFIGS #sonic-offline) ; MCFAR (#32-mcfar) pour
+   pousser le cloud (désormais limité par les détections).
 
-- **2D validé** (carrés visibles après assouplissement extraction 50/5) ; **2.5D en place**
-  (colonne z dans les 3 CSV ; z = /depth en mode dvl, z GT en mode gt).
-- ⚠ **ATE en mode gt = circulaire (~0 par construction : l'odométrie EST la GT).**
-  L'ATE qui compte = `ODOM_SOURCE=dvl ./run_slam.sh holoocean` (0.13 m au smoke).
-- **Arcs dans l'image sonar BRUTE = artefact simulateur** (pas notre pipeline) → à signaler
-  au collègue avec la spec vraie-3D (SLAM_3D_MIGRATION.md §proposition, point 4).
-- `/sonar_points` du bag : z=0 partout → vraie 3D = bag collègue requis.
-- Opt-in loop closure : `NSSM=true ./run_slam.sh holoocean` (la boucle carrée revient au
-  départ → 1-2 vraies boucles possibles).
-- `test.bag` (714 Mo) désindexé de git (limite GitHub 100 Mo) — le fichier reste sur disque.
+## Présentations prêtes
 
-## Papier à présenter
-
-**SONIC** (CMU/Kaess) — `Paper/Sonar/SONIC.md`. Réserve : INS/USBL/DVL FGO (Paper/Factor Graph/).
+SONIC (`Paper/Sonar/SONIC_Presentation.md`) · INS/USBL/DVL FGO
+(`Paper/Factor Graph/INS_USBL_DVL_Presentation.md` + résumé `INS_USBL_DVL_FGO.md`).

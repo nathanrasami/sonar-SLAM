@@ -140,14 +140,25 @@ Règles : **un changement par run** ; après chaque run → `python3 analysis/bi
 **Pièges à lire avant toute modif : [PIEGES.md](PIEGES.md).**
 **Référence à battre : 141223 = ATE 1.53 m / NN 0.203 / cap 3.4°** (réf GT 011733 : 0.89 m / 0.199).
 
-> **État (2026-07-02 soir)** : 1.1 ✅ FAIT — les « 122 loops » historiques étaient les
-> candidats retenus ; les constraints PCM réelles sont passées de **6 (pré-fix) à 82
-> (post-fix)**. Marge : +108 vrais candidats (0 faux) entre sc_dist 0.60 et 0.70
-> → **1.2a = dist_threshold 0.70** ([CONFIGS.md](CONFIGS.md#12a-dist-threshold)).
-> 2.1 ✅ FAIT — run A `194559` : **ATE 1.95 m** (DR pur 10.55 → ÷5.4 sans aucune ancre),
-> cap 2.3° (meilleur que C !), erreur PLATE dans le temps → l'ancre USBL (B) doit
-> encore réduire. Plafond cloud de A par poses parfaites : 0.204→0.190 (7 %)
-> → le cloud est limité par les DÉTECTIONS, plus par les poses.
+> ## 🏁 RÉSULTAT FINAL (07-03) — la comparaison champion vs champion est BOUCLÉE
+>
+> | Champion | Run | ATE | Cap méd | Cloud NN | Loops |
+> |---|---|---|---|---|---|
+> | **Bruce_New = 1.2a** (SC 0.70 + USBL σ1.4) | `003823` | **1.50 m** | 2.6° | 0.204 (I≥255) | 116 SC |
+> | **Bruce pur = B′** (SSM+NSSM + USBL σ2.5) | `120352-1` | **1.88 m** | 2.6° | 0.205 (seuil 65) | 130 natives |
+> | variante « champion cloud » = 1.3 (SSM+σ1.4) | `015742` | 2.14 m | 4.3° | **0.173** record | 103 |
+> | réf GT-assistée (pas GT-free) | `011733` | 0.89 m | 1.7° | 0.199 | — |
+>
+> **Écart final : 0.38 m en faveur de la contribution (Sonar Context)** — les deux champions
+> partagent les mêmes capteurs (cmd_vel + sonar + USBL) ; la différence méthodologique = la
+> détection de loops par apparence. Configs FIGÉES dans les yaml des deux branches.
+> Essais rejetés par les chiffres : B (σ1.0 raide) 2.03 ; 1.4 (SSM+σ2.5) 3.13 ;
+> **loterie DISO wz inversé : CLOSE** (odom brute 39.2 m — la chiralité du prior était
+> nécessaire mais pas suffisante, l'association DISO frame-à-frame reste le mur sur FLS épars).
+> Leçon transversale (3× mesurée) : **chaque pipeline a son σ d'ancre optimal** — raide avec
+> loops SC (1.4), douce avec SSM/NSSM natifs (2.5) ; la version principielle est le σ adaptatif
+> par fix (papier INS/USBL/DVL FGO, présentation 6).
+> Il reste : **mini-papier** (§7) + HoloOcean (bag 3D du collègue, guide prêt).
 
 ### Phase 1 — branche `Bruce_Sonar_USBL` (pipeline cmd_vel + USBL back-end + Sonar Context)
 Tout existe déjà : ce ne sont que des paramètres.
@@ -155,10 +166,10 @@ Tout existe déjà : ce ne sont que des paramètres.
 | Ordre | Config | Quoi changer | Existant ? | Coût | Succès si |
 |---|---|---|---|---|---|
 | 1.1 | ✅ FAIT — diagnostic loops (cf. État ci-dessus) | — | ✅ | 0 run | fait : cause = PCM cassé pré-fix (6→82) ; marge = +108 vrais à 0.60-0.70 |
-| 1.2a | dist_threshold 0.60→0.70 — [CONFIGS.md](CONFIGS.md#12a-dist-threshold) | `slam_aracati.yaml sonar_context/dist_threshold` | ✅ | 1 run | constraints 82→150+, ATE < 1.4 m |
-| 1.3 | SSM réactivé — [CONFIGS.md](CONFIGS.md#13-ssm) | `slam_aracati.yaml ssm/enable: True` + `max_translation: 1.5` | ✅ | 1 run | cap < 3° (A le prouve : 2.3°), ATE ≤ 1.4 m |
-| 1.4 | Meilleur combo 1.2a + 1.3 — [CONFIGS.md](CONFIGS.md#14-combo) | les deux réglages gagnants | ✅ | 1 run | ATE < 1.2 m |
-| 1.5 | USBL sigma — [CONFIGS.md](CONFIGS.md#15-usbl-sigma) | offline d'abord (résidu fixes vs GT), puis `usbl/sigma` | ✅ | 0-1 run | ATE ↓ (l'ancre globale domine l'ATE Umeyama) |
+| 1.2a | ✅ FAIT — **CHAMPION New** (run `003823`) | dist_threshold 0.70 | ✅ | fait | **ATE 1.50**, cap 2.6°, 230 retenus/116 constraints, NN 0.204 |
+| 1.3 | ✅ FAIT — champion CLOUD (run `015742`) | SSM on + σ1.4 | ✅ | fait | NN **0.173** (record GT-free) mais ATE 2.14 → variante carte, pas champion traj |
+| 1.4 | ✅ FAIT — REJETÉ (run `140908-2`) | SSM + σ2.5 | ✅ | fait | ATE 3.13 : relâcher l'ancre avec SC aggrave (l'inverse de Bruce pur) |
+| 1.5 | CLOS de fait (couvert par 1.4/B/B′ : σ 1.0/1.4/2.5 testés sur les 2 pipelines) | — | ✅ | fait | verdict : σ optimal DÉPEND du pipeline (SC→1.4, natif→2.5) |
 
 ### Phase 2 — branche `Bruce` (pipeline Bruce pur : cmd_vel + SSM + NSSM natif, sans SC)
 Préparé clé en main : **suivre `ABLATION.md` sur la branche `Bruce`** (fix miroir porté,
@@ -167,13 +178,13 @@ SSM/NSSM/USBL par variables d'env, s'arrête tout seul à la fin du bag).
 | Ordre | Config | Commande | Succès si |
 |---|---|---|---|
 | 2.1 | ✅ FAIT — **A — Bruce pur** (run `194559`) | `SSM=true NSSM=true USBL=false ./run_slam.sh` | **ATE 1.95 m**, cap 2.3°, NN 0.204 (seuil 65) — modules natifs ressuscités |
-| 2.2 | ✅ FAIT — **B** (run `204329`) : **2.03 m**, cap 2.9°, NN 0.218 — PIRE que A partout : l'ancre USBL raide (sigma 1.0) casse la cohérence scan (murs doublés). Verdict : champion Bruce = **A (1.95)** ; C garde 0.42 m d'avance ATE → SC justifié. Option B' sigma relâché notée (ABLATION.md). | | |
+| 2.2 | ✅ FAIT — **B** (run `204329`) : **2.03 m**, cap 2.9°, NN 0.218 — PIRE que A partout : l'ancre USBL raide (sigma 1.0) casse la cohérence scan (murs doublés). Puis **B′ (run `120352-1`, σ2.5) : 1.88 m, cap 2.6°, 130 loops — CHAMPION Bruce pur** (l'ancre douce marche avec les modules natifs). | | |
 
 ### Phase 3 — à CRÉER (après les phases 1-2)
 
 | Ordre | Config | Branche / pipeline | À créer | Coût | Succès si |
 |---|---|---|---|---|---|
-| 3.1 | DISO GT-free « wz inversé » — [CONFIGS.md](CONFIGS.md#31-diso-wz) | `Bruce_Sonar_USBL`, `ODOM_SOURCE=diso DISO_PRIOR=cmd_vel RATE=0.5` | param `invert_wz` dans `cmd_vel_odom.py` (1 signe) + `flip_bearing: False` pour ce mode | petit + 1 run | l'odom DISO brute ne diverge plus (< 5 m vs 22 m) → ouvre DISO+SC+USBL vers < 1 m |
+| 3.1 | ✅ FAIT — **CLOSE** (run `151239-3`, branche archivée) | loterie DISO wz inversé | ✅ | fait | odom DISO brute **39.2 m** (pire que 22) : chiralité nécessaire mais pas suffisante — DISO GT-free définitivement clos |
 | 3.2 | MCFAR (SIO-UV) — [CONFIGS.md](CONFIGS.md#32-mcfar) | `Bruce_Sonar_USBL`, feature_extraction | débruitage multi-échelle avant CFAR | moyen + 1 run | NN ↓ ET loops ↑ (le cloud est désormais limité par les détections) |
 | 3.3 | SONIC (association loops) — [CONFIGS.md](CONFIGS.md#sonic-offline) + `Paper/Sonar/SONIC.md` | test OFFLINE d'abord (122 paires du run 141223) | pipeline de rejeu + inférence (code public rpl-cmu/sonic) | moyen, 0 run | transform SONIC > ICP sur les 40/122 candidats non convertis |
 | — | ISOPoT (arXiv 2606.23006) | biblio seulement | rien (code non publié) | — | citation rapport. ⚠ leur ATE 3.2–4.6 m = par section, alignée 1re pose — PAS comparable à notre Umeyama full-seq |
