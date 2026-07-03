@@ -117,11 +117,13 @@ class SLAMNode(SLAM):
         # porte géométrique : distance max (m) entre source et candidat dans
         # l'estimé courant (l'apparence propose, la géométrie vérifie)
         self.sc_gate_distance = rospy.get_param(ns + "sonar_context/gate_distance", 20.0)
+        # U4 (branche Ultime) : union des détecteurs SC + gating natif
+        self.sc_union = rospy.get_param(ns + "sonar_context/union", False)
         self._descriptor_buffer = {}  # (sec, nsec) -> (context, ring_key)
         if self.sc_enable:
             rospy.Subscriber(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,
                              self._descriptor_callback, queue_size=50)
-        print("SONAR CONTEXT: ", self.sc_enable)
+        print("SONAR CONTEXT: ", self.sc_enable, " UNION: ", self.sc_union)
 
         # USBL — facteurs de position absolue acoustique (cf. slam.add_usbl, USBL_FACTEURS.md)
         self.usbl_enable = rospy.get_param(ns + "usbl/enable", False)
@@ -669,7 +671,7 @@ class SLAMNode(SLAM):
             with open(sc_path, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["source_key", "target_key", "sc_dist",
-                                 "shift_azimuth", "shift_range", "retenu"])
+                                 "shift_azimuth", "shift_range", "retenu", "detector"])
                 writer.writerows(self.sc_log)
             rospy.loginfo("Sonar Context log saved to %s", sc_path)
 

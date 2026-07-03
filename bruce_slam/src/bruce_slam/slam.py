@@ -120,7 +120,10 @@ class SLAM(object):
         self.sc_dist_threshold = 0.35  # distance cosinus max pour valider
         self.sc_max_azimuth_shift = 10
         self.sc_max_range_shift = 5
-        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
+        # U4 (branche Ultime) : UNION des détecteurs — soumettre à l'aval les
+        # candidats de SC ET du gating natif (dédupliqués), le PCM commun tranche.
+        self.sc_union = False
+        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu, detector)
 
         # USBL — facteurs de POSITION ABSOLUE acoustique (ancrage indépendant de
         # la GT). Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m en
@@ -990,9 +993,13 @@ class SLAM(object):
         if self.save_fig:
             ret2.plot("step-{}-ssm-icp.png".format(self.current_key))
 
-    def initialize_nonsequential_scan_matching(self) -> InitializationResult:
+    def initialize_nonsequential_scan_matching(self, detector: str = None) -> InitializationResult:
         """Initialize a nonsequential scan matching call. Here we use global ICP to check for loop closures with the
         most recent keyframe and the rest of the map.
+
+        Args:
+            detector: None = comportement historique (SC si sc_enable, sinon gating
+                natif) ; "sc" ou "native" force le détecteur (mode union U4).
 
         Returns:
             InitializationResult: The global-ICP outcome
@@ -1026,7 +1033,8 @@ class SLAM(object):
         # Target points in global frame
         target_points, target_keys = self.get_points(target_frames, None, True)
 
-        if self.sc_enable:
+        use_sc = self.sc_enable if detector is None else (detector == "sc")
+        if use_sc:
             # ===== SONAR Context : sélection du candidat par APPARENCE =====
             # Remplace le gating covariance+FOV et l'argmax(counts) — la source
             # des fake loops quand l'odométrie a dérivé. L'aval est inchangé.
@@ -1084,6 +1092,12 @@ class SLAM(object):
             ret.target_key = target_frames[
                 np.argmax(counts)
             ]  # this is critical, the one with the most points overlapping
+
+            # journal U4 : en mode union, tracer aussi les candidats du gating
+            # natif (sc_dist=-1 : pas de distance d'apparence pour ceux-là)
+            if self.sc_union:
+                self.sc_log.append((ret.source_key, int(ret.target_key),
+                                    -1.0, 0, 0, 1, "nssm"))
 
         ret.target_pose = self.keyframes[ret.target_key].pose
         ret.target_points = Keyframe.transform_points(
@@ -1239,7 +1253,7 @@ class SLAM(object):
         # 3) seuil de validation + journal (étape 5 : precision/recall offline)
         retenu = best[1] < self.sc_dist_threshold
         self.sc_log.append((self.current_key - 1, best[0], round(best[1], 4),
-                            best[2], best[3], int(retenu)))
+                            best[2], best[3], int(retenu), "sc"))
         return best if retenu else None
 
     def add_nonsequential_scan_matching(self) -> ICPResult:
@@ -1254,12 +1268,48 @@ class SLAM(object):
         if self.current_key < self.nssm_params.min_st_sep:
             return
 
-        # init the search with a global ICP call
-        ret = self.initialize_nonsequential_scan_matching()
+        # U4 (branche Ultime) : union des détecteurs. L'apparence (SC) et le
+        # gating géométrique natif voient des candidats DIFFÉRENTS ; en mode
+        # union on soumet les deux à l'aval (shgo/ICP), dédupliqués, et le PCM
+        # commun tranche. Hors union : comportement historique inchangé.
+        if self.sc_enable and self.sc_union:
+            detectors = ("sc", "native")
+        elif self.sc_enable:
+            detectors = ("sc",)
+        else:
+            detectors = ("native",)
 
-        # if the global ICP call did not work, return
-        if not ret.status:
-            return
+        out, tried = None, set()
+        for detector in detectors:
+            # init the search with a global ICP call
+            ret = self.initialize_nonsequential_scan_matching(detector)
+
+            # if the global ICP call did not work, try the next detector
+            if not ret.status:
+                continue
+
+            # les deux détecteurs d'accord sur le même candidat → un seul ICP
+            if ret.target_key in tried:
+                continue
+            tried.add(ret.target_key)
+
+            ret2 = self._process_nssm_candidate(ret)
+            if out is None:
+                out = ret2
+        return out
+
+    def _process_nssm_candidate(self, ret: InitializationResult) -> ICPResult:
+        """ICP + garde-fous + PCM pour UN candidat initialisé.
+
+        Corps historique de add_nonsequential_scan_matching, inchangé — extrait
+        pour pouvoir traiter plusieurs candidats par cycle en mode union (U4).
+
+        Args:
+            ret (InitializationResult): candidat initialisé (global ICP ok)
+
+        Returns:
+            ICPResult: the loop we have found, returns for debugging perposes
+        """
 
         # package the global ICP call result
         ret2 = ICPResult(ret, self.nssm_params.cov_samples > 0)

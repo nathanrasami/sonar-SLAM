@@ -62,6 +62,11 @@ sonar_context:
   # porte géométrique calibrée cmd_vel (cap imprécis → estimé moins fiable que DISO).
   # Run 100943 : gate=20 m laissait passer 244/659 candidats dont des faux courts-terme.
   gate_distance: 10.0
+  # U4 (branche Ultime) : UNION des détecteurs — les candidats du gating natif
+  # (covariance+argmax counts) s'AJOUTENT à ceux de SC (dédupliqués), le PCM commun
+  # tranche. Piloté au run par LOOP_UNION=true ./run_slam.sh (le launch surcharge).
+  # coût : jusqu'à 2 shgo/keyframe → RATE=0.5 si le CPU sature. cf. ULTIME.md U4.
+  union: False
 
 # USBL — facteurs de POSITION ABSOLUE acoustique dans le graphe (cf. USBL_FACTEURS.md).
 # Ancre l'odométrie cmd_vel sur les fixes /usbl_point, indépendamment de la GT.

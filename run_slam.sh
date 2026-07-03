@@ -9,6 +9,11 @@
 #   GT_FREE_SEED=false ./run_slam.sh      # ancien seed /pose_gt t=0 (A/B vs seed USBL GT-free)
 #   ODOM_SOURCE=diso DISO_PRIOR=cmd_vel ./run_slam.sh   # variante DISO GT-free
 #
+# Branche ULTIME (séquence de runs, cf. ULTIME.md) :
+#   USBL_SIGMA=1.8 ./run_slam.sh          # RU1 (U3) : ancre intermédiaire (yaml intact)
+#   LOOP_UNION=true ./run_slam.sh         # RU2 (U4) : union détecteurs SC + gating natif
+#   USBL_SIGMA=x LOOP_UNION=true ./run_slam.sh   # RU3 : combo gagnant
+#
 # /!\ NE PAS mettre USBL=true : ça active la fusion USBL DANS le front-end (cmd_vel_odom),
 #     EN PLUS du back-end (usbl.enable=True dans slam_aracati.yaml). Double ancrage USBL =
 #     l'odométrie snappe/saute sur chaque fix bruité (1.4 m, max 73 m) → trajectoire en
@@ -45,7 +50,8 @@ echo "[run_slam] Résultats dans : $RUN_DIR"
 case "$TYPE" in
   aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" \
                  odom_source:="${ODOM_SOURCE:-cmd_vel}" diso_prior:="${DISO_PRIOR:-cmd_vel}" diso_seed_gt:="${DISO_SEED_GT:-true}" \
-                 gt_free_seed:="${GT_FREE_SEED:-true}" heading_from_compass:="${HEADING_COMPASS:-false}" ;;
+                 gt_free_seed:="${GT_FREE_SEED:-true}" heading_from_compass:="${HEADING_COMPASS:-false}" \
+                 usbl_sigma:="${USBL_SIGMA:-}" loop_union:="${LOOP_UNION:-false}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac

@@ -31,30 +31,54 @@ venait du cap local (SSM) ; U1 l'importe côté BSU sans SSM. Piège historique 
 l'ancien hack `use_compass_cap` (offset 162° figé, pré-fix chiralité) échouait ; la version
 qui marche = offset auto-fit δ + post-fix.
 
-**Reste à faire (U2)** : intégrer au flux standard.
+## U2 — U1 intégré au flux standard ✅ FAIT (07-04, 0 run)
 
-## U2 — intégrer U1 au pipeline (offline d'abord)
+`analyse.sh` appelle désormais `render_compass_cloud.py` pour tout run aracati avec
+`dr_theta` dans trajectory.csv (`--imin 255` si le cloud a l'intensité) →
+`pointcloud_compass.csv/png` est une sortie standard de `./analyse.sh <run>`.
+Option inline (RViz) : seulement si le offline devient limitant (reprendre l'infra
+`cloud/use_compass_cap` avec δ auto-fit glissant au lieu de `cap_offset_deg` figé).
 
-1. `analyse.sh` : appeler `render_compass_cloud.py` après `filter_cloud` pour tout run
-   aracati cmd_vel → `pointcloud_compass.csv/png` devient une sortie standard. (Simple,
-   sans risque, à faire en premier sur cette branche.)
-2. Option inline plus tard (rendu RViz/CSV directement au cap compas) : reprendre l'infra
-   `cloud/use_compass_cap` de slam_ros mais avec δ auto-fit glissant au lieu de
-   `cap_offset_deg` figé. À ne faire QUE si le offline devient limitant.
+## U3 — σ USBL intermédiaire avec SC ✅ PRÊT À RUNNER (1 run)
 
-## U3 — σ USBL intermédiaire avec SC (1 run)
-
-Le trade-off mesuré (SC→1.4 raide, natif→2.5 doux) n'a jamais été échantillonné ENTRE :
-`usbl/sigma: 1.8` (puis 2.0 si tendance bonne), tout le reste = config 1.2a.
+Le trade-off mesuré (SC→1.4 raide, natif→2.5 doux) n'a jamais été échantillonné ENTRE.
+**Câblé sans toucher au yaml** : env `USBL_SIGMA` → arg launch `usbl_sigma` → surcharge
+`usbl/sigma` (vide = valeur du yaml, champion 1.4).
 Succès si ATE < 1.50 sans dégrader la carte-U1 (p90 ≤ 0.45).
 
-## U4 — union des détecteurs de loops : SC + NSSM natif (code léger, 1 run)
+## U4 — union des détecteurs SC + NSSM natif ✅ CODÉ, PRÊT À RUNNER (1 run)
 
-Aujourd'hui SC REMPLACE la présélection covariance du NSSM. Les deux voient des candidats
-différents (apparence vs géométrie). Union : soumettre à shgo/ICP/PCM les candidats des
-DEUX détecteurs (dédupliqués), PCM commun tranche. Attendu : constraints 116 → 150+,
-sections S2/S3 raffermies. Fichier : slam.py (détection), garder le journal
-loops_detected.csv avec une colonne `source` (sc|nssm).
+SC REMPLAÇAIT la présélection covariance du NSSM ; les deux voient des candidats
+différents (apparence vs géométrie). Implémenté le 07-04 :
+
+- `slam.py` : `add_nonsequential_scan_matching` boucle sur les détecteurs (`sc` puis
+  `native`, dédupliqués s'ils sont d'accord) et soumet chaque candidat au corps
+  historique INCHANGÉ, extrait dans `_process_nssm_candidate` (shgo/ICP/garde-fous/PCM).
+  `initialize_nonsequential_scan_matching(detector=...)` force le chemin voulu.
+- Journal : `loops_detected.csv` gagne une colonne `detector` (sc|nssm) ; les candidats
+  du gating natif sont tracés avec `sc_dist=-1`.
+- Pilotage : param `sonar_context/union` (défaut **False** = champion 1.2a intact),
+  surchargé par le launch ← env `LOOP_UNION`.
+- Coût : jusqu'à 2 shgo/keyframe quand les détecteurs divergent → `RATE=0.5` si le CPU
+  sature.
+
+Attendu : constraints 116 → 150+, S2/S3 raffermies, 0 faux (le PCM commun tranche).
+
+## 🎬 SÉQUENCE DE RUNS À ENCHAÎNER (chacun ~45 min, arrêt auto fin de bag)
+
+> Après CHAQUE run : `./analyse.sh <run>` (inclut la carte compas U1) puis
+> `python3 analysis/paper_eval.py results/<run>` et reporter ici (Journal).
+> Baseline de comparaison = 1.2a `003823` (ATE 1.50, carte compas 0.077/0.441).
+
+| # | Commande (branche Bruce_Ultime) | Teste | Verdict si |
+|---|---|---|---|
+| RU1 | `USBL_SIGMA=1.8 ./run_slam.sh` | U3 σ intermédiaire | garde si ATE<1.50 et p90≤0.45 |
+| RU2 | `USBL_SIGMA=2.0 ./run_slam.sh` | U3 (seulement si RU1 > 1.2a) | idem ; sinon retour σ1.4 |
+| RU3 | `LOOP_UNION=true ./run_slam.sh` | U4 union (σ = meilleur connu via USBL_SIGMA) | garde si constraints↑ ET ATE≤RU-précédent |
+| RU4 | *(branche Bruce)* `./run_slam.sh` | U5 keyframes 1.0 (yaml déjà modifié) | B″ remplace B′ si ATE<1.88 |
+
+Si RU1-RU3 donnent un gagnant : figer ses réglages dans le yaml Ultime (défauts = config
+gagnante, plus aucune variable d'env) + 1 run final de confirmation = livrable.
 
 ## U5 — keyframes 1.0 m sur la branche `Bruce` (1 run, indépendant)
 
@@ -79,5 +103,12 @@ INS/USBL/DVL FGO, Sensors 2023). Supprime le réglage manuel raide/doux (leçon 
 ## Journal
 
 - 07-04 : branche créée depuis `Bruce_Sonar_USBL` (cc96ab3+). U1 validé offline (chiffres
-  ci-dessus), script `analysis/render_compass_cloud.py` commité. Prochain pas : U2.1
-  (analyse.sh) puis U3.
+  ci-dessus), script `analysis/render_compass_cloud.py` commité.
+- 07-04 (soir) : **configuration complète** — U2 fait (analyse.sh) ; U3 câblé
+  (`USBL_SIGMA`) ; U4 codé (`LOOP_UNION`, colonne `detector` dans loops_detected.csv) ;
+  U5 appliqué côté branche Bruce (keyframe_translation 1.0, protocole B″ dans
+  ABLATION.md). **Prochain pas : Nathan enchaîne RU1→RU4** (tableau ci-dessus).
+- RU1 : _(à remplir)_
+- RU2 : _(à remplir)_
+- RU3 : _(à remplir)_
+- RU4 (B″, branche Bruce) : _(à remplir)_
