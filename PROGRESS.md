@@ -23,7 +23,7 @@
 - Ensuite : 1.4 combo → champion New figé ; loterie 3.1 DISO wz inversé ; **comparaison
   finale champion vs champion → mini-papier** (FABLE §7).
 
-## HoloOcean (branche holoocean, bag `test.bag` — ex test_2, renommé)
+## HoloOcean (branche holoocean, bag `test.bag` — ex test, renommé)
 
 - **2D validé** (carrés visibles après assouplissement extraction 50/5) ; **2.5D en place**
   (colonne z dans les 3 CSV ; z = /depth en mode dvl, z GT en mode gt).
