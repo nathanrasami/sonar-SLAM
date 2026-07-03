@@ -1385,3 +1385,33 @@ Analyse Fable v2 (décomposition offline complète, cf. **FABLE.md §1** réécr
   d'ablation A/B/C dans FABLE.md §3 (« Bruce pur peut-il battre le bricolage ? »).
 - Ménage : `PROMPT_FABLE.md` supprimé ; branche `slam3-d` → **`holoocean`** ;
   `SLAM_3D_MIGRATION.md` mis à jour (plan 2 temps + proposition vraie-3D pour le collègue).
+
+## 2026-07-03 — Ablation terminée, champions en cours, HoloOcean 2.5D, ménage
+
+- **Ablation A/B (branche Bruce) TERMINÉE** : A (SSM+NSSM, 0 USBL) = **1.95 m** GT-free
+  pur, cap 2.3°, 124 loops natives (DR seul 10.55 → ÷5.4) ; B (ancre USBL sigma 1.0) =
+  2.03 m, murs doublés → **l'ancre raide casse la cohérence scan** (trade-off documenté,
+  ABLATION.md). B' (sigma 2.5) préparé.
+- **Bruce_Sonar_USBL** : 1.2a (dist_threshold 0.70) = **ATE 1.50 m** (champion New),
+  constraints 82→116, cap 2.6° ; 1.3 (SSM on) = ATE 2.14 MAIS **meilleur cloud GT-free
+  (NN I≥255 0.204→0.173)** ; 1.4 (SSM + sigma 2.5) préparé — runs B'/1.4/loterie en cours.
+- **Loterie DISO** : branche `Bruce_DISO_wz` (invert_wz + chiralité automatique des
+  features selon odom_source).
+- **Présentations** : SONIC (CMU/Kaess — association aux revisites = notre goulot mesuré
+  230→116) et INS/USBL/DVL FGO (Sensors 2023 — correntropie maximale = sigma USBL
+  adaptatif par fix, la version principielle de notre saga sigma). Scripts Canva dans
+  Paper/.
+- **HoloOcean** : 2.5D en place (colonne z partout, dvl+depth), meilleure config = dvl
+  (0.13 m) NSSM off ; incident : test.bag 714 Mo perdu par le piège « ignoré + suivi
+  ailleurs = écrasé au checkout » (PIEGES §10, désamorcé sur toutes les branches — bag à
+  re-copier depuis la source) ; **HOLOOCEAN_3D_GUIDE.md** : guide autoportant pour le
+  collègue (bag 3D 10 min : trajectoire hélicoïdale autour du carré, sonar élévation
+  fine, fix des arcs MultiPath/AzimuthStreaks, gen_bag_3d.py complet).
+- **Ménage workspace** : scripts d'analyse regroupés dans `analysis/` (traj_eval,
+  bilan_run, analyze_drift/origine, plot_trajectories, filter_cloud, fix_mirror_cloud,
+  analyze_holoocean, verify_fusion, sc_*bench) ; `./analyse.sh <run>` = point d'entrée
+  unique (détecte aracati/holoocean, tolérant aux échecs) ; supprimés : hacks cloud
+  pré-fix (c1-c4, refine/render/verify_cap/structure/submap), diagnostics périmés
+  (analyze_diso/bodyframe/heading, usbl_sim, build_final_map) et docs obsolètes
+  (C_CAP_GTFREE, CHANGEMENTS_BRUCE, ENSUITE, USBL_FACTEURS, IMU_ISSUE_REPORT, PISTE) —
+  tout reste dans l'historique git. Git refactoré la veille : 4 branches + tags archive/*.

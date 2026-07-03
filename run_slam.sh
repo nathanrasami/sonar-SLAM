@@ -39,5 +39,4 @@ roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" \
     usbl:="${USBL:-true}" usbl_gain:="${USBL_GAIN:-0.4}" usbl_backend:="${USBL_BACKEND:-false}" \
     ssm:="${SSM:-false}" nssm:="${NSSM:-false}"
 
-echo "[run_slam] Terminé. Analyse avec :"
-echo "  SLAM_RESULTS_DIR=$RUN_DIR python3 plot_trajectories.py"
+echo "[run_slam] Terminé. Analyse : ./analyse.sh $(basename "$RUN_DIR")"
