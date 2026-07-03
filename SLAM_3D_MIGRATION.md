@@ -38,6 +38,12 @@ Bruce-SLAM tel quel sur le bag : RViz (trajectoire + cloud) + les CSV standard
    collègue ci-dessous, puis étapes 3-5 du plan historique.
 
 ### 📨 Proposition à transmettre au collègue HoloOcean (pour une vraie 3D)
+
+> **➡ GUIDE COMPLET PRÊT À DONNER : `HOLOOCEAN_3D_GUIDE.md`** (racine du dépôt, branche
+> holoocean) — contexte, config sonar élévation fine + fix des arcs (MultiPath/
+> AzimuthStreaks), trajectoire hélicoïdale autour du carré (script `gen_bag_3d.py`
+> complet : teleport + capteurs synthétiques + écriture rosbag directe), topics et
+> conventions, checklist de validation. Autoportant pour Opus.
 Pour que le SLAM produise une carte 3D réelle (pas une extrusion), il faut de l'élévation.
 Trois options, par ordre de préférence :
 1. **Publier le PointCloud2 3D du simulateur** (HoloOcean sait donner les points sonar avec
