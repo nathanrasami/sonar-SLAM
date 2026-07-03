@@ -5,19 +5,18 @@
 > **Lire `PIEGES.md` AVANT toute modification.** Règles : 1 changement par run ;
 > après chaque run `python3 analysis/bilan_run.py results/<run>` ; reporter dans PROGRESS.md.
 
-**Références (2026-07-02 soir, ablation complète)** :
+**RÉFÉRENCES FINALES (07-03 — comparaison champion vs champion BOUCLÉE)** :
 | Run | Config | ATE | NN | Cap méd | Loops |
 |---|---|---|---|---|---|
-| **A** `194559` | **champion branche Bruce** (SSM+NSSM, 0 USBL) | **1.95 m** | 0.204* | **2.3°** | n/e |
-| B `204329` | A + USBL back-end (sigma 1.0) | 2.03 m | 0.218* | 2.9° | n/e (≫A) |
-| **C** `141223` | bricolage (USBL+SC), branche Bruce_Sonar_USBL | **1.53 m** | 0.203 | 3.4° | 82 |
-| DR pur | (colonnes dr_* de A) | 10.55 m | — | — | — |
+| **CHAMPION New : 1.2a** `003823` | SC 0.70 + USBL σ1.4 (config FIGÉE dans le yaml BSU) | **1.50 m** | 0.204 (I≥255) | 2.6° | 116 |
+| **CHAMPION Bruce pur : B′** `120352-1` | SSM+NSSM + USBL σ2.5 (yaml Bruce figé) | **1.88 m** | 0.205 (65) | 2.6° | 130 |
+| champion CLOUD : 1.3 `015742` | SC 0.70 + SSM + σ1.4 | 2.14 m | **0.173** | 4.3° | 103 |
+| rejetés | B σ1.0 : 2.03 · 1.4 SSM+σ2.5 : 3.13 · loterie DISO : 4.56 (brut 39.2) | | | | |
 | Réf GT `011733` | DISO+GT (PAS GT-free) | 0.89 m | 0.199 | 1.7° | — |
 
-**Leçon d'ablation (cf. ABLATION.md verdict)** : l'ancre USBL raide (sigma 1.0) DÉGRADE
-la solution scan-cohérente (B < A partout, murs doublés). Trade-off ancre↔cohérence.
-Option B' non testée : sigma relâché 2.5-3.0. Le « n/e » loops est corrigé : la branche
-Bruce exporte désormais `nssm_constraints` (slam_ros.py).
+**Verdict** : +0.38 m pour la contribution (Sonar Context), mêmes capteurs des deux côtés.
+Leçon 3× mesurée : le σ d'ancre optimal DÉPEND du pipeline (SC→1.4, natif→2.5) — la version
+principielle = σ adaptatif par fix (papier INS/USBL/DVL FGO). DISO GT-free : CLOS.
 
 *cloud seuil 65 (A) vs seuil 255 (C) : NN non comparables entre eux, cf. PIEGES §8.
 
