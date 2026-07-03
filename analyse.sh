@@ -37,6 +37,20 @@ if head -1 "$CHEMIN/pointcloud.csv" 2>/dev/null | grep -q intensity; then
     run_py filter_cloud.py
 fi
 
+# rendu cap compas (U1, 100% GT-free) : position optimisée + cap dr_theta recalé.
+# Validé 07-04 : NN 0.204→0.176, carte vs vraie p90 0.99→0.44 sur le champion 1.2a.
+# Runs aracati cmd_vel seulement (nécessite dr_theta dans trajectory.csv).
+case "$RUN" in
+  run_aracati_*)
+    if head -1 "$CHEMIN/trajectory.csv" 2>/dev/null | grep -q dr_theta; then
+        if head -1 "$CHEMIN/pointcloud.csv" 2>/dev/null | grep -q intensity; then
+            run_py render_compass_cloud.py "$CHEMIN" --imin 255
+        else
+            run_py render_compass_cloud.py "$CHEMIN"
+        fi
+    fi ;;
+esac
+
 # bilan compact (1 image : traj+ATE Umeyama, cloud+NN, erreur de cap over time)
 run_py bilan_run.py "$CHEMIN"
 
