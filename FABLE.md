@@ -213,10 +213,12 @@ pointcloud, loops), en **2D** d'abord, **3D** ensuite. Cf. `SLAM_3D_MIGRATION.md
   faire osciller le tilt du sonar OU publier le PointCloud2 3D du simulateur, + IMU/pression
   dans le bag. C'est ce qui débloque une carte volumétrique réelle.
 
-## 7. Mini-papier (à la fin d'Aracati — noté)
+## 7. Mini-papier — ✅ RÉDIGÉ (07-04)
 
-Quand tu seras satisfait du meilleur run : mini-papier (4-6 pages type workshop) sur la
-méthode retenue. Squelette proposé : problème (SLAM FLS GT-free sans DVL/IMU) → système
-(Bruce + USBL back-end + Sonar Context + fix de chiralité) → l'histoire du bug de miroir comme
-étude de cas (les conventions de repère en SLAM sonar) → résultats (ATE Umeyama, NN, ablations
-A/B/C du §3) → limites. Les figures existent déjà (bilan_run, avant/après miroir).
+**`Paper/MiniPapier/MINI_PAPIER.md`** (+ `figs/`, généré par `analysis/paper_eval.py`).
+Chapitres par branche (II=Bruce, III=Bruce_Sonar_USBL, IV=pistes closes, V=holoocean),
+formules des contributions (chiralité R(θ)M=MR(−θ), facteur USBL Cauchy, descripteur SC
+densité), protocole d'éval expliqué (§6.2 : Umeyama SE(2) sans échelle = primaire ; pourquoi
+pas de rescale ; sections S1/S2/S3 façon DISO ; ATE première-pose instable — sensibilité
+mesurée ; RE trans %/rot °/m comparables aux tables DISO/ISOPoT) + NOUVELLE métrique carte
+(nuage vs re-rendu poses GT : 1.2a méd 0.11 m). Relecture/retouches par Nathan ensuite.
