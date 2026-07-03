@@ -96,4 +96,10 @@ non-reproductible. Analyses offline (results/, scratchpad) : OK.
 - Branche Bruce : les loops ne sont PAS exportées (pas de nssm_constraints ni
   loops_detected.csv) — cf. CONFIGS.md pour l'ajout.
 - Fichiers avec retour à la ligne dans le nom (Paper/) : cassent les scripts — renommer.
+- ⚠⚠ **Fichiers IGNORÉS écrasés au checkout** (vécu, 07-03 : test.bag 714 Mo PERDU) :
+  si un fichier est À LA FOIS ignoré (.gitignore `*.bag`) et SUIVI par une autre branche,
+  `git checkout` l'ÉCRASE SANS AVERTIR (les ignorés sont « sacrifiables ») puis le
+  supprime au retour. Règle : un gros fichier (bag…) ne doit être suivi sur AUCUNE
+  branche (git rm --cached partout) — fait le 07-03. Garder une copie source des bags
+  HORS du dépôt.
 - Ne rien committer sans le demander à Nathan ; messages détaillés (chiffres + pourquoi).
