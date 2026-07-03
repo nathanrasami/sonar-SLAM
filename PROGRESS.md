@@ -23,8 +23,9 @@
 
 ## 📌 Ce qui reste
 
-1. **Mini-papier** (FABLE §7) — quand Nathan est satisfait : toute la matière existe
-   (champions, ablation complète, figures bilan_run des runs cités, l'histoire du miroir).
+1. **Mini-papier — RÉDIGÉ (07-04)** : `Paper/MiniPapier/MINI_PAPIER.md` + figs générées par
+   `analysis/paper_eval.py` (protocole DISO/ISOPoT : sections S1-S3, RE, ATE 1ʳᵉ-pose ;
+   nouvelle métrique carte vs poses GT). Reste : relecture de Nathan + retouches.
 2. **HoloOcean** : re-copier le bag du collègue (`test.bag`, cf. PIEGES §10) ; bag 3D
    à venir avec `HOLOOCEAN_3D_GUIDE.md` (donné au collègue) ; côté SLAM tout est prêt
    (`sonar_source:=points3d`).
