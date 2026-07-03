@@ -47,7 +47,7 @@ case "$TYPE" in
                  odom_source:="${ODOM_SOURCE:-cmd_vel}" diso_prior:="${DISO_PRIOR:-cmd_vel}" diso_seed_gt:="${DISO_SEED_GT:-true}" \
                  gt_free_seed:="${GT_FREE_SEED:-true}" heading_from_compass:="${HEADING_COMPASS:-false}" ;;
   holoocean) roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
-                 rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-gt}" nssm:="${NSSM:-false}" ;;
+                 rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" nssm:="${NSSM:-false}" ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac
 
