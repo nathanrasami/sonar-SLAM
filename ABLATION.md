@@ -17,7 +17,17 @@
 A varie ±0.1 m run-à-run (aléas ICP non seedés). Découverte : **zéro constraint dans
 t=13-16.5 min** (fenêtre du décrochage 5.5 m de A, pourtant riche en revisites).
 
-## ▶ PROCHAIN RUN : B′ — ancre douce (sigma 2.5, déjà commité dans le yaml)
+## ✅ B′ FAIT (run `120352-1`) — CHAMPION de la branche Bruce
+
+**ATE 1.88 m, cap 2.6° méd/3.8° RMS, NN 0.205, 130 constraints natives (record), DR 10.58.**
+L'ancre douce (σ2.5) améliore A (1.95→1.88) SANS casser la cohérence (NN 0.205 ≈ A 0.204) :
+succès exactement selon le critère (<1.8 raté de 0.08 m, mais meilleur des runs Bruce).
+Config CHAMPION FIGÉE dans le yaml (σ2.5 + SSM/NSSM via envs). Verdict de la comparaison
+finale : champion New (1.2a, 1.50 m) garde **0.38 m d'avance** → Sonar Context justifié.
+Commande de reproduction :
+`SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh`
+
+## (Archive) protocole B′ d'origine
 
 ```bash
 git checkout Bruce
