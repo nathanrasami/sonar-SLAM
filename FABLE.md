@@ -158,7 +158,8 @@ Règles : **un changement par run** ; après chaque run → `python3 analysis/bi
 > Leçon transversale (3× mesurée) : **chaque pipeline a son σ d'ancre optimal** — raide avec
 > loops SC (1.4), douce avec SSM/NSSM natifs (2.5) ; la version principielle est le σ adaptatif
 > par fix (papier INS/USBL/DVL FGO, présentation 6).
-> Il reste : **mini-papier** (§7) + HoloOcean (bag 3D du collègue, guide prêt).
+> Mini-papier ✅ RÉDIGÉ (§7) · papier branche Bruce ✅ (`BRUCE_SLAM.md`, branche Bruce) ·
+> **phase ULTIME lancée** (§8, branche `Bruce_Ultime`) · HoloOcean en attente (bag 3D du collègue).
 
 ### Phase 1 — branche `Bruce_Sonar_USBL` (pipeline cmd_vel + USBL back-end + Sonar Context)
 Tout existe déjà : ce ne sont que des paramètres.
@@ -222,3 +223,20 @@ densité), protocole d'éval expliqué (§6.2 : Umeyama SE(2) sans échelle = pr
 pas de rescale ; sections S1/S2/S3 façon DISO ; ATE première-pose instable — sensibilité
 mesurée ; RE trans %/rot °/m comparables aux tables DISO/ISOPoT) + NOUVELLE métrique carte
 (nuage vs re-rendu poses GT : 1.2a méd 0.11 m). Relecture/retouches par Nathan ensuite.
+
+## 8. PHASE ULTIME (lancée 07-04) — branche `Bruce_Ultime`
+
+Directive : partir des 2 bases (traj `Bruce_Sonar_USBL` + carte `Bruce`) pour une branche
+« ultime » ; possibilité d'ajouter/remplacer des méthodes. Plan détaillé et journal :
+**`ULTIME.md`** (branche `Bruce_Ultime`). Déjà acquis :
+
+- **U1 ✅ validé offline (0 run)** : rendu du nuage à la position optimisée + **cap compas
+  recalé** (δ auto-fit GT-free) → sur 1.2a : NN 0.204→0.176, carte vs vraie méd
+  0.114→**0.077**, p90 0.989→**0.441** = la borne du cap GT. La traj BSU récupère une carte
+  meilleure que B′ SANS toucher à l'ATE (1.50). Script : `analysis/render_compass_cloud.py`.
+- Pistes ordonnées : U2 intégration analyse.sh → U3 σ 1.8 (jamais échantillonné entre 1.4 et
+  2.5) → U4 union détecteurs SC+NSSM → U5 keyframes 1.0 m sur Bruce (traj « géométrique » :
+  256 KF à 3 m, réglage upstream — cf. BRUCE_SLAM.md §6.1) → U6 σ adaptatif par fix →
+  U7 SONIC/MCFAR.
+- Papier de la branche Bruce pour la doctorante : **`BRUCE_SLAM.md`** (branche Bruce) —
+  original vs modifications (formules), ablation A/B/B′, améliorations restantes.

@@ -1,4 +1,17 @@
-# PROGRESS — état au 2026-07-03 (soir) — ARACATI : comparaison finale BOUCLÉE
+# PROGRESS — état au 2026-07-04 — papiers rédigés, PHASE ULTIME lancée
+
+## 🚀 NOUVEAU (07-04)
+
+- **Mini-papier** : `Paper/MiniPapier/MINI_PAPIER.md` (toutes branches) — relecture Nathan.
+- **Papier branche Bruce** (pour la doctorante) : `BRUCE_SLAM.md` **sur la branche Bruce** —
+  original vs modifications, ablation A/B/B′, améliorations restantes (KF 3.0→1.0 = réponse
+  à la « trajectoire géométrique » : 256 KF espacées de 3 m, réglage upstream).
+- **Branche `Bruce_Ultime` créée** (base BSU) — plan : `ULTIME.md` (FABLE §8).
+  **U1 validé offline (0 run)** : rendu carte au cap compas recalé (GT-free) → traj 1.2a
+  garde ATE 1.50 ET carte méd 0.077 / p90 0.441 (mieux que B′ 0.09/0.74, = borne cap GT).
+  Script : `analysis/render_compass_cloud.py`. Prochain : U2 (analyse.sh) puis U3 (σ 1.8).
+
+# Historique — état au 2026-07-03 (soir) — ARACATI : comparaison finale BOUCLÉE
 
 > Docs : **FABLE.md** (§4 = résultat final) · **CONFIGS.md** (réfs) · **PIEGES.md** ·
 > **ABLATION.md** (branche Bruce) · STAGE.md (journal). Éval : `./analyse.sh <run>`.
