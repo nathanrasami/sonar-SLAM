@@ -1038,7 +1038,7 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 | 2     | Reproduction des résultats       | S3–S4      | ✅ Terminé   |
 | 3     | Compréhension approfondie        | S5–S9      | ✅ Terminé   |
 | 4     | Analyse des limitations          | S10–S11    | ✅ Terminé (DISO + FABLE.md) |
-| 5     | Amélioration algorithmique       | S12–S14    | 🔄 En cours (DISO intégré ✅, Sonar Context 1/5) |
+| 5     | Amélioration algorithmique       | S12–S14    | 🔄 En cours (GT-free ATE 1.5 m ✅, tourbillon résolu ✅, cible <1 m) |
 | 6     | Rédaction du rapport             | S15–S17    | ⏳ À venir   |
 
 > ⚡ **Avance sur le planning.** La compréhension technique a avancé plus vite que la timeline
@@ -1121,12 +1121,15 @@ Pistes possibles (à choisir/affiner avec l'encadrant) :
 | DISO | Xu et al. | ICRA 2024 | `Paper/Sonar/DISO_Direct_Imaging_Sonar_Odometry.pdf` | ✅ Présenté + **intégré** — `Paper/Sonar/DISO.md` |
 | Place Recognition (Sonar Context) | Kim et al. | ICRA 2023 | `Paper/Sonar/Robust_Imaging_Sonar-based_...pdf` | ✅ Présenté + **en intégration (1/5)** — `Paper/Sonar/SonarContext.md` |
 | SIO-UV | Bai et al. | IEEE TIE 2025 | `Paper/Sonar/SIO-UV_Rapid_and_Robust_...pdf` | ✅ Analysé — `Paper/Sonar/SIO-UV.md` (n'en garder que MCFAR) |
+| DFLSO | Xu et al. | Remote Sens. 2025 | `Paper/Sonar/Direct Forward-Looking Sonar Odometry...pdf` | ✅ Analysé + prototypé offline — `Paper/Sonar/DFLS.md` (cap ICP bon en ligne droite, rate les virages ; abandonné) |
+| ISOPoT | Samec et al. | arXiv 2606.23006 | `Paper/Sonar/ISOPoT_ Imaging Sonar Odometry by Point Tracking.pdf` | ✅ Analysé — `Paper/Sonar/ISOPoT.md` (bat DISO sur Aracati ; code non publié ; biblio/rapport) |
+| DRACo-SLAM | McConnell et al. | IROS 2022 | `Paper/DRACo_SLAM/DRACo-SLAM_...pdf` | ✅ Analysé — `Paper/DRACo_SLAM/DRACo-SLAM.md` (multi-robot, hors périmètre) |
 
 ## Documents d'analyse internes
 
 | Document | Contenu |
 |----------|---------|
-| `FABLE.md` | Analyse critique d'architecture (Fable 5) : migration 3D, DISO+Bruce vs standalone, Sonar Context, pistes priorisées pour passer sous 3 m d'ATE |
+| `FABLE.md` | **v2 (2026-07-02)** Investigations Fable : résolution du tourbillon (bug miroir), audit GT-free, plan « Bruce pur vs bricolage », pistes ATE < 1 m, HoloOcean, mini-papier |
 | `SLAM_3D_MIGRATION.md` | Cadrage migration 2D→3D (HoloOcean uniquement ; Aracati reste 2D) |
 | `Paper/Sonar/DISO.md` · `SonarContext.md` · `SIO-UV.md` | Résumés détaillés des 3 papiers d'amélioration |
 
@@ -1149,3 +1152,266 @@ Script idempotent : `setup_ros_noetic.sh` (relançable, étapes marquées dans `
 
 **Usage** : `./run_slam.sh aracati` depuis Fedora (le script entre tout seul dans le conteneur).
 Bag par défaut : `ARACATI_2017_8bits_full.bag` à la racine du repo.
+
+## 2026-06-13 — Bug Sonar Context : timestamp float32 → 0 descripteur attaché
+
+**Symptôme** : runs A (main, Bruce+DISO) et B (sonar-context) quasi identiques.
+Diagnostic : `nssm_constraints = 0` dans les DEUX trajectory.csv (pure odométrie DISO),
+et `loops_detected.csv` ABSENT du run B → `sc_log` vide → `sonar_context_candidate`
+sortait toujours en amont (`query.context is None`).
+
+**Vérifié dans les logs ROS** : le run B avait bien SC actif (topic `/descriptor`
+publié + nœud SLAM abonné). Donc SC tournait mais aucun descripteur ne s'attachait.
+
+**Cause racine** : le descripteur transite dans un `Float32MultiArray` (sans header),
+avec le timestamp encodé en tête. Or float32 n'est exact que < 2^24 (16.7 M), alors que
+sec (epoch ~1.5e9) et nsec (≤1e9) dépassent largement. Le champ secondes dérivait de
+**40 à 63 s** à l'aller-retour → la clé `(sec, nsec)` ne matchait JAMAIS → pop None →
+`frame.context/ring_key` jamais renseignés → 0 candidat → 0 boucle.
+
+**Fix** : scinder chaque entier 32 bits en deux moitiés 16 bits (< 65536, exactes en
+float32), recombinées au décodage. Format descripteur :
+`[sec_hi, sec_lo, nsec_hi, nsec_lo, A, R, context(A*R), key(R)]`.
+Validé : aller-retour exact sur les timestamps réels du run B.
+Fichiers : `feature_extraction._publish_descriptor`, `slam_ros._descriptor_callback`.
+
+**À refaire** : relancer le run B sur feature/sonar-context → vérifier que
+`loops_detected.csv` apparaît, puis calibrer `dist_threshold` sur son histogramme.
+
+## 2026-06-13 (suite) — Run SC OK côté descripteurs, mais 0 boucle : bornes shgo
+
+**Run run_aracati_2026-06-13_152937** (après fix float32) :
+- `loops_detected.csv` peuplé (624 candidats) → descripteurs attachés ✓
+- SC identifie de VRAIES revisites : kf 500↔116 (384 kf d'écart, 0,4 m, sc_dist 0,125)
+- MAIS `nssm_constraints = 0` : 527 candidats retenus, TOUS rejetés en aval.
+
+**Cause** : l'init ICP global (shgo) borne sa recherche à ±5·σ de la covariance
+accumulée du keyframe source. Sans boucle fermée, cette covariance explose
+(cov_yy ~930 → bornes **±153 m** pour un sonar de 48 m). shgo échantillonne alors
+trop grossièrement (100 pts sur ±150 m) pour converger → ICP échoue → 0 contrainte
+→ covariance continue de croître (cercle vicieux). Bug ANTÉRIEUR à SC : touche aussi
+le chemin géométrique d'origine (explique run A main = 0 boucle).
+
+**Fix** : plafond des bornes shgo (`nssm/shgo_max_translation`=20 m, `shgo_max_rotation`=π),
+appliqué par np.clip après le calcul 5·σ. Bénéficie aux deux chemins. Validé :
+±153 m → ±20 m, échantillonnage shgo ~4 m (< bassin ICP).
+Fichiers : slam.py (init + clip), slam_ros.py (lecture param), slam_aracati.yaml.
+
+**Faux problème écarté** : l'ATE absolu n'a PAS de souci d'échelle. Mon script rapide
+interdisait la réflexion ; DISO inverse l'axe Y, traj_eval.py l'absorbe. ATE correct
+(réflexion autorisée) : run SC = SLAM 4,72 m ≈ Odom 4,52 m (SC n'apporte rien tant
+que 0 boucle). Réf. run 154852 : 3,35 m.
+
+**À refaire** : relancer le run SC → vérifier nssm_constraints > 0 et ATE < 4,5 m,
+puis calibrer dist_threshold sur l'histogramme (actuel 0,25 trop permissif : 84%
+retenus, distribution unimodale 0,07–0,33).
+
+## 2026-06-13 (suite) — Descripteur SC non-discriminant : reconstruit sur la structure
+
+**Run run_aracati_2026-06-13_171435** (après fix shgo) : 28 boucles se ferment enfin,
+MAIS l'ATE explose à 17,65 m (vs 4,71 m odom) → boucles FAUSSES.
+
+**Diagnostic (via GT)** : sur 525 candidats retenus par SC, 28% sont à >30 m dans le
+GT. Corrélation sc_dist ↔ vraie distance GT = **−0,02 (nulle)** : le descripteur ne
+distinguait PAS un lieu revisité d'un lieu lointain. Baisser le seuil n'aurait rien
+changé (vraies et fausses se chevauchent : médianes 0,169 vs 0,185).
+
+**Cause** : `build_sonar_context` faisait un MAX-POOLING de l'intensité brute. Sur le
+P900 (basse résolution, fort fond, retours proches saturants), le max sature partout
+→ descripteur quasi uniforme.
+
+**Banc d'essai hors-ligne** (`sc_descriptor_bench.py`, sans run SLAM) : extrait du bag
+les images aux revisites connues (GT), mesure l'AUC de séparation vraies/fausses.
+Résultat :
+- max intensité brute (actuel) : **AUC 0,55** (aléatoire)
+- densité d'intensité au-dessus d'un seuil (clip(I−95) + mean-pool) : **AUC 0,86**
+  → seuil cosinus de Youden 0,695, TPR 84%, FPR 24%.
+
+**Fix livré** : `build_sonar_context` encode désormais la densité des retours forts
+(param `sonar_context/intensity_threshold: 95`), mean-pool au lieu de max.
+`dist_threshold` recalibré 0,25 → 0,65 (nouvelle échelle de distance). Validé : le
+module réel donne bien AUC 0,86 sur le banc.
+Fichiers : sonar_context.py, feature_extraction.py, feature_aracati.yaml, slam_aracati.yaml.
+
+**À refaire** : relancer le run SC → vérifier ATE < odométrie. Si des fausses boucles
+persistent (FPR 24% résiduel), 2 leviers prêts : porte géométrique (rejeter candidat
+trop loin dans l'estimé) + monter min_pcm 6→8.
+
+## 2026-06-13 (suite) — Porte géométrique : éliminer les fausses boucles résiduelles
+
+**Run run_aracati_2026-06-13_183808** (descripteur densité) : net progrès, ATE
+17,65 → **4,73 m**, précision des boucles 18% → 51% vraies. Mais SLAM (4,73 m) reste
+au-dessus de l'odométrie (3,21 m) : 19% de fausses boucles résiduelles corrompent
+encore le graphe (FPR 24% du descripteur seul).
+
+**Mesure décisive (run 183808, estimé = odométrie non corrompue)** : pour les
+candidats retenus, la distance source↔cible dans l'estimé sépare PARFAITEMENT :
+- vraies boucles (GT<5m) : <10 m dans l'estimé (médiane 6,2, p90 9,7)
+- fausses (GT>30m) : >34 m dans l'estimé (médiane 39, p10 34)
+→ une porte à 20 m garde 112/112 vraies et rejette 41/41 fausses.
+
+C'est fiable parce que DISO est bon (3,2 m) : un vrai revisité est forcément proche
+dans l'estimé, une fausse correspondance d'apparence est loin. « L'apparence propose,
+la géométrie vérifie. »
+
+**Fix** : porte géométrique dans `sonar_context_candidate` — on filtre les candidats
+par distance dans l'estimé courant AVANT la sélection SC (`sonar_context/gate_distance:
+20.0`). Élimine les faux positifs résiduels sans perdre de vraies boucles.
+Fichiers : slam.py, slam_ros.py, slam_aracati.yaml.
+
+**Attendu au prochain run** : ATE SLAM < odométrie (les vraies boucles corrigent enfin
+la dérive sans pollution). Si l'ATE passe sous ~3 m → objectif du stage atteint.
+
+## 2026-06-13 (suite) — Pourquoi Odom DISO 5,5 m en combiné vs 2,1 m standalone
+
+**Question** : run combiné donne Odom 5,5 m, `./run_slam.sh diso` donne 2,1 m. Mensonge ?
+**Réponse : ni l'un ni l'autre, mais 2 pièges + 1 vrai problème.**
+
+1. **Piège de fichier** : dans un run DISO standalone, `odometry.csv` est la GT republiée
+   (ATE 0,00 m) — PAS DISO. Le vrai DISO standalone est `diso_trajectory.csv` = 2,07 m
+   (confirmé, le 2,1 m est réel). Ne jamais comparer les `odometry.csv` entre run diso
+   et run combiné : ce ne sont pas la même grandeur.
+
+2. **DISO combiné genuinely worse + très variable** : odometry.csv (= DISO via odom_bridge)
+   sur les runs combinés : 3,21 / 3,25 / 3,55 / 3,87 / 4,44 / 4,52 / 4,71 / 4,93 / 5,46 m.
+   Standalone 2,07 m. Le run 200714 a tiré le pire DISO (5,46 m) → d'où le SLAM décevant.
+   Fréquence quasi identique (5,0 vs 5,2 Hz) → ce n'est pas du frame-drop grossier mais
+   la contention CPU (DISO direct partage le CPU avec CFAR+iSAM2+RViz) + non-déterminisme.
+
+3. **VRAI PROBLÈME — les boucles DÉGRADENT la trajectoire** (test sous-échantillonnage,
+   pas un artefact de métrique) :
+   - 183808 : SLAM 4,73 vs odom sous-éch. aux keyframes 3,08 → +1,6 m
+   - 200714 : SLAM 7,76 vs odom sous-éch. 5,60 → +2,2 m
+   Et ce, avec des candidats à 0% de fausses (la porte géométrique marche). Donc les
+   CANDIDATS sont bons mais les CONTRAINTES (transformée relative ICP) sont imprécises :
+   vraie revisite, mauvais recalage. C'est le prochain verrou.
+
+**Fix livré** : `rate` paramétrable dans aracati.launch + run_slam.sh (`RATE=0.5 ./run_slam.sh
+aracati`). Permet le test discriminant FABLE §5 #1 : à -r 0.5, DISO doit retrouver ~2-3 m.
+Prérequis à toute éval honnête (sinon odom oscille 3,2-5,5 m, > gain des boucles).
+
+**Prochain levier (constraintes)** : init de l'ICP de boucle par le shift Sonar Context
+(best_azimuth_shift) au lieu de shgo (FABLE.md §4) → recalage plus précis.
+
+## 2026-06-13 (soir) — #2 (shift SC comme init ICP) ABANDONNÉ : preuve que le verrou est la donnée
+
+Objectif initial : initialiser l'ICP de boucle par le shift Sonar Context au lieu de
+shgo (FABLE.md §4). Avant d'implémenter, validation hors-ligne (sc_constraint_bench.py,
+sans run SLAM) → le diagnostic change la conclusion.
+
+**Étape 1 — le shift SC porte bien la rotation, mal réglée** : sur 115 vraies boucles,
+corrélation shift_azimuth ↔ yaw relatif estimé = **−0,83** (forte mais SIGNE INVERSÉ :
+convention de shift opposée). De plus le shift sature à ±32° (max_azimuth_shift=10) alors
+que les vraies rotations atteignent ±65°. Donc utilisable en principe… mais :
+
+**Étape 2 — les nuages ne s'alignent pas (le vrai verrou)** : ICP hors-ligne sur 30
+vraies revisites (CFAR répliqué + ICP 2D point-à-point) :
+- résidu médian après ICP = **7,7 m** (init estimé 8,2 m → ICP n'améliore quasi rien)
+- plancher de sparsité ~2 m (nuages ~170-430 pts ; voisins immédiats déjà à ~2,3 m)
+- ~1/3 des boucles s'alignent (résidu 1-3,5 m), 2/3 non (>5 m)
+
+**Étape 3 — une porte sur le cap ne sauve pas** : corrélation écart-cap ↔ résidu = 0,56 ;
+même à cap <10°, résidu médian 6,85 m. Le sonar est dépendant du point de vue et trop
+épars : deux passages d'un même lieu produisent des nuages trop différents pour un
+recalage fiable.
+
+**Conclusion** : le verrou n'est NI l'init (shgo/shift) NI le cap, mais l'ALIGNABILITÉ
+des nuages CFAR — une limite de la donnée (P900 basse résolution). #2 (shift→init ICP)
+n'aurait rien réglé. La place recognition de SC fonctionne (AUC 0,86, porte 0% fausses) ;
+c'est l'étape de CONTRAINTE géométrique qui est faible sur Aracati. Cohérent avec
+FABLE §2 : « impossible de battre DISO sans BONNES boucles ».
+
+**Pistes restantes (à valider AVEC données réelles, pas à l'aveugle)** :
+1. Instrumenter : logger le résidu ICP réel (libpointmatcher) par boucle → fixer un seuil
+   de rejet sur données pipeline (≠ proxy hors-ligne). Garde-fou « ne garder que le ~1/3
+   alignable » → les boucles cessent de nuire.
+2. SSM réactivé sur DISO (FABLE §3) : contraintes ICP SÉQUENTIELLES (faible baseline,
+   donc nuages proches → alignables), indépendantes de DISO. Levier plus prometteur que
+   les boucles longues sur cette donnée.
+3. Accepter que sur Aracati le gain des boucles longues est marginal : la contribution
+   est la méthodo (détection SC + porte géométrique + validation hors-ligne rigoureuse).
+
+Outils livrés : sc_descriptor_bench.py (qualité descripteur), sc_constraint_bench.py
+(qualité contrainte/alignement). Réutilisables sur tout run.
+
+## 2026-06-14 — TOURNANT : Sonar Context bat l'odométrie pour la première fois
+
+**Run run_aracati_2026-06-14_212922** (descripteur densité + porte géométrique + cap shgo) :
+- SLAM = 4,54 m vs Odom sous-échantillonné aux keyframes = 5,18 m → **gain +0,63 m**.
+  (Comparaison équitable : même base de keyframes ; avant le fix descripteur les
+  boucles DÉGRADAIENT de −1,6 à −2,2 m.)
+- 213 candidats retenus, **0% faux** (GT>30m), 54% vraies revisites, max retenu 20,7 m
+  (= la porte à 20 m, parfaitement efficace). 8 boucles intégrées par PCM.
+
+C'est la 1re fois que Bruce+DISO+Sonar Context passe SOUS l'odométrie pure → thèse du
+stage validée : la fermeture de boucle par apparence (avec vérification géométrique)
+ajoute de l'information. Les 3 correctifs se combinent :
+descripteur densité (AUC 0,55→0,86) → porte géométrique (FPR 24%→0%) → cap shgo.
+
+Réserve : ce run avait une odométrie DISO médiocre (4,96 m, variance de tirage 3,2-5,5 m).
+Sur un bon tirage DISO (~3 m) le SLAM absolu devrait viser ~2,5 m. À mesurer.
+
+---
+
+## 2026-06-15 → 07-01 — Résumé condensé (détail dans les mémoires + PROGRESS.md)
+
+- Pivot vers le **100 % GT-free** : odométrie /cmd_vel (le wz du bag), seed USBL
+  (course-over-ground), **facteurs USBL dans le back-end** (prior unaire Cauchy x,y),
+  Sonar Context pour les loops. Branche **`Bruce_Sonar_USBL`** = la config de référence.
+- Hiérarchie atteinte : ATE Umeyama **1.43–1.53 m** (vs 5.2 m mi-juin, vs objectif <3 m
+  du FABLE v1 : battu). Piège documenté : USBL front-end + back-end = double ancrage → zigzag.
+- Restait LE problème : le pointcloud « tourbillon » — semaines d'hypothèses (cap ? position
+  inter-scan ? fond CFAR ? aléa iSAM2 ?), runs de test (cap GT injecté, DISO GT-free ATE 22 m,
+  DFLSO réimplémenté offline — branche `Bruce_DFLSO`), sans percer.
+
+## 2026-07-02 — ⭐ RÉSOLUTION du tourbillon : bug de MIROIR (chiralité des scans)
+
+Analyse Fable v2 (décomposition offline complète, cf. **FABLE.md §1** réécrit) :
+- **Cause** : features cartésiennes avec y latéral en convention image (+droite, « même signe
+  que DISO » = repère réfléchi) vs odométrie cmd_vel en repère propre (θ≈cap ENU, det=+1)
+  → chaque scan peint EN MIROIR de son cap → arcs/tourbillon en virage. DISO (repère
+  lui-même réfléchi) compensait accidentellement — d'où sa carte nette.
+- **Preuves** : poses GT parfaites ne changent RIEN au NN (0.365→0.365) ; détections
+  identiques entre runs ; rendu au même jeu de poses : sans miroir = aire ÷2.
+- **Fix** : param `cartesian/flip_bearing` (feature_extraction.py, flip dans le packing
+  après la relecture d'intensité) + `flip_bearing: True` (feature_aracati.yaml ; False en
+  mode DISO). Post-traitement des runs existants : `fix_mirror_cloud.py`.
+- **Validation** (run 141223, GT-free) : NN 0.365→**0.203**, aire ÷2.2, **quai en T visible**,
+  ATE 1.53 m (stable), cap 3.4° méd. Nouvel outil : `bilan_run.py` (1 image bilan/run).
+- Audit GT-free confirmé (/pose_gt = éval seulement) ; nuance assumée : le wz de /cmd_vel
+  est dérivé du compas du véhicule (README aracati2017) — capteur réaliste UV.
+- Retombées : réinterprétation de la divergence DISO GT-free (chiralité du prior) ; les
+  verdicts « SSM diverge » / « loops natives fausses » (pré-fix) sont à re-tester → plan
+  d'ablation A/B/C dans FABLE.md §3 (« Bruce pur peut-il battre le bricolage ? »).
+- Ménage : `PROMPT_FABLE.md` supprimé ; branche `slam3-d` → **`holoocean`** ;
+  `SLAM_3D_MIGRATION.md` mis à jour (plan 2 temps + proposition vraie-3D pour le collègue).
+
+## 2026-07-03 — Ablation terminée, champions en cours, HoloOcean 2.5D, ménage
+
+- **Ablation A/B (branche Bruce) TERMINÉE** : A (SSM+NSSM, 0 USBL) = **1.95 m** GT-free
+  pur, cap 2.3°, 124 loops natives (DR seul 10.55 → ÷5.4) ; B (ancre USBL sigma 1.0) =
+  2.03 m, murs doublés → **l'ancre raide casse la cohérence scan** (trade-off documenté,
+  ABLATION.md). B' (sigma 2.5) préparé.
+- **Bruce_Sonar_USBL** : 1.2a (dist_threshold 0.70) = **ATE 1.50 m** (champion New),
+  constraints 82→116, cap 2.6° ; 1.3 (SSM on) = ATE 2.14 MAIS **meilleur cloud GT-free
+  (NN I≥255 0.204→0.173)** ; 1.4 (SSM + sigma 2.5) préparé — runs B'/1.4/loterie en cours.
+- **Loterie DISO** : branche `Bruce_DISO_wz` (invert_wz + chiralité automatique des
+  features selon odom_source).
+- **Présentations** : SONIC (CMU/Kaess — association aux revisites = notre goulot mesuré
+  230→116) et INS/USBL/DVL FGO (Sensors 2023 — correntropie maximale = sigma USBL
+  adaptatif par fix, la version principielle de notre saga sigma). Scripts Canva dans
+  Paper/.
+- **HoloOcean** : 2.5D en place (colonne z partout, dvl+depth), meilleure config = dvl
+  (0.13 m) NSSM off ; incident : test.bag 714 Mo perdu par le piège « ignoré + suivi
+  ailleurs = écrasé au checkout » (PIEGES §10, désamorcé sur toutes les branches — bag à
+  re-copier depuis la source) ; **HOLOOCEAN_3D_GUIDE.md** : guide autoportant pour le
+  collègue (bag 3D 10 min : trajectoire hélicoïdale autour du carré, sonar élévation
+  fine, fix des arcs MultiPath/AzimuthStreaks, gen_bag_3d.py complet).
+- **Ménage workspace** : scripts d'analyse regroupés dans `analysis/` (traj_eval,
+  bilan_run, analyze_drift/origine, plot_trajectories, filter_cloud, fix_mirror_cloud,
+  analyze_holoocean, verify_fusion, sc_*bench) ; `./analyse.sh <run>` = point d'entrée
+  unique (détecte aracati/holoocean, tolérant aux échecs) ; supprimés : hacks cloud
+  pré-fix (c1-c4, refine/render/verify_cap/structure/submap), diagnostics périmés
+  (analyze_diso/bodyframe/heading, usbl_sim, build_final_map) et docs obsolètes
+  (C_CAP_GTFREE, CHANGEMENTS_BRUCE, ENSUITE, USBL_FACTEURS, IMU_ISSUE_REPORT, PISTE) —
+  tout reste dans l'historique git. Git refactoré la veille : 4 branches + tags archive/*.

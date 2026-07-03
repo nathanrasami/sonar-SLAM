@@ -134,7 +134,7 @@ coût > gain attendu — « run A déjà satisfaisant ».
 
 ## 4. Pistes vers ATE < 1 m — configurations à tester, PAR BRANCHE, DANS L'ORDRE
 
-Règles : **un changement par run** ; après chaque run → `python3 bilan_run.py results/run_...`
+Règles : **un changement par run** ; après chaque run → `python3 analysis/bilan_run.py results/run_...`
 (1 image + 1 ligne de chiffres) ; reporter le résultat dans PROGRESS.md.
 **Recettes d'implémentation détaillées : [CONFIGS.md](CONFIGS.md)** (une ancre par piste).
 **Pièges à lire avant toute modif : [PIEGES.md](PIEGES.md).**
@@ -182,7 +182,7 @@ SSM/NSSM/USBL par variables d'env, s'arrête tout seul à la fin du bag).
 
 ## 5. Caractérisation d'un run : `bilan_run.py` (nouveau)
 
-`python3 bilan_run.py results/run_X [results/run_avec_theta]` → **1 image** `bilan_run.png` :
+`python3 analysis/bilan_run.py results/run_X [results/run_avec_theta]` → **1 image** `bilan_run.png` :
 trajectoire alignée + ATE ; pointcloud + NN ; **erreur de cap véridique dans le temps** (fit
 s·θ+β, offset retiré — le transitoire initial ~29° = convergence du seed USBL course-over-ground).
 Console : 1 ligne de chiffres. À appeler depuis `analyse.sh` (ajout d'une ligne). C'est le

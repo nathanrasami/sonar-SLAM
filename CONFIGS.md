@@ -3,7 +3,7 @@
 > Pour l'agent (Opus/autre) et pour Nathan : CHAQUE piste de `FABLE.md` §4 pointe ici
 > (ancres `#12a-…`). Recette exacte, fichiers/lignes, résultat attendu, comment évaluer.
 > **Lire `PIEGES.md` AVANT toute modification.** Règles : 1 changement par run ;
-> après chaque run `python3 bilan_run.py results/<run>` ; reporter dans PROGRESS.md.
+> après chaque run `python3 analysis/bilan_run.py results/<run>` ; reporter dans PROGRESS.md.
 
 **Références (2026-07-02 soir, ablation complète)** :
 | Run | Config | ATE | NN | Cap méd | Loops |
