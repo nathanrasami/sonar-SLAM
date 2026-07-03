@@ -1,7 +1,27 @@
-# ABLATION.md — branche `Bruce` : état et PROCHAIN RUN (B′)
+# ABLATION.md — branche `Bruce` : état et PROCHAIN RUN (B″, keyframes 1.0)
 
-> A et B sont FAITS (verdict ci-dessous). **Le prochain run de cette branche est B′**
-> (ancre USBL douce). Contexte : `FABLE.md` §3, recettes : `CONFIGS.md`, pièges : `PIEGES.md`.
+> A, B et B′ sont FAITS (verdicts ci-dessous). **Le prochain run de cette branche est B″**
+> (U5 : keyframes densifiées — voir section dédiée). Contexte : `FABLE.md` §3/§8,
+> recettes : `CONFIGS.md`, pièges : `PIEGES.md`, papier : `BRUCE_SLAM.md`.
+
+## 🎬 PROCHAIN RUN : B″ — keyframes 3.0 → 1.0 m (U5, RU4 de la séquence ULTIME)
+
+**Pourquoi** : la trajectoire B′ est « géométrique » — 256 keyframes espacées de ~3 m
+(`keyframe_translation: 3.0`, réglage upstream), segments droits entre. À 1.0 m (comme
+BSU) : ~665 KF, trajectoire lissée, nuage rendu depuis plus de poses. Coût ~×2.6 en
+ICP/NSSM (ok). Le yaml est DÉJÀ MODIFIÉ (07-04) — ne rien éditer.
+
+```bash
+git checkout Bruce
+SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh   # = B′ + KF 1.0
+./analyse.sh run_aracati_<date>                    # inclut désormais la carte compas (U1)
+python3 analysis/paper_eval.py results/run_aracati_<date>
+```
+
+**Verdict** : B″ remplace B′ comme champion si ATE < 1.88 m (à cohérence égale, NN ≤ 0.21
+au seuil 65). Si ATE ≥ 1.88 : rollback `keyframe_translation: 3.0`, B′ reste champion —
+et la densification n'aura servi qu'au lissage visuel (documenter dans BRUCE_SLAM.md §6.1).
+⚠ Si le CPU sature (3× plus de keyframes → SSM/NSSM plus fréquents) : `RATE=0.5`.
 
 ## Résultats acquis (ne pas refaire)
 
