@@ -224,19 +224,25 @@ pas de rescale ; sections S1/S2/S3 façon DISO ; ATE première-pose instable —
 mesurée ; RE trans %/rot °/m comparables aux tables DISO/ISOPoT) + NOUVELLE métrique carte
 (nuage vs re-rendu poses GT : 1.2a méd 0.11 m). Relecture/retouches par Nathan ensuite.
 
-## 8. PHASE ULTIME (lancée 07-04) — branche `Bruce_Ultime`
+## 8. PHASE ULTIME — RU1-RU4 FAITS (07-04) : 🏆 CHAMPION RU1 (σ1.8) 1.47 m
 
 Directive : partir des 2 bases (traj `Bruce_Sonar_USBL` + carte `Bruce`) pour une branche
-« ultime » ; possibilité d'ajouter/remplacer des méthodes. Plan détaillé et journal :
-**`ULTIME.md`** (branche `Bruce_Ultime`). Déjà acquis :
+« ultime ». Plan détaillé, verdicts et journal : **`ULTIME.md`** (branche `Bruce_Ultime`).
 
-- **U1 ✅ validé offline (0 run)** : rendu du nuage à la position optimisée + **cap compas
-  recalé** (δ auto-fit GT-free) → sur 1.2a : NN 0.204→0.176, carte vs vraie méd
-  0.114→**0.077**, p90 0.989→**0.441** = la borne du cap GT. La traj BSU récupère une carte
-  meilleure que B′ SANS toucher à l'ATE (1.50). Script : `analysis/render_compass_cloud.py`.
-- Pistes ordonnées : U2 intégration analyse.sh → U3 σ 1.8 (jamais échantillonné entre 1.4 et
-  2.5) → U4 union détecteurs SC+NSSM → U5 keyframes 1.0 m sur Bruce (traj « géométrique » :
-  256 KF à 3 m, réglage upstream — cf. BRUCE_SLAM.md §6.1) → U6 σ adaptatif par fix →
-  U7 SONIC/MCFAR.
-- Papier de la branche Bruce pour la doctorante : **`BRUCE_SLAM.md`** (branche Bruce) —
-  original vs modifications (formules), ablation A/B/B′, améliorations restantes.
+- **🏆 RU1 `125434-RU1` (SC 0.70 + USBL σ1.8) : ATE 1.47 m**, 125 constraints, et avec le
+  rendu compas U1 : NN 0.172 (meilleur cloud du stage), carte vs vraie **0.075/0.413**
+  (≈ borne GT 0.40). Config FIGÉE dans le yaml Ultime. Balayage σ : 1.4→1.50, 1.8→1.47,
+  2.0→1.60 (RU2).
+- **U1 ✅** rendu compas (0 run) ; **U2 ✅** intégré à analyse.sh (toutes branches).
+- **U4 ❌ RU3 2.91 m** : l'union SC+natif réinjecte les faux positifs non gatés (583
+  candidats natifs) + CPU saturé → PIEGES §12. **U5 ❌ RU4 17.17 m** : fenêtres NSSM en
+  KEYFRAMES (min_st_sep 8 = 8 m après densification) → fausses loops court-terme dès
+  t=3 min → PIEGES §11 ; rollback fait, B″-bis optionnelle (fenêtres ×3) dans ABLATION.md.
+- **U6 ✅ codé → RU5 (seul run restant proposé)** : σ USBL adaptatif par fix, GT-free.
+  Justifié offline : bruit réel ×3.5 le long de la mission (0.87→3.09 m), proxy MAD local
+  corrélé 0.64 au vrai résidu. `USBL_ADAPTIVE=true ./run_slam.sh`.
+- **U7 verdict** : ISOPoT infaisable (code non publié, tracker vidéo lourd) ; SONIC = test
+  offline en réserve seulement (domain gap probable, SONIC déjà faible sur Aracati dans
+  la table ISOPoT). MCFAR en réserve.
+- Papier doctorante : **`BRUCE_SLAM.md`** (branche Bruce) — original vs modifications,
+  ablation A/B/B′ (+ verdict B″ §6.1 à intégrer après RU5).

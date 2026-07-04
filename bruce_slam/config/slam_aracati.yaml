@@ -3,12 +3,12 @@
 
 # how often to add keyframes, this can be varied but between 1 and 4 meters is best
 keyframe_duration: 1.0
-# U5 / RUN B″ (07-04) : 3.0 (upstream, champion B′ 120352-1) → 1.0 (comme BSU).
-# La traj B′ était « géométrique » : 256 KF espacées de ~3 m reliées en segments
-# droits. À 1.0 : ~665 KF attendues, traj lissée, coût CPU ×2.6 (ok, BSU tourne
-# ainsi). Reste dans la plage upstream « between 1 and 4 meters ». Rollback : 3.0.
-# Verdict via paper_eval vs B′ (1.88 m) — cf. ABLATION.md §B″ et BRUCE_SLAM.md §6.1.
-keyframe_translation: 1.0
+# ⚠ B″ (RU4 114439, 07-04) : 1.0 TESTÉ ET REJETÉ — ATE 17.17 m. Cause : min_st_sep/
+# pcm_queue_size/source_frames sont en KEYFRAMES → à 1.0 m l'exclusion de revisite
+# tombe de ~24 m à ~8 m → fausses loops court-terme dès t=3 min (PIEGES §11).
+# B″-bis possible : 1.0 AVEC fenêtres ×3 (min_st_sep 24, pcm_queue 15,
+# source_frames 15) — cf. ABLATION.md. En attendant : 3.0 = champion B′.
+keyframe_translation: 3.0
 keyframe_rotation: deg(30)
 
 # define the noise models

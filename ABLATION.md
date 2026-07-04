@@ -1,27 +1,33 @@
-# ABLATION.md — branche `Bruce` : état et PROCHAIN RUN (B″, keyframes 1.0)
+# ABLATION.md — branche `Bruce` : CLOSE (champion B′) — B″ testé et rejeté
 
-> A, B et B′ sont FAITS (verdicts ci-dessous). **Le prochain run de cette branche est B″**
-> (U5 : keyframes densifiées — voir section dédiée). Contexte : `FABLE.md` §3/§8,
-> recettes : `CONFIGS.md`, pièges : `PIEGES.md`, papier : `BRUCE_SLAM.md`.
+> A, B, B′ et B″ sont FAITS. **Champion de la branche : B′ (1.88 m)**, yaml revenu à sa
+> config (rollback keyframes fait le 07-04). Contexte : `FABLE.md` §3/§8, pièges :
+> `PIEGES.md` (§11 est né ici), papier : `BRUCE_SLAM.md`.
 
-## 🎬 PROCHAIN RUN : B″ — keyframes 3.0 → 1.0 m (U5, RU4 de la séquence ULTIME)
+## ❌ B″ FAIT (run `114439-RU4`) — ÉCHEC INSTRUCTIF : ATE 17.17 m, ROLLBACK appliqué
 
-**Pourquoi** : la trajectoire B′ est « géométrique » — 256 keyframes espacées de ~3 m
-(`keyframe_translation: 3.0`, réglage upstream), segments droits entre. À 1.0 m (comme
-BSU) : ~665 KF, trajectoire lissée, nuage rendu depuis plus de poses. Coût ~×2.6 en
-ICP/NSSM (ok). Le yaml est DÉJÀ MODIFIÉ (07-04) — ne rien éditer.
+**Ce qui s'est passé** : la densification a fonctionné (666 KF) mais `min_st_sep: 8`,
+`pcm_queue_size` et `source_frames` comptent des KEYFRAMES, pas des mètres. À 1.0 m/KF,
+l'exclusion de revisite est tombée de ~24 m à ~8 m → le NSSM a validé des
+auto-appariements court-terme comme loops : **1re « loop » à t=3.0 min, 47 contraintes
+avant 8 min** (B′ : 1re à 12.5 min, 0 avant 8) → 415 contraintes majoritairement fausses,
+cap 10°, carte détruite (0.19/2.92). Piège générique documenté : **PIEGES §11**.
 
-```bash
-git checkout Bruce
-SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh   # = B′ + KF 1.0
-./analyse.sh run_aracati_<date>                    # inclut désormais la carte compas (U1)
-python3 analysis/paper_eval.py results/run_aracati_<date>
+**Rollback fait** : `keyframe_translation: 3.0` (champion B′ reproductible tel quel).
+
+**B″-bis (optionnelle, 1 run)** — la densification RESTE bonne pour lisser la trajectoire,
+à condition de rescaler les fenêtres du même facteur ×3 :
+```yaml
+keyframe_translation: 1.0   # slam_aracati.yaml
+nssm:
+  min_st_sep: 24            # 8 → 24  (≈ 24 m d'exclusion, comme avant)
+  source_frames: 15         # 5 → 15  (même contexte métrique de submap)
+pcm_queue_size: 15          # 5 → 15  (même fenêtre métrique de cohérence)
 ```
-
-**Verdict** : B″ remplace B′ comme champion si ATE < 1.88 m (à cohérence égale, NN ≤ 0.21
-au seuil 65). Si ATE ≥ 1.88 : rollback `keyframe_translation: 3.0`, B′ reste champion —
-et la densification n'aura servi qu'au lissage visuel (documenter dans BRUCE_SLAM.md §6.1).
-⚠ Si le CPU sature (3× plus de keyframes → SSM/NSSM plus fréquents) : `RATE=0.5`.
+puis `SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true RATE=0.5 ./run_slam.sh`
+(RATE 0.5 : 2.6× plus de keyframes = plus de charge). Verdict : remplace B′ si ATE < 1.88
+à NN ≤ 0.21 (seuil 65). Sans ça, la trajectoire « géométrique » reste un artefact
+d'affichage assumé (BRUCE_SLAM.md §6.1).
 
 ## Résultats acquis (ne pas refaire)
 

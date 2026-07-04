@@ -1,6 +1,21 @@
-# PROGRESS — état au 2026-07-04 — papiers rédigés, PHASE ULTIME lancée
+# PROGRESS — état au 2026-07-04 (nuit) — 🏆 CHAMPION ULTIME RU1 : 1.47 m / carte 0.075-0.413
 
-## 🚀 NOUVEAU (07-04)
+## 🏆 RÉSULTATS RU1-RU4 (07-04) — détail : ULTIME.md (branche Bruce_Ultime)
+
+| Run | Teste | Verdict |
+|---|---|---|
+| RU1 `125434-RU1` | σ1.8 | **CHAMPION : ATE 1.47, carte compas 0.075/0.413, NN 0.172** — FIGÉ yaml |
+| RU2 `134157-RU2` | σ2.0 | 1.60 → optimum ~1.8 (balayage 1.4/1.8/2.0 = 1.50/1.47/1.60) |
+| RU3 `145924-RU3` | union détecteurs | ❌ 2.91 — faux positifs natifs non gatés (PIEGES §12) |
+| RU4 `114439-RU4` | B″ KF 1.0 (Bruce) | ❌ 17.17 — fenêtres NSSM en keyframes (PIEGES §11), rollback fait |
+
+- **Il reste UN run proposé : RU5** `USBL_ADAPTIVE=true ./run_slam.sh` (branche Ultime) —
+  σ USBL adaptatif par fix (U6, codé + justifié offline : bruit réel ×3.5, proxy corr. 0.64).
+  Garde si ATE < 1.47 à carte égale.
+- Verdict pistes externes : ISOPoT infaisable (code non publié) ; SONIC test offline en
+  réserve seulement ; MCFAR en réserve. Après RU5 : consolidation + màj des 2 papiers.
+
+## 🚀 Précédent (07-04 matin)
 
 - **Mini-papier** : `Paper/MiniPapier/MINI_PAPIER.md` (toutes branches) — relecture Nathan.
 - **Papier branche Bruce** (pour la doctorante) : `BRUCE_SLAM.md` **sur la branche Bruce** —
