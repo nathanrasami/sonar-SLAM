@@ -134,6 +134,11 @@ class SLAMNode(SLAM):
         # pour l'évaluation ATE. Seul ajout au cœur Bruce, sans effet sur le SLAM.
         self.gt_poses = []
         rospy.Subscriber("/pose_gt", PoseStamped, self._gt_callback, queue_size=100)
+        # odométrie brute à pleine fréquence (cmd_vel intégré) → odometry.csv,
+        # même base de temps que le GT (comme sur Bruce_Sonar_USBL)
+        self.odom_poses = []
+        rospy.Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry, self._odom_log_callback,
+                         queue_size=50)
         rospy.on_shutdown(self.export_csv)
 
         # USBL back-end (GT-free) : facteur de position absolue sur /usbl_point.
@@ -159,6 +164,12 @@ class SLAMNode(SLAM):
                          1.0 - 2.0 * (q.y * q.y + q.z * q.z))
         self.gt_poses.append((msg.header.stamp.to_sec(),
                               msg.pose.position.x, msg.pose.position.y, yaw))
+
+    def _odom_log_callback(self, msg: Odometry) -> None:
+        """Bufferise l'odométrie brute à pleine fréquence (pour odometry.csv)."""
+        self.odom_poses.append((msg.header.stamp.to_sec(),
+                                msg.pose.pose.position.x,
+                                msg.pose.pose.position.y))
 
     def _usbl_callback(self, msg: PointStamped) -> None:
         """Bufferise les fixes USBL (positionnement acoustique, GT-free)."""
@@ -224,6 +235,13 @@ class SLAMNode(SLAM):
                 w = csv.writer(f)
                 w.writerow(["time", "x", "y", "theta"])
                 w.writerows(self.gt_poses)
+
+        # odométrie brute pleine fréquence (même format que Bruce_Sonar_USBL)
+        if self.odom_poses:
+            with open(os.path.join(output_dir, "odometry.csv"), "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["time", "x", "y"])
+                w.writerows(self.odom_poses)
         loginfo("CSV exportés dans %s" % output_dir)
 
     @add_lock
