@@ -1412,7 +1412,7 @@ NN se dégrade légèrement) — on garde le rendu θ optimisé comme carte de r
 ![Carte livrable — rendu compas de BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/pointcloud_compass.png)
 *Le rendu compas (droite) vs θ optimisé (gauche) : NN 0.196 → 0.177, carte p90 0.425.*
 
-![Carte vs carte vraie — BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1_cloud_vs_gt.png)
+![Carte vs carte vraie — BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/run_aracati_2026-07-04_201541_cloud_vs_gt.png)
 *Erreur de carte de BSU_1 : superposition au « nuage vrai » et coloration par distance.*
 
 ![Bruce sans USBL — Bruce_2](TESTS_image/run_aracati_2026-07-04_223959_Bruce_2/bilan_run.png)
