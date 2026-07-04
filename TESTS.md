@@ -1259,3 +1259,107 @@ Fusion pose-graph **DISO-120307 local (prior GT) + cmd_vel-150959 global (GT-fre
 
 C'est le meilleur cloud présentable. Le cloud propre **100% GT-free** reste ouvert → exploré en
 option C (estimateur de cap GT-free custom, branche dédiée).
+
+---
+---
+
+# PARTIE 2 — RECENTRALISATION FINALE (2026-07-04) : de la chiralité au champion 1.47 m
+
+> **LE document central des résultats.** Les dossiers des runs conservés sont dans
+> `TESTS_image/` (CSV + images, non suivis par git — évaluables par
+> `python3 analysis/paper_eval.py TESTS_image/<run>`). Ménage du 07-04 : les runs
+> intermédiaires de juin (saga DISO 06-04→06-15 de la partie 1, essais 06-17→06-29
+> remplacés depuis) ont été **supprimés** — leurs chiffres restent dans la partie 1
+> et dans le tableau maître quand ils comptent. Protocole d'évaluation : ATE Umeyama
+> SE(2) s=1 (primaire) + sections S1-S3 + RE + carte vs poses GT — expliqué et justifié
+> dans `Paper/MiniPapier/MINI_PAPIER.md` §6.2. Pièges à lire avant tout run : `PIEGES.md`.
+
+## 2.0 Le fil de l'histoire en 5 découvertes
+
+1. **Chiralité (07-02, LE déblocage)** : les scans étaient peints en MIROIR du cap
+   (identité R(θ)M = MR(−θ)) → « tourbillon » et détection de boucles morte (6 PCM).
+   Fix 1 paramètre (`flip_bearing`), validation : run `141223`. Détail : PIEGES §1.
+2. **Sonar Context (branche Bruce_Sonar_USBL)** : détection de boucles par apparence
+   (descripteur densité, AUC 0.55→0.86) + porte géométrique → champion 1.2a 1.50 m.
+3. **Le σ d'ancre USBL dépend du pipeline** (mesuré 5×) : loops SC seuls → raide
+   (1.4-1.8) ; SSM/NSSM natifs → doux (2.5) ; adaptatif par fix → perd (RU5).
+   Balayage final : 1.4→1.50 · **1.8→1.47** · 2.0→1.60 · 2.5(+SSM)→3.13.
+4. **Rendu compas U1 (branche Bruce_Ultime, 0 run)** : position optimisée + cap compas
+   recalé (δ auto-fit GT-free) → carte méd 0.075 / p90 0.413 = la borne GT. Sortie
+   standard d'`analyse.sh` (`pointcloud_compass.csv/png`).
+5. **Deux échecs instructifs (07-04)** : union des détecteurs sans porte → faux
+   positifs (PIEGES §12) ; densification des keyframes sans rescaler les fenêtres
+   NSSM (en KEYFRAMES !) → fausses loops court-terme (PIEGES §11).
+
+## 2.1 TABLEAU MAÎTRE — les 21 runs conservés (dossiers dans `TESTS_image/`)
+
+| Dossier (TESTS_image/) | Branche | Lancement | Config clé | Résultats | Verdict / filiation |
+|---|---|---|---|---|---|
+| `…Bruce_DISO_Sonar_2026-06-16_120307` | BSU (époque DISO) | `ODOM_SOURCE=diso DISO_PRIOR=gt` | DISO + prior GT | cloud propre (submap fusion, partie 1) | réf. VISUELLE carte GT-assistée |
+| `…Bruce_Sonar_USBL_2026-06-18_120154` | BSU | `GT_FREE_SEED=false ./run_slam.sh` | seed /pose_gt t=0, σ1.4 | ATE 1.44 | baseline GT-seed (PRÉ-fix : cloud tourbillon) |
+| `…Bruce_Sonar_USBL_2026-06-24_150959` | BSU | `./run_slam.sh` | seed USBL (100% GT-free), σ1.4 | ATE 1.43 | baseline GT-free historique (PRÉ-fix) |
+| `…Bruce_Sonar_USBL_2026-06-20_011733` | BSU | `ODOM_SOURCE=diso DISO_PRIOR=gt` + loops + USBL | GT-assisté complet | **ATE 0.89**, carte 0.11/0.40, cap 1.6° | ★ **BORNE du dataset** (GT = DGPS planche flottante) |
+| `run_aracati_2026-07-01_150034` | BSU | `./run_slam.sh` | PRÉ-fix chiralité | tourbillon + `pointcloud_demiroir.png` | pièce à conviction du miroir (Fig. 1 des papiers) |
+| `run_aracati_2026-07-02_141223` | BSU | `./run_slam.sh` | **POST-fix**, SC 0.60 | 1.53, NN 0.365→0.203, PCM 6→82 | ★ validation du fix chiralité |
+| `run_aracati_2026-07-02_194559` (**A**) | **Bruce** | `SSM=true NSSM=true USBL=false ./run_slam.sh` | Bruce pur, **zéro USBL**, KF 3.0 | 1.95, RE 5.89 %, carte 0.09/**0.67** | ★ Bruce original sans USBL (cas doctorante), meilleure carte de la branche |
+| `run_aracati_2026-07-02_214846` (A-bis) | Bruce | idem A | — | 2.04 | répétabilité : ±0.1 m (ICP non seedé) |
+| `run_aracati_2026-07-02_204329` (B) | Bruce | A + `USBL=true USBL_GAIN=0 USBL_BACKEND=true`, σ1.0 | ancre RAIDE | 2.03 | l'ancre raide dégrade A |
+| `run_aracati_2026-07-03_120352-1` (**B′**) | Bruce | idem B, σ2.5 (yaml) | ancre DOUCE | **1.88**, 130 loops, carte 0.09/0.74 | ★ champion Bruce pur (amélioration de A) |
+| `run_aracati_2026-07-03_003823` (**1.2a**) | **BSU** | `./run_slam.sh` (config figée) | SC **0.70**, σ1.4, SSM off | **1.50**, 116 c., cap 2.6°, carte 0.11/0.99 | ★ champion BSU (améliore 141223 : seuil SC 0.60→0.70 = +108 candidats vrais, 0 faux) |
+| `run_aracati_2026-07-03_015742` (1.3) | BSU | 1.2a + `ssm/enable: True` (yaml) | SC + SSM, σ1.4 | 2.14, **NN 0.173** | champion cloud pré-compas ; SSM troque l'ATE contre la carte |
+| `run_aracati_2026-07-03_140908-2` (1.4) | BSU | 1.3 + σ2.5 | SSM + doux | 3.13 | rejeté — σ doux incompatible avec SC |
+| `run_aracati_2026-07-03_151239-3` (loterie) | BSU | `ODOM_SOURCE=diso DISO_PRIOR=cmd_vel` (+invert_wz) | DISO GT-free | 4.56 (odom brute 39.2) | piste DISO GT-free CLOSE (tag archive/Bruce_DISO_wz) |
+| `run_aracati_2026-07-04_125434-RU1` | **Ultime** | `USBL_SIGMA=1.8` (désormais : `./run_slam.sh` nu) | SC 0.70, **σ1.8**, SSM off | **🏆 1.47**, 125 c., carte compas **0.075/0.413**, NN compas **0.172** | 🏆 **CHAMPION FINAL** (améliore 1.2a) — config figée dans le yaml Ultime |
+| `run_aracati_2026-07-04_134157-RU2` | Ultime | `USBL_SIGMA=2.0` | σ2.0 | 1.60 | borne l'optimum σ (~1.8) |
+| `run_aracati_2026-07-04_145924-RU3` | Ultime | `LOOP_UNION=true` | union SC + gating natif | 2.91, 615 KF (CPU) | rejeté — faux positifs non gatés (PIEGES §12) |
+| `run_aracati_2026-07-04_114439-RU4` (B″) | Bruce | commande B′ + `keyframe_translation: 1.0` | KF densifiées | 17.17 | rejeté — fenêtres NSSM en keyframes (PIEGES §11) ; rollback fait ; recette B″-bis dans ABLATION.md |
+| `run_aracati_2026-07-04_161907-RU5` | Ultime | `USBL_ADAPTIVE=true` | σ adaptatif par fix (MAD) | 1.62, carte 0.078/0.484 | rejeté — le σ fixe 1.8 gagne (code conservé, défaut off) |
+| `run_holoocean_2026-07-03_015206` | **holoocean** | `./run_slam.sh holoocean` | odom **dvl** (défaut) | ATE 0.13, 4 murs reconstruits | ★ config holoocean retenue |
+| `run_holoocean_2026-07-03_015417` | holoocean | + `nssm:=true` | loops natives | dérive > dvl seul | NSSM natif n'aide pas (bag court) |
+
+## 2.2 Lecture par branche
+
+- **`Bruce`** (Bruce-SLAM original adapté — papier : `BRUCE_SLAM.md` sur cette branche) :
+  A (1.95, sans USBL) → B′ (1.88, ancre douce) ; B et B″ rejetés. Sans USBL = §7.1 du
+  papier (cas doctorante) ; avec = §7.2. La carte de A est la meilleure de la branche.
+- **`Bruce_Sonar_USBL`** (contribution Sonar Context — mini-papier) : baselines pré-fix
+  (1.43/1.44, cloud tourbillon) → fix chiralité (141223) → 1.2a champion 1.50.
+  Variantes SSM (1.3/1.4) et DISO GT-free (loterie) rejetées.
+- **`Bruce_Ultime`** (fusion des 2 mondes — plan : `ULTIME.md`) : 1.2a + σ1.8 + rendu
+  compas = RU1 **1.47 / 0.075 / 0.413**. Union (RU3) et σ adaptatif (RU5) rejetés.
+  **`./run_slam.sh` nu sur cette branche reproduit le champion.**
+- **`holoocean`** (simulation, préparation 3D) : dvl 0.13 m ; chaîne 3D prête
+  (`sonar_source:=points3d`), bag 3D attendu du collègue (`HOLOOCEAN_3D_GUIDE.md`).
+
+## 2.3 🎬 RUNS FINAUX (2 par branche — arrêt auto en fin de bag, UN run à la fois)
+
+Après CHAQUE run : `./analyse.sh <nom_du_run>` puis
+`python3 analysis/paper_eval.py results/<nom_du_run>` ; renommer le dossier si voulu
+(nom littéral, sans espaces) ; reporter la ligne dans le tableau maître ci-dessus ;
+déplacer dans `TESTS_image/` quand validé.
+
+```bash
+# ── Bruce_Ultime : 2× le champion (répétabilité du livrable) ──────────────
+git checkout Bruce_Ultime
+./run_slam.sh          # run 1 — attendu ~1.47 (RU1 : 1.47/0.075/0.413)
+./run_slam.sh          # run 2 — variance ICP attendue ±0.1 m
+
+# ── Bruce_Sonar_USBL : 2× le champion 1.2a ────────────────────────────────
+git checkout Bruce_Sonar_USBL
+./run_slam.sh          # run 1 — attendu ~1.50
+./run_slam.sh          # run 2
+
+# ── Bruce : 1× SANS USBL (cas doctorante) + 1× AVEC (champion B′) ─────────
+git checkout Bruce
+SSM=true NSSM=true USBL=false ./run_slam.sh                                # attendu ~1.95-2.05
+SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh   # attendu ~1.88
+
+# ── holoocean : 2× la config dvl (bag test.bag, câblé par défaut) ─────────
+git checkout holoocean
+./run_slam.sh holoocean     # run 1 — attendu ~0.13
+./run_slam.sh holoocean     # run 2
+```
+
+⚠ Rappels : jamais `USBL=true` sans `USBL_GAIN=0` (double ancrage, PIEGES §2) ; ne pas
+toucher au dépôt pendant un run (PIEGES §4) ; les yaml des 4 branches sont FIGÉS sur
+leur champion — aucune édition nécessaire.
