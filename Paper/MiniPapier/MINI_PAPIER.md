@@ -311,6 +311,21 @@ trajectoire (~1.6 m d'ATE par degré sur une emprise de 90 m). Nous rapportons c
 l'ancre initiale — c'est précisément pourquoi notre métrique primaire reste l'Umeyama, et un
 point de vigilance en lisant les tables d'ISOPoT.
 
+La différence entre les deux conventions se voit le mieux sur l'odométrie : ancrée au
+départ, sa courbe d'erreur part de 0 et cumule la dérive (max 28.6 m, fin 23.0 m sur notre
+mission) — c'est la courbe « Odometry » de la Fig. 8 de Sonar Context [2], que nous
+reproduisons quasi trait pour trait avec les mêmes données ; après Umeyama, le best-fit
+répartit cette même dérive sur toute la mission (départ ~17 m, fin 6.7 m). Mêmes données,
+questions différentes : « combien de dérive depuis le départ ? » contre « que reste-t-il
+après le meilleur alignement rigide ? ». Nos courbes d'erreur (Fig. 4 et figures par
+méthode) tracent désormais **les deux** : plein/tirets = Umeyama, pointillés = ancré départ.
+
+![Deux conventions d'alignement, même odométrie](figs/odom_conventions.png)
+
+*Fig. 4bis — La même odométrie /cmd_vel sous les deux conventions : ancrée au départ
+(pleine, comparable à la Fig. 8 de [2]) et après alignement Umeyama (pointillée, notre
+métrique primaire).*
+
 **c) Sections S1/S2/S3.** DISO [3] évalue Aracati en 3 séquences de ~15 min (redémarrage de
 l'odométrie à chaque section) ; leurs frontières exactes ne sont pas publiées. Nous découpons
 la mission continue en **tiers temporels** et rapportons l'ATE Umeyama par section (ré-alignée
