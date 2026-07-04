@@ -103,3 +103,21 @@ non-reproductible. Analyses offline (results/, scratchpad) : OK.
   branche (git rm --cached partout) — fait le 07-03. Garder une copie source des bags
   HORS du dépôt.
 - Ne rien committer sans le demander à Nathan ; messages détaillés (chiffres + pourquoi).
+
+## 11. Les fenêtres NSSM/PCM sont en KEYFRAMES, pas en mètres (vécu : RU4, ATE 17 m)
+
+`min_st_sep`, `pcm_queue_size`, `source_frames` comptent des KEYFRAMES. Densifier les
+keyframes (3.0 → 1.0 m, run B″ 07-04) SANS les rescaler a réduit l'exclusion de revisite
+de ~24 m à ~8 m → auto-appariements court-terme validés comme « loops » (1re à t=3 min,
+47 avant 8 min alors qu'aucune revisite n'existe) → 415 contraintes fausses, ATE 1.88 →
+**17.17 m**. Règle : tout changement de `keyframe_translation` doit rescaler ces trois
+fenêtres du même facteur (recette B″-bis : 1.0 m + min_st_sep 24, pcm_queue 15,
+source_frames 15 — cf. ABLATION.md).
+
+## 12. Un détecteur de loops SANS porte géométrique pollue le PCM (vécu : RU3, 2.91 m)
+
+L'union SC + gating natif (07-04) a réinjecté 583 candidats natifs NON gatés → shgo/ICP
+saturés (frames sonar perdues : 615 KF au lieu de 665) et contraintes fausses corrélées
+acceptées par le PCM (210 constraints, S3 3.70 m). La porte géométrique 10 m de SC n'est
+pas un détail : c'est elle qui tue les faux positifs AVANT l'ICP. Tout nouveau détecteur
+de candidats doit passer par une porte équivalente.
