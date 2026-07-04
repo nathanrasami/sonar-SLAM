@@ -238,9 +238,12 @@ Directive : partir des 2 bases (traj `Bruce_Sonar_USBL` + carte `Bruce`) pour un
   candidats natifs) + CPU saturé → PIEGES §12. **U5 ❌ RU4 17.17 m** : fenêtres NSSM en
   KEYFRAMES (min_st_sep 8 = 8 m après densification) → fausses loops court-terme dès
   t=3 min → PIEGES §11 ; rollback fait, B″-bis optionnelle (fenêtres ×3) dans ABLATION.md.
-- **U6 ✅ codé → RU5 (seul run restant proposé)** : σ USBL adaptatif par fix, GT-free.
-  Justifié offline : bruit réel ×3.5 le long de la mission (0.87→3.09 m), proxy MAD local
-  corrélé 0.64 au vrai résidu. `USBL_ADAPTIVE=true ./run_slam.sh`.
+- **U6 ❌ RU5 `161907-RU5` : 1.62 m** — le σ adaptatif (proxy MAD pourtant corrélé 0.64
+  au vrai bruit) perd contre le σ fixe 1.8 : sur-raidissement local (min 0.9) + le graphe
+  moyenne déjà les fixes. Code laissé (défaut off). **PHASE ULTIME CLOSE sur RU1** —
+  `./run_slam.sh` nu (branche Bruce_Ultime) = champion, carte fine = pointcloud_compass.
+  (Épaisseur du nuage RViz en live = drift résiduel inter-passages ~8-40 cm superposé :
+  attendu ; la carte livrable est le produit offline.)
 - **U7 verdict** : ISOPoT infaisable (code non publié, tracker vidéo lourd) ; SONIC = test
   offline en réserve seulement (domain gap probable, SONIC déjà faible sur Aracati dans
   la table ISOPoT). MCFAR en réserve.
