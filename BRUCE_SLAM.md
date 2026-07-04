@@ -97,8 +97,21 @@ avec $(\mathbf{p}_0, \theta_0)$ estimés par la route-fond des premiers fixes US
 Propriétés mesurées : cap excellent ($\omega_z$ vient du compas → erreur de rotation relative
 ~0 °/m), translation qui dérive fortement (consigne ≠ vitesse réelle : **10.6 m** d'ATE seule).
 Le rôle du SLAM est donc de corriger la translation sans dégrader le cap.
-*Fichiers : `bruce_slam/scripts/cmd_vel_odom.py` (nouveau), branchement dans
-`aracati.launch`.*
+
+**Le code** (le cœur, `src/bruce_slam/cmd_vel_odom.py` — fichier NOUVEAU, l'upstream n'a
+pas d'équivalent : il consommait une odométrie DVL/IMU déjà faite) :
+
+```python
+# intégration unicycle à chaque message /cmd_vel :
+dt = t - self.last_t
+self.x += vx * math.cos(self.theta) * dt
+self.y += vx * math.sin(self.theta) * dt
+self.theta += wz * dt
+# seed 100% GT-free : position = 1er fix /usbl_point accepté,
+# cap = course-over-ground (atan2 des premiers fixes, dès ~1 m parcouru)
+```
+*Branchement : nœud `cmd_vel_odom` dans `aracati.launch` (publie l'Odometry que le
+SLAM upstream attendait de `dead_reckoning.py`).*
 
 ### 3.2 La correction de chiralité (le déblocage)
 
@@ -124,9 +137,25 @@ l'empaquetage des features. `True` pour toute odométrie directe (cmd_vel), `Fal
 pour le mode DISO (repère indirect natif). **Validation** à données et config identiques :
 auto-cohérence du nuage 0.365 → 0.203 m, contraintes PCM **6 → 82** (puis 130 en config B′),
 le quai en T devient lisible.
-*Fichiers : `bruce_slam/src/bruce_slam/feature_extraction.py` (~5 lignes),
-`bruce_slam/config/feature_aracati.yaml`. Piège documenté : le flip doit s'appliquer APRÈS la
-relecture d'intensité (`PIEGES.md` §1).*
+
+**Avant / après** (`src/bruce_slam/feature_extraction.py`, `_publish_features_stamped`) :
+
+```python
+# AVANT (mode cartésien du fork) — y latéral en repère INDIRECT, toujours :
+points3d = np.c_[points[:, 0], intensity, -points[:, 1]]
+
+# APRÈS — le signe devient un paramètre de convention (fix chiralité) :
+y_out = points[:, 1] if self.flip_bearing else -points[:, 1]
+points3d = np.c_[points[:, 0], intensity, y_out]
+```
+```yaml
+# config/feature_aracati.yaml
+cartesian:
+  flip_bearing: True    # True = odométrie directe (cmd_vel) ; False = mode DISO
+```
+*Piège documenté : le flip doit s'appliquer À CET ENDROIT (packing), APRÈS la relecture
+d'intensité qui dépend du signe image d'origine (`PIEGES.md` §1 — un premier essai au
+mauvais endroit avait produit un run invalide).*
 
 ![Avant/après correction de chiralité](Paper/MiniPapier/figs/chiralite_avant_apres.png)
 
@@ -144,7 +173,17 @@ $$\phi_i(\mathbf{X}) = \rho_c\!\left(\frac{\lVert \Pi\,\mathbf{X}_{k(i)} - \math
 \qquad \rho_c(r) = \tfrac{c^2}{2}\,\log\!\left(1 + \tfrac{r^2}{c^2}\right)$$
 
 ($\Pi$ = projection sur $(x,y)$ ; noyau de Cauchy : les outliers saturent). Le cap n'est
-**pas** contraint : il appartient à l'odométrie, au SSM et aux boucles. Deux réglages
+**pas** contraint : il appartient à l'odométrie, au SSM et aux boucles.
+
+**Le code** (`src/bruce_slam/slam_ros.py::add_usbl` — AJOUT, rien d'équivalent upstream) :
+
+```python
+# sigma θ énorme (1e12 en variance) → le facteur ne contraint QUE x,y
+cov = np.diag([self.usbl_sigma ** 2, self.usbl_sigma ** 2, 1e12])
+model = self.create_robust_full_noise_model(cov)          # noyau de Cauchy
+self.graph.add(gtsam.PriorFactorPose2(X(self.current_key),
+                                      gtsam.Pose2(ux, uy, 0.0), model))
+``` Deux réglages
 non évidents, mesurés au chap. IV :
 
 - $\sigma_{\text{usbl}} = 2.5$ m (**doux**) sur cette branche : les modules natifs SSM/NSSM
@@ -156,12 +195,15 @@ non évidents, mesurés au chap. IV :
 *Fichiers : `slam_ros.py`/`slam.py` (facteurs + association), `slam_aracati.yaml` (bloc
 `usbl`), variables d'env `USBL_BACKEND`/`USBL` dans `run_slam.sh`.*
 
-### 3.4 Plafond des bornes shgo (fiabilisation NSSM)
+### 3.4 Note : plafond des bornes shgo (branches dérivées uniquement)
 
-Détail d'implémentation indispensable en GT-free : sans boucle précoce, la covariance
-accumulée gonfle les bornes de recherche de l'init globale shgo jusqu'à ±130 m → shgo ne
-converge plus → zéro boucle (cercle vicieux). Bornes plafonnées à **±20 m** / ±180°
-(`nssm/shgo_max_translation`), ce qui couvre toute dérive locale réaliste d'une revisite.
+Sur CETTE branche, la présélection NSSM par covariance + le SSM maintiennent des bornes
+de recherche shgo raisonnables : **aucune modification n'a été nécessaire** (130 boucles
+en B′). Le problème apparaît sur les branches dérivées (détection par apparence, SSM off) :
+sans boucle précoce, la covariance accumulée gonfle les bornes jusqu'à ±130 m → shgo ne
+converge plus → zéro boucle (cercle vicieux). Là-bas, les bornes sont plafonnées à ±20 m /
+±180° (`nssm/shgo_max_translation`, branches `Bruce_Sonar_USBL`/`Bruce_Ultime`). Mentionné
+ici pour qui voudrait porter la détection par apparence sur l'original.
 
 ### 3.5 Exports et outillage d'évaluation
 
@@ -179,7 +221,7 @@ chap. V), point d'entrée unique `./analyse.sh <run>`.
 | `src/.../feature_extraction.py` | param `flip_bearing` (chiralité) | 3.2 |
 | `config/feature_aracati.yaml` | `flip_bearing: True` | 3.2 |
 | `slam_ros.py` / `slam.py` | facteurs USBL Cauchy + exports CSV | 3.3, 3.5 |
-| `config/slam_aracati.yaml` | bloc `usbl`, `shgo_max_*` ; cœur upstream inchangé | 3.3, 3.4 |
+| `config/slam_aracati.yaml` | bloc `usbl` ; cœur upstream inchangé | 3.3 |
 | `aracati.launch` / `run_slam.sh` | câblage odométrie, args SSM/NSSM/USBL | 3.1, 3.3 |
 
 ---
@@ -204,6 +246,13 @@ Lectures :
 - **A garde la meilleure carte locale** (p90 0.67) et la meilleure cohérence relative
   (RE 5.89 %) : l'ancre améliore le global (ATE) au prix d'un léger bruit local — le
   compromis est réglable par $\sigma$, pas gratuit.
+
+**Répétabilité (runs finaux 07-04/05, 2 runs par mode)** : sans USBL 1.88 / 2.07
+(+ A/A-bis : 4 runs, méd **1.97**) ; avec USBL σ2.5 : 1.74 / 1.98 (+ B′ : 3 runs, méd
+**1.88**) — l'ancre douce gagne ~0.1 m en médiane, et l'ICP non seedé donne ±0.1-0.15 m
+d'un run à l'autre. Le cap est la force de cette branche : **1.8-3.0° médian** (records
+du stage, grâce au SSM). Dossiers : `TESTS_image/…Bruce_1/2` et `…Bruce_USBL_1/2`,
+synthèse : `TESTS.md` §2.4.
 
 ![Ablation — trajectoires](Paper/MiniPapier/figs/ablation_bruce/compare_traj.png)
 

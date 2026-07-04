@@ -377,7 +377,35 @@ chapitre en sortent directement).
 | Bruce-New 1.3 (champion carte) | 2.14 | 2.20 / 1.99 / 2.10 | 2.53 | 7.20 | 0.127 | 4.3 | 103 |
 | Référence assistée GT (borne) | 0.89 | 0.49 / 1.18 / 0.57 | 1.64 | 2.42 | 0.053 | 1.6 | — |
 
-Lecture : la méthode proposée gagne **+0.38 m d'ATE** sur le meilleur Bruce-SLAM pur à
+**Comment lire les colonnes** (protocole complet : § 6.2) — *ATE um.* : RMSE des
+distances à la GT après le meilleur alignement rigide global (Umeyama SE(2), sans
+échelle) ; *ATE um. S1/S2/S3* : même métrique, ré-alignée par section (tiers de mission
+~15 min, analogues aux 3 séquences de DISO) ; *ATE 1ʳᵉ-pose* : alignement sur le départ
+seulement (convention ISOPoT — cumule la dérive, sensible à l'ancre initiale, cf. §6.2b) ;
+*Trans. (%)* : erreur relative de translation, moyenne sur des segments de 10 % de la
+piste, en % de la longueur du segment (comparable aux tables DISO/ISOPoT) ; *Rot. (°/m)* :
+erreur relative de rotation par mètre parcouru sur les mêmes segments ; *Cap méd.* :
+médiane du résidu de cap vs compas GT (offset de convention retiré) ; *Boucles* :
+contraintes de fermeture validées par PCM insérées dans le graphe.
+
+### 6.3bis Répétabilité (2+ runs par configuration, 07-04/05)
+
+| Configuration | ATE des runs (m) | méd. | Carte compas méd/p90 (m) |
+|---|---|---|---|
+| Sonar Context + σ1.4 (BSU) | 1.45 · 1.50 · 1.52 | **1.50** | 0.074-0.075 / 0.425-0.434 |
+| Sonar Context + σ1.8 (Ultime) | 1.47 · 1.54 · 1.60 | 1.54 | 0.075-0.078 / 0.454-0.459 |
+| Bruce pur sans USBL | 1.88 · 1.95 · 2.04 · 2.07 | 1.97 | (rendu θ opt : 0.09 / 0.6-0.7) |
+| Bruce pur + USBL σ2.5 | 1.74 · 1.88 · 1.98 | 1.88 | (idem) |
+| HoloOcean dvl (simulation) | 0.13 · 0.13 | 0.13 | 0.07 / 0.16 |
+
+La répétition tempère le classement single-run : **σ1.4 et σ1.8 sont équivalents dans la
+variance de l'ICP non seedé (±0.1 m)** — le résultat robuste de la contribution est
+**ATE 1.5 ± 0.1 m et carte compas 0.075 / 0.43**, reproductible par `./run_slam.sh` sur
+les branches BSU ou Ultime. L'écart avec Bruce pur tient en multi-runs : ~1.5 vs ~1.9 m
+(+0.4 m médian) pour la trajectoire ; Bruce pur garde le meilleur cap (1.8-3.0° méd,
+SSM) et sa carte θ-optimisé reste à ~0.09 m de médiane.
+
+Lecture du tableau single-run : la méthode proposée gagne **+0.38 m d'ATE** sur le meilleur Bruce-SLAM pur à
 capteurs strictement identiques — l'écart est entièrement attribuable à la détection de
 boucles par apparence. L'erreur relative de translation (5.03 %) est du même ordre que les
 odométries assistées publiées sur ce dataset (DISO 8.69 % [3], ISOPoT 9.69 % [4]) — en
