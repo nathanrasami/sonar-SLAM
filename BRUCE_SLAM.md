@@ -296,19 +296,55 @@ CFAR (plus de points par scan) si la carte devient le livrable prioritaire.
 
 ---
 
-## VII. Reproduire
+## VII. Reproduire — avec ou sans USBL (meilleure config de chaque mode)
+
+Les deux modes utiles, chacun avec sa meilleure configuration mesurée. Dans les deux cas
+le run s'arrête seul à la fin du bag (~45 min) et les prérequis du chap. III restent
+nécessaires (fix de chiralité §3.2 + odométrie cmd_vel §3.1 — sans eux : carte en
+tourbillon et 6 loops, USBL ou pas).
+
+### 7.1 SANS USBL — Bruce-SLAM original pur (= le cas d'étude « upstream seul »)
 
 ```bash
-# run champion B′ (config figée dans les yaml de la branche) :
 git checkout Bruce
-./run_slam.sh                    # s'arrête seul à la fin du bag (~45 min)
-./analyse.sh results/run_aracati_<date>       # bilan 1 image + métriques
+SSM=true NSSM=true USBL=false ./run_slam.sh
+```
+
+= **le run A** (`run_aracati_2026-07-02_194559`) : **ATE 1.95 m**, RE trans 5.89 %,
+carte vs vraie **0.09/0.67** (la meilleure carte de la branche), ~110 loops natives.
+Répétabilité : A-bis (`214846`) donne 2.04 — l'ICP non seedé fait varier de ±0.1 m.
+Zéro USBL nulle part : pas de facteurs back-end, pas de fusion front-end, odométrie
+amorcée à (0,0,0) — le repère absolu n'importe pas, l'évaluation aligne par Umeyama.
+C'est la configuration à comparer pour tout travail sur l'upstream : la seule entorse
+à l'original est l'odométrie d'entrée (Aracati n'a ni DVL ni IMU exploitables).
+
+### 7.2 AVEC USBL — champion de la branche (ancre douce)
+
+```bash
+git checkout Bruce
+SSM=true NSSM=true USBL=true USBL_GAIN=0 USBL_BACKEND=true ./run_slam.sh
+```
+
+= **le run B′** (`120352-1`) : **ATE 1.88 m**, 130 loops, carte 0.09/0.74. Le σ = 2.5
+(doux) est déjà dans le yaml — ne rien éditer. **`USBL_GAIN=0` est obligatoire** : sans
+lui l'USBL agit aussi dans le front-end → double ancrage → zigzag (ATE 4.66, PIEGES §2).
+À retenir : l'ancre n'apporte que **0.07 m** ici (1.95 → 1.88) car SSM/NSSM contraignent
+déjà beaucoup — et raide (σ1.0, run B) elle DÉGRADE (2.03). L'apport de l'USBL est bien
+plus net quand la détection de boucles est plus sélective (branche `Bruce_Sonar_USBL` :
+1.50 avec σ1.4 ; branche `Bruce_Ultime` : 1.47 avec σ1.8).
+
+### 7.3 Évaluation (commune)
+
+```bash
+./analyse.sh run_aracati_<date>                       # bilan 1 image + carte compas auto
 python3 analysis/paper_eval.py results/run_aracati_<date>   # protocole complet chap. V
 ```
 
-Ablation : `SSM=true NSSM=true USBL=false ./run_slam.sh` (run A) ; B/B′ = `USBL_BACKEND=true`
-avec `usbl/sigma` 1.0/2.5. **Lire `PIEGES.md` avant toute modification** (chiralité §1,
-double ancrage §2, un run à la fois §4).
+Note RViz : en fin de run la carte affichée est « épaisse » — les scans des passages
+successifs se superposent avec leur drift résiduel (~0.1-0.7 m, cf. métrique carte).
+C'est attendu ; la carte fine est le produit offline (`pointcloud_compass.csv/png`,
+généré par `analyse.sh`). **Lire `PIEGES.md` avant toute modification** (chiralité §1,
+double ancrage §2, un run à la fois §4, fenêtres NSSM en keyframes §11).
 
 ---
 
