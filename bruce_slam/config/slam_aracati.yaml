@@ -83,11 +83,11 @@ usbl:
                      # sans flip → ATE 13.9 m, avec → ~0.9 m).
   max_dt: 1.0        # s, fenêtre d'association fix ↔ keyframe
   max_speed: 3.0     # m/s, gate outliers (rejette les sauts ~73 m)
-  # U6 (RU5) : σ ADAPTATIF PAR FIX, GT-free. Le bruit USBL réel varie ×3.5 le long
-  # de la mission (méd 0.87 m à t=10-15 min vs 3.09 à t=25-30, mesuré offline vs GT) ;
-  # la dispersion locale des fixes (MAD glissant ~21 fixes) l'estime SANS GT
-  # (corrélation 0.64). σ_i = clip(k·MAD, min, max) ; k=3.4 ⇒ médiane ≈ 1.8 (=champion).
-  # Activer : USBL_ADAPTIVE=true ./run_slam.sh (le launch surcharge usbl/adaptive).
+  # U6 : σ ADAPTATIF PAR FIX, GT-free — TESTÉ ET REJETÉ (RU5 161907 : ATE 1.62 vs
+  # 1.47 pour σ fixe 1.8). Le bruit réel varie bien ×3.5 et le proxy MAD le suit
+  # (corr. 0.64), mais l'imperfection résiduelle sur-raidit par endroits (adaptive_min
+  # 0.9 < champion) → bilan négatif. Variante non testée si on y revient :
+  # adaptive_min: 1.4. Activer : USBL_ADAPTIVE=true ./run_slam.sh.
   adaptive: False
   adaptive_k: 3.4
   adaptive_min: 0.9
