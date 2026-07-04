@@ -1,4 +1,20 @@
-# PROGRESS — état au 2026-07-04 (nuit) — 🏆 CHAMPION ULTIME RU1 : 1.47 m / carte 0.075-0.413
+# PROGRESS — état au 2026-07-05 — ✅ STAGE ARACATI BOUCLÉ (runs finaux + audit GT-free)
+
+## ✅ CLÔTURE (07-05) — tout dans TESTS.md partie 2 (§2.4-2.6)
+
+- **10 runs finaux faits et archivés** (TESTS_image/) : livrable robuste = **ATE 1.5 ± 0.1 m,
+  carte compas 0.075/0.43** (6 runs SC cumulés ; σ1.4 ≈ σ1.8 dans la variance ICP) ;
+  Bruce pur ~1.9 (cap record 1.8-2.2°) ; holoocean 0.13 ×2. Écart contribution : +0.4 m médian.
+- **Audit GT-free VÉRIFIÉ dans le code** (TESTS.md §2.6) : /pose_gt → uniquement le CSV
+  d'éval ; seed USBL par défaut ; chemins GT = modes diagnostic non-défaut ; nuance
+  compas (wz cmd_vel) déclarée. Topics = sonar + cmd_vel + USBL (+dvl/imu/depth en simu).
+- **Lexique des sorties** (TESTS.md §2.5) : compass/filtered/cloud_vs_gt expliqués.
+- Mini-papier : légende des colonnes façon DISO/ISOPoT + §6.3bis répétabilité.
+  BRUCE_SLAM.md : avant/après code des modifications (pour la doctorante).
+- Il reste (hors périmètre actuel) : relecture des papiers par Nathan ; HoloOcean 3D
+  (bag du collègue) ; optionnel SONIC offline/MCFAR (U7).
+
+# Historique — état au 2026-07-04 (nuit) — 🏆 CHAMPION ULTIME RU1 : 1.47 m / carte 0.075-0.413
 
 ## 🏆 RÉSULTATS RU1-RU4 (07-04) — détail : ULTIME.md (branche Bruce_Ultime)
 
