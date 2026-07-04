@@ -1363,3 +1363,127 @@ git checkout holoocean
 ⚠ Rappels : jamais `USBL=true` sans `USBL_GAIN=0` (double ancrage, PIEGES §2) ; ne pas
 toucher au dépôt pendant un run (PIEGES §4) ; les yaml des 4 branches sont FIGÉS sur
 leur champion — aucune édition nécessaire.
+
+
+## 2.4 ✅ RUNS FINAUX (07-04/05) — répétabilité, verdicts, images
+
+10 runs, 2+ par branche, configs figées, renommés à la main. Tous archivés dans
+`TESTS_image/`. Chiffres au protocole du mini-papier (`paper_eval.py`).
+
+| Run (TESTS_image/) | Branche / config | ATE um. (m) | Cap méd | Carte compas méd/p90 | NN compas |
+|---|---|---|---|---|---|
+| `…182358_Bruce_Ultime_1` | Ultime, σ1.8 | 1.54 | 3.5° | 0.075 / 0.454 | 0.176 |
+| `…192645_Bruce_Ultime_2` | Ultime, σ1.8 | 1.60 | 4.6° | 0.078 / 0.459 | 0.180 |
+| `…201541_Bruce_Sonar_USBL_1` | BSU, σ1.4 | **1.45** | 3.0° | 0.075 / **0.425** | 0.177 |
+| `…210733-Bruce_Sonar_USBL_2` | BSU, σ1.4 | 1.52 | 2.8° | 0.074 / 0.434 | 0.176 |
+| `…215353_Bruce_1` | Bruce SANS USBL | 2.07 | 3.0° | 0.090 / 0.628* | — |
+| `…223959_Bruce_2` | Bruce SANS USBL | 1.88 | **2.2°** | 0.092 / 0.579* | — |
+| `…233119_Bruce_USBL_1` | Bruce + USBL σ2.5 | 1.74 | 2.0° | 0.095 / 0.628* | — |
+| `…001730_Bruce_USBL_2` | Bruce + USBL σ2.5 | 1.98 | 1.8° | 0.098 / 0.730* | — |
+| `run_holoocean_…010436_1` | holoocean, dvl | **0.13** | 0.0° | 0.07 / 0.16 (θ opt) | — |
+| `run_holoocean_…010647_2` | holoocean, dvl | **0.13** | 0.0° | 0.07 / 0.16 (θ opt) | — |
+
+*sur la branche Bruce le rendu compas n'apporte rien (le SSM tient déjà le cap local,
+NN se dégrade légèrement) — on garde le rendu θ optimisé comme carte de référence Bruce.
+
+### Conclusions (les vraies, avec la répétabilité)
+
+1. **Les pipelines Sonar Context (BSU σ1.4 et Ultime σ1.8) sont ÉQUIVALENTS dans la
+   variance ICP** : 6 runs cumulés → 1.45 / 1.47 / 1.50 / 1.52 / 1.54 / 1.60 (méd 1.51,
+   ±0.08). Le « champion RU1 1.47 » était en partie un bon tirage ; le vrai livrable est
+   **ATE 1.5 ± 0.1 m, carte compas 0.075 / 0.43 ± 0.02** — reproductible par
+   `./run_slam.sh` nu sur l'une ou l'autre branche. Meilleure trajectoire jamais mesurée :
+   BSU_1 (1.45).
+2. **Bruce pur** : sans USBL 1.88-2.07 (4 runs avec A/A-bis : méd 1.97) ; avec ancre douce
+   1.74-1.98 (3 runs : méd 1.88) → l'ancre gagne ~0.1 m en médiane. Le cap est SA force
+   (1.8-3.0° méd, records du stage) grâce au SSM. **L'écart contribution vs original
+   tient en multi-runs : ~1.5 vs ~1.9 = +0.4 m.**
+3. **HoloOcean : 0.13 m parfaitement répétable** (2 runs identiques au cm) — la chaîne
+   dvl+imu GT-free est validée en simulation.
+4. Note : `Bruce_USBL_1` a une RE translation anormale (23.6 %) avec pourtant le meilleur
+   ATE Bruce (1.74) — artefact du seed de cap USBL course-over-ground de CE run (β 112°
+   vs ~94° habituels) : le repère odométrique est né tourné de ~16°, l'ancre a recollé les
+   positions mais θ garde sa convention → la RE (qui exprime les déplacements dans le
+   repère de chaque pose) est gonflée. Sans effet sur l'ATE ni la carte.
+
+![Meilleure trajectoire GT-free du stage — BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/bilan_run.png)
+*BSU_1 : ATE 1.45 m — trajectoire, cloud, erreur de cap.*
+
+![Carte livrable — rendu compas de BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/pointcloud_compass.png)
+*Le rendu compas (droite) vs θ optimisé (gauche) : NN 0.196 → 0.177, carte p90 0.425.*
+
+![Carte vs carte vraie — BSU_1](TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1/run_aracati_2026-07-04_201541_cloud_vs_gt.png)
+*Erreur de carte de BSU_1 : superposition au « nuage vrai » et coloration par distance.*
+
+![Bruce sans USBL — Bruce_2](TESTS_image/run_aracati_2026-07-04_223959_Bruce_2/bilan_run.png)
+*Bruce original pur (sans USBL) : 1.88 m, cap 2.2° — le cas d'étude de la doctorante.*
+
+![HoloOcean dvl](TESTS_image/run_holoocean_2026-07-05_010436_1/bilan_run.png)
+*Simulation HoloOcean, odométrie DVL+IMU GT-free : 0.13 m.*
+
+## 2.5 📖 LEXIQUE des sorties d'un run (qui produit quoi, comment)
+
+- **`trajectory.csv`** : poses SLAM aux keyframes (x,y,θ optimisés iSAM2) + `dr_*` =
+  dead-reckoning (intégration /cmd_vel) au même instant + `nssm_constraints` (loops).
+- **`odometry.csv`** : l'odométrie brute à PLEINE fréquence (pas seulement aux keyframes).
+- **`groundtruth.csv`** : /pose_gt (DGPS) + θ = cap compas — ÉVALUATION SEULEMENT.
+- **`pointcloud.csv`** : détections CFAR de chaque keyframe projetées au monde avec la
+  pose optimisée (+ colonne intensité sur BSU/Ultime).
+- **`pointcloud_filtered.csv/png`** (analyse.sh → `filter_cloud.py`) : le MÊME nuage,
+  filtré par **seuil d'intensité ≥ 255** (on ne garde que les retours saturés =
+  structures fortes ; le fond marin/backscatter part). Aucune géométrie modifiée —
+  c'est un tri de lignes du CSV. Sert à comparer les nuages au MÊME seuil (PIEGES §8).
+- **`pointcloud_compass.csv/png`** (analyse.sh → `render_compass_cloud.py`, U1) :
+  re-rendu 100 % GT-free. Chaque scan est ramené dans le repère LOCAL de sa keyframe
+  (en inversant la pose optimisée), puis re-projeté avec **la position optimisée mais le
+  cap compas recalé** θ_rendu = dr_theta + δ, où δ = moyenne circulaire de
+  (θ_optimisé − dr_theta) sur tout le run (recalage de convention INTERNE au run, aucune
+  GT). Pourquoi : le θ d'iSAM2 est optimisé pour la POSITION (ancres USBL + loops) et
+  transitoire jusqu'à 40° en virage → scans « smearés » ; le cap compas est lisse et
+  vrai. Validé : NN 0.20→0.176, carte p90 0.99→0.43 (= le niveau du rendu au cap GT).
+- **`<run>_cloud_vs_gt.png`** (paper_eval.py) : ÉVALUATION de la carte. Le « nuage
+  vrai » n'est PAS un run GT — on n'en a jamais fait. C'est **nos propres détections,
+  re-rendues aux poses GT** en post-traitement : chaque point est ramené au repère local
+  de sa keyframe (via la pose SLAM), puis re-projeté à la pose GT de cette keyframe
+  (position DGPS ramenée dans le repère carte par l'Umeyama inverse, cap = compas
+  converti). La carte d'erreur colore chaque point de NOTRE nuage par sa distance au
+  plus proche voisin de ce nuage vrai → mesure la dégradation de la carte causée par
+  les erreurs de POSE, à détections identiques. (Mini-papier §6.2f.)
+- **`<run>_traj.png` / `<run>_err_time.png`** (paper_eval.py) : trajectoires alignées +
+  erreurs au cours du temps ; plein/tirets = alignement Umeyama, pointillés = ancré au
+  départ (convention des papiers, comparable à la Fig. 8 de Sonar Context).
+- **`bilan_run.png`** (analyse.sh → bilan_run.py) : le résumé 1 image — trajectoire+ATE,
+  cloud+NN (auto-cohérence : distance médiane au plus proche voisin, 8000 pts), erreur
+  de cap dans le temps (fit s·θ+β, offset de convention retiré).
+
+## 2.6 🔒 AUDIT GT-FREE (07-05) — vérifié dans le code, branche par branche
+
+**Verdict : avec les défauts, les 3 pipelines aracati et holoocean sont 100 % GT-free
+et ne consomment QUE des capteurs présents sur un vrai UV.**
+
+Topics consommés par les nœuds lancés PAR DÉFAUT :
+
+| Branche | Nœud | Topics consommés | Statut |
+|---|---|---|---|
+| Bruce | cmd_vel_odom | `/cmd_vel`, `/usbl_point` | bord + acoustique ✓ |
+| Bruce | feature_extraction | image sonar | sonar ✓ |
+| Bruce | slam | features + odom (+`/usbl_point` si backend) | ✓ |
+| BSU/Ultime | cmd_vel_odom | `/cmd_vel`, `/usbl_point` (seed course-over-ground) | ✓ |
+| BSU/Ultime | slam | features + odom + `/usbl_point` (facteurs) | ✓ |
+| holoocean | dvl_imu_odom | `/dvl`, `/imu`, `/depth` | capteurs UV ✓ |
+| toutes | slam_ros `_gt_callback` | `/pose_gt` → **UNIQUEMENT groundtruth.csv** (éval) | ⚠ éval only |
+
+- `/pose_gt` (DGPS planche flottante — n'existe pas sur un vrai UV) : le SEUL subscriber
+  actif est le logger d'évaluation de slam_ros (buffer → CSV à l'arrêt) ; `gt_poses`
+  n'est lu par AUCUN chemin de calcul (vérifié par grep sur les 3 branches).
+- Les chemins GT existent mais sont des modes **diagnostic non-défaut**, tous vérifiés
+  OFF par défaut : `gt_free_seed:=false` (seed /pose_gt t=0), `heading_from_compass`
+  (deltas de cap /pose_gt.orientation), `odom_source:=gt` (relais GT), `diso_prior:=gt`.
+  Avec les défauts, le subscriber GT de cmd_vel_odom n'est même pas créé
+  (`if seed_from_usbl → USBL ; … ; elif seed_from_gt → GT` : branche non prise).
+- Nuance ASSUMÉE ET DÉCLARÉE (mini-papier §1.1) : le wz de `/cmd_vel` est dérivé du
+  **compas magnétique du véhicule** (README aracati2017) — capteur embarqué légitime,
+  mais toute comparaison « sonar-only » doit le mentionner (même statut que les
+  baselines Odom+Mag de DISO/ISOPoT).
+- HoloOcean : `/ground_truth` alimente gt_odom_to_pose → `/pose_gt` (éval) et le relais
+  odométrie SEULEMENT si `odom_source:=gt` (défaut : `dvl`).

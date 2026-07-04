@@ -169,3 +169,8 @@ les fenêtres propre/sale sans GT. Loi : σ_i = clip(3.4·MAD, 0.9, 3.5) — mé
   ISOPoT infaisable (code non publié) ; SONIC = test offline en réserve seulement.
 - RU5 `161907-RU5` (σ adaptatif) : ❌ 1.62 m, carte 0.078/0.484, 120 constraints →
   U6 rejeté, σ fixe 1.8 champion. **PHASE ULTIME CLOSE sur RU1** (section 🏁 ci-dessus).
+- 07-05 : **runs finaux de répétabilité** (TESTS.md §2.4) — Ultime σ1.8 : 1.54 / 1.60 ;
+  BSU σ1.4 : 1.45 / 1.52. Verdict honnête : σ1.4 ≈ σ1.8 dans la variance ICP (±0.1) ;
+  livrable robuste = ATE 1.5 ± 0.1, carte compas 0.075/0.43 (les cartes compas des 4 runs
+  sont interchangeables). Audit GT-free vérifié code (TESTS.md §2.6). Phase DÉFINITIVEMENT
+  close.
