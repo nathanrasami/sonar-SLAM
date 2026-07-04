@@ -181,7 +181,7 @@ def eval_run(run_dir, label, out, imin=None, n_sections=3):
     est_p, th_p = _propre(d["est"], d["th"], R1)
     dr_p, dr_th_p = _propre(d["dr"], d["dr_th"], Ro)
     ate_fp, est_fp = ate_premiere_pose(est_p, d["gxy"])
-    ate_odom_fp, _ = ate_premiere_pose(dr_p, d["gxy"])
+    ate_odom_fp, dr_fp = ate_premiere_pose(dr_p, d["gxy"])
 
     # --- cap
     resid, s_cap, beta = fit_cap(d["g_th"], d["th"])
@@ -250,13 +250,22 @@ def eval_run(run_dir, label, out, imin=None, n_sections=3):
     fig.tight_layout(); fig.savefig(os.path.join(out, f"{label}_traj.png"), dpi=150)
     plt.close(fig)
 
-    # 2) erreurs dans le temps (position + cap), bornes de sections
+    # 2) erreurs dans le temps (position + cap), bornes de sections.
+    # Deux conventions (cf. mini-papier §6.2) : plein = résidu après alignement
+    # Umeyama pleine séquence ; pointillé = trajectoire ANCRÉE AU DÉPART (dérive
+    # cumulée, convention des papiers type Kim Fig. 8) — mêmes données.
     err_pos = np.linalg.norm(est_a - d["gxy"], axis=1)
     err_odo = np.linalg.norm(dr_a - d["gxy"], axis=1)
+    err_pos_fp = np.linalg.norm(est_fp - d["gxy"], axis=1)
+    err_odo_fp = np.linalg.norm(dr_fp - d["gxy"], axis=1)
     fig, axes = plt.subplots(2, 1, figsize=(8.5, 6.0), sharex=True)
-    axes[0].plot(t_rel, err_odo, color="tab:orange", lw=0.9, ls="--", label="odométrie pure")
-    axes[0].plot(t_rel, err_pos, color="tab:blue", lw=1.1, label=label)
-    axes[0].set_ylabel("erreur position (m)"); axes[0].legend(fontsize=9)
+    axes[0].plot(t_rel, err_odo_fp, color="tab:orange", lw=0.8, ls=":",
+                 label="odométrie ancrée départ")
+    axes[0].plot(t_rel, err_odo, color="tab:orange", lw=0.9, ls="--", label="odométrie (Umeyama)")
+    axes[0].plot(t_rel, err_pos_fp, color="tab:blue", lw=0.8, ls=":",
+                 label=f"{label} ancré départ")
+    axes[0].plot(t_rel, err_pos, color="tab:blue", lw=1.1, label=f"{label} (Umeyama)")
+    axes[0].set_ylabel("erreur position (m)"); axes[0].legend(fontsize=8)
     axes[1].plot(t_rel, np.degrees(np.abs(resid_o)), color="tab:orange", lw=0.9, ls="--",
                  label="odométrie pure")
     axes[1].plot(t_rel, np.degrees(np.abs(resid)), color="tab:blue", lw=1.1, label=label)
@@ -293,6 +302,7 @@ def eval_run(run_dir, label, out, imin=None, n_sections=3):
         "cap_med": cap_med, "cap_rms": cap_rms, "nn": nn_self,
         "map_med": map_med, "map_p90": map_p90,
         "t_rel": t_rel, "err_pos": err_pos, "resid": resid,
+        "err_odo_fp": err_odo_fp,
         "est_a": est_a, "gxy": d["gxy"], "dr_a": dr_a, "tb": tb, "t0": d["t"][0],
     }
 
@@ -314,8 +324,10 @@ def comparer(res, out):
     plt.close(fig)
 
     fig, axes = plt.subplots(2, 1, figsize=(8.8, 6.2), sharex=True)
+    axes[0].plot(r0["t_rel"], r0["err_odo_fp"], color="tab:orange", lw=0.8, ls=":",
+                 label="odométrie ancrée départ (conv. papiers)")
     axes[0].plot(r0["t_rel"], np.linalg.norm(r0["dr_a"] - r0["gxy"], axis=1),
-                 color="tab:orange", lw=0.9, ls="--", label="odométrie pure")
+                 color="tab:orange", lw=0.9, ls="--", label="odométrie (Umeyama)")
     for r, c in zip(res, cols):
         axes[0].plot(r["t_rel"], r["err_pos"], color=c, lw=1.1, label=r["label"])
         axes[1].plot(r["t_rel"], np.degrees(np.abs(r["resid"])), color=c, lw=1.0,
