@@ -22,6 +22,8 @@
          (candidats SC + gating natif soumis ensemble au PCM). cf. ULTIME.md -->
     <arg name="usbl_sigma" default=""/>
     <arg name="loop_union" default="false"/>
+    <!-- U6 (RU5) : σ USBL adaptatif par fix (dispersion locale, GT-free) -->
+    <arg name="usbl_adaptive" default="false"/>
     <!-- gt_free_seed:=true = seed 100% GT-FREE : position 1er fix USBL + cap course-over-ground
          (acoustique, AUCUN /pose_gt). false = ancien seed /pose_gt à t=0 (position+cap GT initial).
          Validé offline (test_usbl_seed) : pos 0.93 m, cap 13° d'écart (corrigé par USBL back-end). -->
@@ -139,6 +141,7 @@
                 <!-- ULTIME : surcharges de la séquence de runs (cf. ULTIME.md).
                      usbl_sigma vide → on garde la valeur du yaml. -->
                 <param name="sonar_context/union" value="$(arg loop_union)"/>
+                <param name="usbl/adaptive" value="$(arg usbl_adaptive)"/>
                 <param unless="$(eval arg('usbl_sigma') == '')"
                        name="usbl/sigma" value="$(arg usbl_sigma)" type="double"/>
                 <param name="enable_slam" value="$(arg enable_slam)"/>

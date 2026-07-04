@@ -130,6 +130,11 @@ class SLAMNode(SLAM):
         self.usbl_sigma = rospy.get_param(ns + "usbl/sigma", 1.4)
         self.usbl_max_dt = rospy.get_param(ns + "usbl/max_dt", 1.0)
         self.usbl_max_speed = rospy.get_param(ns + "usbl/max_speed", 3.0)
+        # U6 : σ adaptatif par fix (dispersion locale des fixes, GT-free — cf. slam.py)
+        self.usbl_adaptive = rospy.get_param(ns + "usbl/adaptive", False)
+        self.usbl_adaptive_k = rospy.get_param(ns + "usbl/adaptive_k", 3.4)
+        self.usbl_adaptive_min = rospy.get_param(ns + "usbl/adaptive_min", 0.9)
+        self.usbl_adaptive_max = rospy.get_param(ns + "usbl/adaptive_max", 3.5)
         # flip_y : néger Y des fixes USBL pour les mettre dans le repère DISO (axe Y
         # inversé, det(R)=-1 — cf. offline_sim). SANS ce flip, USBL (repère monde) et
         # DISO (repère réfléchi) sont en handedness opposés → gtsam déforme la trajectoire
