@@ -9,11 +9,13 @@
 | RU3 `145924-RU3` | union détecteurs | ❌ 2.91 — faux positifs natifs non gatés (PIEGES §12) |
 | RU4 `114439-RU4` | B″ KF 1.0 (Bruce) | ❌ 17.17 — fenêtres NSSM en keyframes (PIEGES §11), rollback fait |
 
-- **Il reste UN run proposé : RU5** `USBL_ADAPTIVE=true ./run_slam.sh` (branche Ultime) —
-  σ USBL adaptatif par fix (U6, codé + justifié offline : bruit réel ×3.5, proxy corr. 0.64).
-  Garde si ATE < 1.47 à carte égale.
+- RU5 `161907-RU5` (σ adaptatif U6) : ❌ 1.62 → rejeté, **PHASE ULTIME CLOSE sur RU1**.
+  `./run_slam.sh` nu (branche Bruce_Ultime) reproduit le champion ; carte fine =
+  `pointcloud_compass` (l'épaisseur RViz live = drift résiduel superposé, attendu).
 - Verdict pistes externes : ISOPoT infaisable (code non publié) ; SONIC test offline en
-  réserve seulement ; MCFAR en réserve. Après RU5 : consolidation + màj des 2 papiers.
+  réserve seulement ; MCFAR en réserve.
+- **Reste : consolidation** — intégrer RU1 dans le mini-papier + BRUCE_SLAM.md ;
+  §7 usage avec/sans USBL ajouté au papier Bruce (run A = sans USBL, cas doctorante).
 
 ## 🚀 Précédent (07-04 matin)
 
