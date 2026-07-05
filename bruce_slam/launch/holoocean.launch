@@ -70,6 +70,9 @@
                 <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
                 <!-- Feature extraction (mode polaire) -->
                 <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
+                    <!-- descripteur SONAR Context publié seulement pour la méthode BSU -->
+                    <param name="sonar_context/enable"
+                           value="$(eval arg('method') == 'bruce_sonar_usbl')"/>
                     <rosparam command="load" file="$(find bruce_slam)/config/feature_holoocean.yaml" subst_value="true"/>
                 </node>
             </group>
@@ -77,8 +80,7 @@
             <node if="$(eval arg('sonar_source') == 'points3d')" pkg="bruce_slam"
                   name="sonar_points_bridge" type="sonar_points_bridge.py" output="screen"/>
 
-            <!-- SLAM node — méthode "bruce" (extension : dupliquer ce nœud avec
-                 son yaml et un if method=='<autre>') -->
+            <!-- SLAM node — méthode "bruce" (Bruce original : NSSM natif optionnel) -->
             <node if="$(eval arg('method') == 'bruce')"
                   pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
@@ -87,6 +89,22 @@
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
                 <!-- dossier de sortie hérité de run_slam.sh ; défaut results/ -->
+                <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
+            </node>
+
+            <!-- SLAM node — méthode "bruce_sonar_usbl" (contribution Aracati : loops
+                 par apparence SONAR Context ; l'aval shgo/ICP/PCM inchangé).
+                 nssm/enable FORCÉ true (SC vit dans la machinerie NSSM) ; usbl reste
+                 off (pas de capteur USBL dans les bags holoocean). Seuils SC calibrés
+                 Aracati → recalibrer via loops_detected.csv (cf. slam_holoocean.yaml). -->
+            <node if="$(eval arg('method') == 'bruce_sonar_usbl')"
+                  pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
+                <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
+                <param name="enable_slam" value="true"/>
+                <param name="sonar_context/enable" value="true"/>
+                <param name="nssm/enable" value="true"/>
+                <param name="save_fig" value="false"/>
+                <param name="save_data" value="true"/>
                 <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
             </node>
 

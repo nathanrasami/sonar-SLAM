@@ -14,7 +14,8 @@
 #     l'odométrie snappe/saute sur chaque fix bruité (1.4 m, max 73 m) → trajectoire en
 #     ZIGZAG, ATE 1.45 -> 4.66 m. Le bon réglage : front-end = dead-reckoning LISSE,
 #     back-end = ancrage USBL (facteurs gtsam). cf. run 111133 (zigzag) vs 135228 (propre).
-#   ./run_slam.sh holoocean [2D|3D] [Bruce]   # mode d'acquisition + méthode (défauts : 2D Bruce)
+#   ./run_slam.sh holoocean [2D|3D] [Bruce|Bruce_Sonar_USBL]   # défauts : 2D Bruce
+#     Bruce_Sonar_USBL (alias bsu) = loops par apparence SC (sans USBL : pas de capteur)
 #
 # Les CSV sont écrits dans results/run_aracati_<date>/. Pour analyser :
 #   SLAM_RESULTS_DIR=results/run_aracati_2026-... python3 analyze_drift.py
@@ -56,7 +57,11 @@ case "$TYPE" in
     MODE="$(echo "${2:-2D}" | tr 'A-Z' 'a-z')"
     METHOD="$(echo "${3:-Bruce}" | tr 'A-Z' 'a-z')"
     case "$MODE" in 2d|3d) ;; *) echo "mode inconnu: $2 (2D|3D)"; exit 1 ;; esac
-    case "$METHOD" in bruce) ;; *) echo "méthode inconnue: $3 (Bruce — seule implémentée)"; exit 1 ;; esac
+    case "$METHOD" in
+      bruce) ;;
+      bsu|bruce_sonar_usbl) METHOD="bruce_sonar_usbl" ;;  # contribution Aracati (loops SC)
+      *) echo "méthode inconnue: $3 (Bruce | Bruce_Sonar_USBL)"; exit 1 ;;
+    esac
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" nssm:="${NSSM:-false}" \
                  mode:="$MODE" method:="$METHOD" ;;

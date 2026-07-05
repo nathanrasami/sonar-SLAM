@@ -23,3 +23,12 @@ visualization:
 
 compressed_images: False
 cartesian_mode: False
+
+# Descripteur SONAR Context (publié seulement si enable — surchargé par le launch
+# quand method=bruce_sonar_usbl). intensity_threshold calibré P900 (95) : sur les
+# images propres du simulateur, vérifier que le contexte n'est pas vide (log au 1er run).
+sonar_context:
+  enable: False
+  num_azimuth: 40
+  num_range: 40
+  intensity_threshold: 95

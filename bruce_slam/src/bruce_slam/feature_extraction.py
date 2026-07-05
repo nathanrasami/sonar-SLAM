@@ -253,6 +253,16 @@ class FeatureExtraction(object):
         #generate a mesh grid mapping from polar to cartisian
         self.generate_map_xy(sonar_msg)
 
+        # SONAR Context (méthode bruce_sonar_usbl sur holoocean) : en POLAIRE natif,
+        # l'image est déjà (lignes = range, colonnes = azimuth) → descripteur calculé
+        # DIRECTEMENT, sans le remap nécessaire au chemin cartésien d'Aracati.
+        # Publié avec le même stamp que les features → le SLAM les associe.
+        if self.sonar_context_enable:
+            ctx = build_sonar_context(img, self.sc_num_azimuth,
+                                      self.sc_num_range, self.sc_intensity_threshold)
+            pkey = build_polar_key(ctx)
+            self._publish_descriptor(sonar_msg.header, ctx, pkey)
+
         # Detect targets and check against threshold using CFAR (in polar coordinates)
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold
