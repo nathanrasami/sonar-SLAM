@@ -1325,9 +1325,10 @@ option C (estimateur de cap GT-free custom, branche dédiée).
 - **`Bruce_Sonar_USBL`** (contribution Sonar Context — mini-papier) : baselines pré-fix
   (1.43/1.44, cloud tourbillon) → fix chiralité (141223) → 1.2a champion 1.50.
   Variantes SSM (1.3/1.4) et DISO GT-free (loterie) rejetées.
-- **`Bruce_Ultime`** (fusion des 2 mondes — plan : `ULTIME.md`) : 1.2a + σ1.8 + rendu
-  compas = RU1 **1.47 / 0.075 / 0.413**. Union (RU3) et σ adaptatif (RU5) rejetés.
-  **`./run_slam.sh` nu sur cette branche reproduit le champion.**
+- **`Bruce_Ultime`** → **FUSIONNÉE dans BSU le 07-05** (tag `archive/Bruce_Ultime`) :
+  la répétabilité a montré σ1.4 ≈ σ1.8 (méd 1.50 vs 1.54) → aucun avantage propre.
+  Ses runs RU1-RU5 restent la référence de la saga σ/union/adaptatif (plan : ULTIME.md,
+  désormais sur BSU). **`./run_slam.sh` nu sur BSU = champion (σ1.4).**
 - **`holoocean`** (simulation, préparation 3D) : dvl 0.13 m ; chaîne 3D prête
   (`sonar_source:=points3d`), bag 3D attendu du collègue (`HOLOOCEAN_3D_GUIDE.md`).
 

@@ -296,6 +296,19 @@ def eval_run(run_dir, label, out, imin=None, n_sections=3):
     fig.tight_layout(); fig.savefig(os.path.join(out, f"{label}_cloud_vs_gt.png"), dpi=150)
     plt.close(fig)
 
+    # 4) trajectoire plaquée sur NOTRE nuage (même repère carte, aucun alignement)
+    fig, ax = plt.subplots(figsize=(7.5, 6.6))
+    ax.scatter(P[:, 0], P[:, 1], s=0.15, c="k", alpha=0.35, linewidths=0)
+    ax.plot(d["est"][:, 0], d["est"][:, 1], color="tab:red", lw=1.3,
+            label="trajectoire SLAM")
+    ax.plot(d["est"][0, 0], d["est"][0, 1], "^", color="tab:red", ms=9, label="départ")
+    ax.plot(d["est"][-1, 0], d["est"][-1, 1], "s", color="tab:red", ms=7, label="arrivée")
+    ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)"); ax.set_aspect("equal")
+    ax.legend(fontsize=9)
+    ax.set_title(f"{label} — trajectoire sur le nuage")
+    fig.tight_layout(); fig.savefig(os.path.join(out, f"{label}_traj_on_cloud.png"), dpi=150)
+    plt.close(fig)
+
     return {
         "label": label, "ate_um": ate_um, "ate_fp": ate_fp, "ate_sc": ate_sc, "s2": s2,
         "ate_odom": ate_odom, "re_t": re_t, "re_r": re_r, "sections": sections,
