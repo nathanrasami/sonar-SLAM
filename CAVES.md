@@ -37,7 +37,7 @@ Les différences, toutes en AMONT du SLAM :
 
 | | Aracati (branches Bruce/BSU) | Caves (cette branche) |
 |---|---|---|
-| Sonar | BlueView P900 : **image cartésienne complète** à chaque ping (5 Hz) | Tritech Micron **MSIS : 1 faisceau à la fois** → NOUVEAU `msis_scan_bridge.py` : assemblage en tours complets → image polaire → chaîne feature POLAIRE (celle d'holoocean, pas le mode cartésien) |
+| Sonar | BlueView P900 : **image cartésienne complète** à chaque ping (5 Hz) | Tritech Micron **MSIS : 1 faisceau à la fois** → NOUVEAU `msis_scan_bridge.py` : assemblage en tours 360° + **CFAR et conversion EN POLAIRE, features publiées DIRECTEMENT** (la chaîne image de feature_extraction suppose un secteur <180° et s'effondre en 360° — PIEGES §13, découvert aux runs de validation) |
 | Cadence effective | 5 scans/s | **1 scan / 8.6 s** (un tour) → keyframes pilotées par la distance, pas le temps |
 | Odométrie | intégration `/cmd_vel` maison (consignes + compas), seed USBL | `/odometry` du dataset (DVL+IMU, EKF du bord) **relayé tel quel** — pas de cmd_vel_odom |
 | Ancrage absolu | USBL (`/usbl_point`) → facteurs Cauchy | **AUCUN** (pas d'USBL en grotte) → la méthode `bruce_sonar_usbl` = Sonar Context SEUL (loops par apparence, usbl/enable False verrouillé) |
@@ -77,12 +77,19 @@ run** : CFAR threshold 80 vs intensités max 191 ; keyframe_translation vs vites
 - Bonus possibles plus tard : bags natifs des auteurs de Bruce (effort 0),
   Aracati2014 (chaîne aracati quasi telle quelle).
 
-## 5. État et prochaine étape
+## 5. État — ✅ CHAÎNE VALIDÉE EN RUN COMPLET (07-05, 3 runs de validation conteneur)
 
-- [x] Câblage complet (bridge, launch, configs, run_slam, analyse.sh, inspect_bag)
-- [x] Bag inspecté : format confirmé, bridge réglé (350°/tour, échelle 1.0)
-- [x] Dry-run assemblage hors-ROS : parois visibles
-- [ ] **PREMIER RUN** : `./run_slam.sh caves` puis `./analyse.sh 3D run_caves_<date>`
-      → checklist chiralité (GARDE_FOU §6.1) sur carte_finale, calibration CFAR/keyframes
-- [ ] Ensuite : `./run_slam.sh caves Bruce_Sonar_USBL` (recalibrer τ SC via
-      loops_detected.csv) ; compensation de balayage si nécessaire ; SeaKing → 3D.
+- [x] Bag inspecté, bridge validé (dry-run + runs réels)
+- [x] **Leçon des runs 1-2** : chaîne image feature_extraction inutilisable en 360°
+      (nuages bit-identiques de 672 pts — PIEGES §13) → bridge v2 : CFAR + conversion
+      EN POLAIRE, features directes. feature_caves.yaml supprimé (les paramètres
+      d'extraction vivent dans le bridge : seuil 60, downsample 0.5, outliers 1.5 m/3,
+      calibrés étape par étape sur un tour réel : 11 811 pics CFAR → 456 → 180 → ~160).
+- [x] **Run de validation complet SANS erreur** (rate 8, headless) : 227 KF, 493 m
+      (~les 500 m de la galerie), 27 048 points, z 2.3→19.2 m ; carte : les parois
+      ENVELOPPENT la trajectoire, cohérentes aller/retour → **chiralité OK
+      (flip_y=False)**. Run de référence : `results/run_caves_VALIDATION3`.
+- [ ] Run visuel de Nathan (RViz) : `./run_slam.sh caves` + `./analyse.sh 3D run_caves_<date>`
+- [ ] Ensuite : loops (nssm:=true, min_st_sep à adapter à la topologie tunnel) ;
+      `./run_slam.sh caves Bruce_Sonar_USBL` (recalibrer τ SC via loops_detected.csv) ;
+      compensation de balayage si besoin ; SeaKing → 3D.

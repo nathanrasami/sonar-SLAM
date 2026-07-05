@@ -32,16 +32,15 @@
     <group ns="bruce">
         <group ns="slam">
 
-            <!-- MSIS : assemble les faisceaux LaserScan en tours complets → ping polaire -->
+            <!-- MSIS : assemble les faisceaux en tours 360° et publie DIRECTEMENT
+                 les features (CFAR + conversion en POLAIRE — la chaîne image de
+                 feature_extraction suppose un secteur <180° et s'effondre en 360°,
+                 leçon des runs de validation 07-05, cf. CAVES.md). Le descripteur
+                 SONAR Context est publié par ce nœud pour la méthode BSU. -->
             <node pkg="bruce_slam" name="msis_scan_bridge" type="msis_scan_bridge.py"
                   output="screen">
                 <param name="scan_topic" value="/sonar_micron_ros"/>
                 <param name="range_m" value="$(arg sonar_range_m)"/>
-            </node>
-
-            <!-- extraction de features (chaîne POLAIRE, comme holoocean) -->
-            <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
-                <rosparam command="load" file="$(find bruce_slam)/config/feature_caves.yaml" subst_value="true"/>
                 <param name="sonar_context/enable"
                        value="$(eval arg('method') == 'bruce_sonar_usbl')"/>
             </node>
