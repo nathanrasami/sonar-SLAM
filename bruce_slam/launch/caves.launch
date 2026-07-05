@@ -74,6 +74,18 @@
               args="0 0 0 0 0 3.14159 world map 100"/>
     </group>
 
+    <!-- « Aerial view » (panneau /aerial_img de video.rviz — purement esthétique).
+         Pas de vue aérienne d'une grotte, mais le PLAN DE COUPE du réseau (figure du
+         papier IJRR, ou un rendu de carte_3d) fait le même office. Pour l'activer :
+         1) poser une image dans  bruce_slam/maps/caves_survey.png
+         2) décommenter le bloc ci-dessous (publie l'image en boucle sur /aerial_img).
+    <node pkg="image_publisher" type="image_publisher" name="aerial_img"
+          args="$(find bruce_slam)/maps/caves_survey.png">
+        <remap from="/aerial_img/image_raw" to="/aerial_img"/>
+        <param name="publish_rate" value="0.2"/>
+    </node>
+    -->
+
     <node if="$(arg rviz)" type="rviz" name="rviz" pkg="rviz"
           args="-d $(find bruce_slam)/rviz/video.rviz"/>
 

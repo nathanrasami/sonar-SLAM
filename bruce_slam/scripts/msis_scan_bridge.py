@@ -25,17 +25,20 @@ param ~flip_y.
 Méthode bruce_sonar_usbl : ~sonar_context/enable publie aussi le descripteur
 SONAR Context calculé sur le tour polaire (même format que feature_extraction).
 """
+import cv2
 import numpy as np
 import rospy
+import ros_numpy
 from scipy.spatial import cKDTree
-from sensor_msgs.msg import LaserScan, PointCloud2
+from sensor_msgs.msg import Image, LaserScan, PointCloud2
 from std_msgs.msg import Float32MultiArray
 
 from bruce_slam import pcl
 from bruce_slam.CFAR import CFAR
 from bruce_slam.sonar_context import build_sonar_context, build_polar_key
 from bruce_slam.utils.conversions import n2r
-from bruce_slam.utils.topics import SONAR_FEATURE_TOPIC, SONAR_DESCRIPTOR_TOPIC
+from bruce_slam.utils.topics import (SONAR_FEATURE_TOPIC, SONAR_DESCRIPTOR_TOPIC,
+                                     SONAR_FEATURE_IMG_TOPIC)
 
 
 class MsisScanBridge:
@@ -63,6 +66,9 @@ class MsisScanBridge:
         self.beams = {}          # clé angle → (stamp, angle, intensités)
         self.n_bins, self.rng = None, None
         self.pub = rospy.Publisher(SONAR_FEATURE_TOPIC, PointCloud2, queue_size=5)
+        # image de visualisation RViz (panneau « sonar » de video.rviz) : le tour
+        # 360° remappé en disque cartésien + détections en rouge
+        self.pub_img = rospy.Publisher(SONAR_FEATURE_IMG_TOPIC, Image, queue_size=2)
         self.pub_desc = rospy.Publisher(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,
                                         queue_size=5) if self.sc_enable else None
         rospy.Subscriber(self.scan_topic, LaserScan, self.cb, queue_size=300)
@@ -121,6 +127,33 @@ class MsisScanBridge:
         # ré-associe l'intensité de chaque survivant (plus proche détection brute)
         _, idx = cKDTree(np.column_stack([x, y])).query(pts, k=1)
         inten = inten[idx]
+
+        # --- visualisation RViz : disque cartésien du tour + détections rouges.
+        # Rendu par scatter avec LA MÊME formule que les détections (x avant = haut,
+        # y latéral = gauche) → alignement points/fond garanti, aucune convention
+        # warpPolar à deviner. Coût négligeable (80k px / 8.6 s).
+        try:
+            size = 480
+            k = (size / 2 - 2) / self.rng                 # m -> px
+            rr = (np.arange(self.n_bins, dtype=np.float32) + 0.5) * (self.rng / self.n_bins)
+            R_, TH = np.meshgrid(rr, angles.astype(np.float32), indexing="ij")
+            U = (size // 2 - (R_ * np.sin(TH)) * k).astype(np.int32)
+            V = (size // 2 - (R_ * np.cos(TH)) * k).astype(np.int32)
+            canvas = np.zeros((size, size), np.uint8)
+            okm = (U >= 0) & (U < size) & (V >= 0) & (V < size)
+            canvas[V[okm], U[okm]] = img[okm]
+            canvas = cv2.dilate(canvas, np.ones((3, 3), np.uint8))
+            vis = cv2.applyColorMap(canvas, 2)
+            u = (size // 2 - pts[:, 1] * k).astype(int)
+            v = (size // 2 - pts[:, 0] * k).astype(int)
+            ok2 = (u >= 0) & (u < size) & (v >= 0) & (v < size)
+            for uu, vv in zip(u[ok2], v[ok2]):
+                cv2.circle(vis, (uu, vv), 2, (0, 0, 255), -1)
+            im = ros_numpy.image.numpy_to_image(vis, "bgr8")
+            im.header.stamp = stamp
+            self.pub_img.publish(im)
+        except Exception as e:              # la visu ne doit JAMAIS casser le flux
+            rospy.logwarn_once("[msis_bridge] visu indisponible : %s", e)
 
         yy = -pts[:, 1] if self.flip_y else pts[:, 1]
         packed = np.c_[pts[:, 0], inten, -yy]   # [x, I, -y] convention aracati

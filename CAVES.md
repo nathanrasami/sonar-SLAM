@@ -89,6 +89,12 @@ run** : CFAR threshold 80 vs intensités max 191 ; keyframe_translation vs vites
       (~les 500 m de la galerie), 27 048 points, z 2.3→19.2 m ; carte : les parois
       ENVELOPPENT la trajectoire, cohérentes aller/retour → **chiralité OK
       (flip_y=False)**. Run de référence : `results/run_caves_VALIDATION3`.
+- [x] Panneau sonar RViz : le bridge publie l'image du tour assemblé (disque 360°
+      + détections rouges) sur feature_img — rendu par la MÊME formule que les
+      features (alignement garanti). Panneau « aerial view » : pas de vue aérienne
+      d'une grotte — bloc image_publisher PRÊT EN COMMENTAIRE dans caves.launch
+      (poser une image dans bruce_slam/maps/caves_survey.png et décommenter,
+      ex. le plan de coupe du papier IJRR).
 - [ ] Run visuel de Nathan (RViz) : `./run_slam.sh caves` + `./analyse.sh 3D run_caves_<date>`
 - [ ] Ensuite : loops (nssm:=true, min_st_sep à adapter à la topologie tunnel) ;
       `./run_slam.sh caves Bruce_Sonar_USBL` (recalibrer τ SC via loops_detected.csv) ;
