@@ -1,6 +1,18 @@
 # PROGRESS — état au 2026-07-05 — ✅ STAGE ARACATI BOUCLÉ (runs finaux + audit GT-free)
 
-## ✅ CLÔTURE (07-05) — tout dans TESTS.md partie 2 (§2.4-2.6)
+## 🧭 SUITE HOLOOCEAN (07-05 soir)
+
+- **Méthode `Bruce_Sonar_USBL` intégrée aux options holoocean** :
+  `./run_slam.sh holoocean 2D Bruce_Sonar_USBL` (alias `bsu`) — descripteur SC calculé
+  en POLAIRE natif (sans remap), nœud SLAM dédié (SC on + NSSM on, usbl off : pas de
+  capteur), seuils SC à RECALIBRER sur le sonar holoocean (loops_detected.csv,
+  cf. HOLOOCEAN_GARDE_FOU.md §7). Non testé en run — 1er run de validation à faire.
+- **`HOLOOCEAN_GARDE_FOU.md`** (branche holoocean) : le manuel pour l'ère Opus —
+  carte du pipeline, 8 invariants, recettes (format 3D différent / passage odométrie
+  ±USBL / ajouter une méthode), checklists chiralité + run valide + table des pannes,
+  calibration SC, GO/NO-GO Pose3.
+
+## ✅ CLÔTURE ARACATI (07-05) — tout dans TESTS.md partie 2 (§2.4-2.6)
 
 - **10 runs finaux faits et archivés** (TESTS_image/) : livrable robuste = **ATE 1.5 ± 0.1 m,
   carte compas 0.075/0.43** (6 runs SC cumulés ; σ1.4 ≈ σ1.8 dans la variance ICP) ;
