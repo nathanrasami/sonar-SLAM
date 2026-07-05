@@ -8,13 +8,16 @@ Analyse HoloOcean simulation results:
 import os
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from traj_eval import associer_par_temps, umeyama, appliquer, calculer_ate
 
-BAG_PATH     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.bag")
-RESULTS_DIR  = os.environ.get("SLAM_RESULTS_DIR",
-               os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
+# le script vit dans analysis/ → la racine du dépôt est UN cran au-dessus
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BAG_PATH     = os.environ.get("BAG_HOLO", os.path.join(_ROOT, "test.bag"))
+RESULTS_DIR  = os.environ.get("SLAM_RESULTS_DIR", os.path.join(_ROOT, "results"))
 
 # ── 1. Extract GT from bag ────────────────────────────────────────────────────
 def extract_gt(bag_path):
@@ -37,9 +40,16 @@ def extract_gt(bag_path):
     return pd.DataFrame({"time": times, "x": xs, "y": ys, "z": zs,
                          "roll": rolls, "pitch": pitches, "yaw": yaws})
 
-print("Extracting GT from bag...")
-gt = extract_gt(BAG_PATH)
-print(f"  GT poses: {len(gt)}, duration: {gt['time'].iloc[-1]-gt['time'].iloc[0]:.1f}s")
+# GT : de préférence le groundtruth.csv DU RUN (exporté par gt_odom_to_pose →
+# slam_ros, mêmes stamps que la traj) ; le bag n'est qu'un secours si absent.
+gt_csv = os.path.join(RESULTS_DIR, "groundtruth.csv")
+if os.path.exists(gt_csv):
+    gt = pd.read_csv(gt_csv)
+    print(f"GT depuis {gt_csv} : {len(gt)} poses")
+else:
+    print(f"groundtruth.csv absent — extraction du bag {BAG_PATH}...")
+    gt = extract_gt(BAG_PATH)
+    print(f"  GT poses: {len(gt)}, duration: {gt['time'].iloc[-1]-gt['time'].iloc[0]:.1f}s")
 
 # ── 2. Load Bruce-SLAM trajectory ─────────────────────────────────────────────
 traj_path = os.path.join(RESULTS_DIR, "trajectory.csv")
@@ -79,4 +89,3 @@ plt.tight_layout()
 out = os.path.join(RESULTS_DIR, "holoocean_trajectory_plot.png")
 fig.savefig(out, dpi=150)
 print(f"Saved: {out}")
-plt.show()
