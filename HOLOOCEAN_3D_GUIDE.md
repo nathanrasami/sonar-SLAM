@@ -484,6 +484,35 @@ que le bag actuel (drop-in côté SLAM).
 
 ---
 
+## 5bis. ⚠ LE PIÈGE « 2.5D PLAQUÉ » (constaté sur le dataset réel caves, 07-06)
+
+Sur le dataset de grotte réel, le sonar horizontal donne un nuage dont le z varie
+(std 4.3 m)… mais **std(z) INTRA-scan = 0.0000 m** : chaque scan est une tranche
+PLATE posée au z du véhicule — un ruban 2.5D, pas du volume. **Un std(z) global > 0.5
+ne suffit donc PAS** : il peut venir uniquement de la profondeur de la trajectoire.
+
+**La vraie 3D exige que le PLAN du sonar change d'orientation** (ou un capteur
+vertical) :
+- Stratégie 1 : c'est le RÔLE du roulis de l'hélice — le plan du SonarFin roule avec
+  le robot → les z d'UN MÊME ping s'étalent. Si tu enlèves le roll, tu retombes
+  exactement dans le piège.
+- Stratégie 2 : le ProfilerVert fournit le volume, le sonar horizontal peut rester
+  un ruban (c'est le montage du dataset caves réel).
+
+**Test qui tranche (à ajouter à la checklist) : std(z) PAR MESSAGE de /sonar_points**
+— sur des pings pris quand le robot roule, std(z) intra-message doit être > 0.5 m.
+S'il est ~0 partout, le bag est du 2.5D plaqué, pas de la 3D.
+
+**Note sur « faire tourner le sonar très vite »** (idée de Nathan — pas si folle !) :
+c'est exactement le principe des sonars 3D à rotateur réels (ex. BlueView BV5000 :
+un profiler monté sur un moteur pan/tilt) et des MSIS. MAIS le réalisme impose la
+lenteur : un tour mécanique prend des secondes (le Micron réel : 8.6 s/tour), et
+pendant ce temps le véhicule bouge → distorsion de balayage (vécue sur caves).
+Les deux stratégies du guide obtiennent le même effet SANS moteur : le mouvement
+du véhicule (roll) ou un second capteur fixe — plus simple et plus réaliste qu'un
+sonar qui tournerait « très vite ». Si un jour on veut simuler un vrai rotateur :
+stations stop-and-scan (véhicule immobile pendant le tour), pas de rotation rapide.
+
 ## 6. Checklist de validation AVANT d'envoyer le bag (5 min)
 
 ```bash
@@ -500,6 +529,9 @@ for _, msg, _ in bag.read_messages(topics=["/sonar_points"]):
 EOF
 ```
 - [ ] **std(z) > 0.5 m** sur /sonar_points (sinon la 3D n'est pas là — c'était le défaut du bag actuel)
+- [ ] **std(z) INTRA-MESSAGE > 0.5 m** sur des pings où le robot roule (§5bis — le
+      piège « 2.5D plaqué » : un std global élevé peut venir de la seule profondeur
+      de la trajectoire, vérifié sur le dataset caves réel : intra-scan = 0.0000)
 - [ ] une image /sonar SANS arcs (afficher une frame : les murs = lignes nettes, pas d'anneaux)
 - [ ] /ground_truth : z oscille entre Z_AXIS−R_CYL et Z_AXIS+R_CYL (l'hélice se voit)
 - [ ] le robot ne sort jamais des murs ni de l'eau (regarder les min/max de x,y,z GT)
