@@ -4,6 +4,17 @@
 > (Opus) ou à la main. **But** : remplacer le pilotage manuel (12 min réel / 1 min simu,
 > intenable pour 10 min de bag) par un **script autonome** qui génère un bag **vraie 3D**.
 > Côté SLAM (Nathan), tout est déjà prêt pour le consommer (`sonar_source:=points3d`).
+>
+> **MISE À JOUR 07-06 — DEUX STRATÉGIES (faire la 1, puis la 2) :**
+> - **Stratégie 1 (§3)** : run auto « spirale » ~10 min, hélice autour du chemin carré,
+>   **point d'arrivée = point de départ** (N_LAPS entier → la boucle se referme seule).
+>   C'est la plus simple et elle suffit pour valider la chaîne 3D.
+> - **Stratégie 2 (§3bis, NOUVELLE) — « façon grotte »** : nous avons validé sur un
+>   dataset réel de grotte (CIRS caves) une reconstruction 3D par **profiler VERTICAL
+>   projeté le long de la trajectoire** — on exporte la recette : un 2ᵉ sonar
+>   (ProfilingSonar monté vertical) + une trajectoire d'**exploration aléatoire LISSE**
+>   qui fait le tour de l'environnement en variant la profondeur et **revient au
+>   départ**. Côté SLAM tout est déjà prêt (outil de reconstruction type grotte_3d).
 
 ---
 
@@ -158,6 +169,108 @@ donc ω et v exacts + bruit gaussien réaliste) : voir le code §4. Le sonar, lu
 rendu par le moteur à la pose téléportée : c'est tout ce qui compte.
 
 ---
+
+## 3bis. STRATÉGIE 2 — exploration aléatoire « façon grotte » (NOUVEAU, 07-06)
+
+### 3bis.1 Le principe (copié d'un dataset réel de grotte)
+
+Sur le dataset CIRS caves, la cavité 3D est reconstruite ainsi : un sonar horizontal
+fait le SLAM (carte + trajectoire), un **profiler VERTICAL** balaye la section
+transverse, et chaque faisceau est projeté avec la pose interpolée → le tunnel 3D.
+On reproduit ça en simulation :
+
+1. **2ᵉ capteur dans le scénario** : un ProfilingSonar monté pour balayer le plan
+   VERTICAL transverse (roll 90°) :
+
+```json
+{
+    "sensor_type": "ProfilingSonar",
+    "sensor_name": "ProfilerVert",
+    "socket": "SonarSocket",
+    "rotation": [90.0, 0.0, 0.0],
+    "configuration": {
+        "Azimuth": 120, "Elevation": 1,
+        "RangeMin": 0.5, "RangeMax": 40,
+        "RangeBins": 512, "AzimuthBins": 240,
+        "AddSigma": 0.03, "MultSigma": 0.03, "RangeSigma": 0,
+        "MultiPath": false, "AzimuthStreaks": 0, "ScaleNoise": false,
+        "InitOctreeRange": 50, "ViewRegion": false
+    }
+}
+```
+   (⚠ vérifier sur TA version l'axe de `rotation` qui met le fan à la VERTICALE :
+   symptôme si faux = les points profiler dessinent un plan horizontal. Un tick
+   suffit à le voir.)
+
+2. **Trajectoire aléatoire LISSE qui fait le tour et revient au départ** —
+   « aléatoire » ≠ brownien : le SLAM veut de la continuité. Recette :
+   des **waypoints ordonnés le long du tour** (comme la stratégie 1) mais avec un
+   **jitter aléatoire** latéral et VERTICAL à chaque waypoint, puis une spline
+   Catmull-Rom reparamétrée à vitesse constante. Premier point = dernier point
+   (boucle fermée exacte) ; seed fixé (reproductible).
+
+```python
+# ─── Trajectoire stratégie 2 : waypoints jitterés + Catmull-Rom ────────────────
+SEED       = 42
+N_WPT      = 24          # waypoints le long du tour (6 par côté)
+JIT_XY     = 3.0         # jitter latéral max (m) — GARDE >= 1.5 m des murs !
+Z_MIN, Z_MAX = -6.0, -1.5   # bande de profondeur explorée (ENU, z<0 sous l'eau)
+PITCH_MAX  = np.deg2rad(20) # ne pas cabrer plus (sonar + réalisme)
+
+def make_waypoints():
+    rng = np.random.default_rng(SEED)
+    wpts = []
+    for i in range(N_WPT):
+        s = PERIM * i / N_WPT
+        c2, t2 = path(s)                      # le chemin carré de la stratégie 1
+        n2 = np.array([t2[1], -t2[0]])
+        lat = rng.uniform(-JIT_XY, JIT_XY)
+        z   = rng.uniform(Z_MIN, Z_MAX)
+        wpts.append(np.array([c2[0] + lat*n2[0], c2[1] + lat*n2[1], z]))
+    wpts.append(wpts[0].copy())               # RETOUR AU DÉPART (boucle fermée)
+    return np.array(wpts)
+
+def catmull_rom(wpts, n_dense=6000):
+    """spline C1 fermée passant par les waypoints, échantillonnée dense puis
+    reparamétrée à l'abscisse curviligne (vitesse constante)."""
+    W = np.vstack([wpts[-2], wpts, wpts[1]])  # padding cyclique
+    pts = []
+    for i in range(1, len(W) - 2):
+        P0, P1, P2, P3 = W[i-1], W[i], W[i+1], W[i+2]
+        for u in np.linspace(0, 1, n_dense // (len(W)-3), endpoint=False):
+            pts.append(0.5*((2*P1) + (-P0+P2)*u + (2*P0-5*P1+4*P2-P3)*u*u
+                            + (-P0+3*P1-3*P2+P3)*u**3))
+    pts = np.array(pts)
+    seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+    s_cum = np.concatenate([[0], np.cumsum(seg)])
+    return pts, s_cum                          # position(s) par interpolation sur s_cum
+
+# pose_at(t) version stratégie 2 :
+#   s = V_FWD * t  →  p = interp(s_cum, pts) ; tangente t̂ = dérivée numérique ;
+#   yaw = atan2(t̂_y, t̂_x) ; pitch = clip(-asin(t̂_z), ±PITCH_MAX) ; roll = 0
+#   (le balayage vertical est fait par le ProfilerVert, plus besoin de rouler —
+#    garder le roll de la stratégie 1 est possible mais pas nécessaire ici).
+```
+
+3. **Dans la boucle principale** (mêmes topics + un de plus) : à chaque tick sonar,
+   lire aussi `state["ProfilerVert"]`, convertir comme `sonar_to_points3d` mais avec
+   la rotation de montage : `pts_b = R_mount @ [r·cos a, r·sin a, 0]` où
+   `R_mount = R_roll(90°)` — puis écrire dans le bag :
+   `/profiler_points` (PointCloud2 x,y,z,intensity, points MONDE, comme /sonar_points).
+
+### 3bis.2 Contraintes de faisabilité (validées, à respecter)
+
+- **Lissité** : Catmull-Rom + vitesse constante → pas de saut de cap ; vérifier
+  |Δyaw| < 30°/s et |pitch| ≤ 20° sur la trajectoire générée AVANT de rendre (5 lignes
+  numpy, cf. checklist).
+- **Collisions** : JIT_XY borné pour garder ≥ 1.5 m des murs ; Z_MIN/Z_MAX pour rester
+  ≥ 1 m sous la surface et ≥ 1 m au-dessus du fond. Après génération : assert sur les
+  min/max de la spline (pas seulement des waypoints — la spline peut dépasser
+  légèrement : prendre 0.5 m de marge en plus).
+- **Boucle fermée** : premier = dernier waypoint → le SLAM aura SA grande loop closure
+  (comme la grotte : une seule, au retour).
+- **Durée** : la spline fait ~PERIM ± 20 % ; régler V_FWD pour ~10 min, 1 seul tour
+  suffit (la revisite = le retour au départ).
 
 ## 4. LE CODE — `gen_bag_3d.py` (générateur complet)
 
@@ -363,6 +476,7 @@ finally:
 | `/imu` | sensor_msgs/Imu | orientation absolue + gyro/accel (repère véhicule) |
 | `/dvl` | geometry_msgs/TwistStamped | vitesse **repère véhicule** (vx avant, vy gauche, vz haut) |
 | `/depth` | std_msgs/Float64 | profondeur **positive vers le bas** (= −z) |
+| `/profiler_points` (stratégie 2) | sensor_msgs/PointCloud2 (x,y,z,intensity) | sections VERTICALES du ProfilerVert, points MONDE — la matière première de la reconstruction « façon grotte » |
 
 **Conventions à NE PAS changer** (elles nous ont coûté 3 semaines sur Aracati) :
 ENU + z haut ; quaternion xyzw ; stamps = temps simulé croissant ; mêmes noms de topics
@@ -391,9 +505,22 @@ EOF
 - [ ] le robot ne sort jamais des murs ni de l'eau (regarder les min/max de x,y,z GT)
 - [ ] durée ≈ 2 tours (revisites → le SLAM pourra fermer des boucles)
 
+**Checklist supplémentaire STRATÉGIE 2 :**
+- [ ] ‖p(fin) − p(début)‖ < 2 m (boucle fermée)
+- [ ] std(z) de la TRAJECTOIRE > 1 m (l'exploration verticale se voit)
+- [ ] max |Δyaw|/Δt < 30°/s et |pitch| ≤ 20° sur toute la spline
+- [ ] marges : distance spline→murs ≥ 1.5 m, surface/fond ≥ 1 m (asserts dans le script)
+- [ ] `/profiler_points` : un message affiché en 3D dessine une SECTION verticale
+      (arc/anneau), pas une ligne horizontale (sinon la rotation de montage est fausse)
+
 ## 7. Côté SLAM (déjà prêt, pour info)
 
 La branche `holoocean` du dépôt consomme ce bag tel quel :
-`./run_slam.sh holoocean` (2D, image) ou `sonar_source:=points3d` (3D direct via
-`sonar_points_bridge.py`). Les CSV exportent déjà une colonne z. Rien à faire de plus
-côté Nathan — envoie le bag, c'est branché.
+`./run_slam.sh holoocean` (2D, image) ou `./run_slam.sh holoocean 3D` (points 3D via
+`sonar_points_bridge.py`). Les CSV exportent déjà une colonne z.
+
+**Stratégie 2** : la reconstruction « profiler le long de la trajectoire » est DÉJÀ
+écrite et validée côté Nathan sur le dataset réel de grotte (`analysis/caves_3d.py`,
+branche caves — 23 000+ points de paroi, sections plafond/plancher correctes) ; son
+adaptation holoocean lira `/profiler_points` directement (encore plus simple : les
+points sont déjà en monde). Envoie le bag, c'est branché.
