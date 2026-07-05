@@ -14,7 +14,7 @@
 #     l'odométrie snappe/saute sur chaque fix bruité (1.4 m, max 73 m) → trajectoire en
 #     ZIGZAG, ATE 1.45 -> 4.66 m. Le bon réglage : front-end = dead-reckoning LISSE,
 #     back-end = ancrage USBL (facteurs gtsam). cf. run 111133 (zigzag) vs 135228 (propre).
-#   ./run_slam.sh holoocean    # roslaunch bruce_slam holoocean.launch
+#   ./run_slam.sh holoocean [2D|3D] [Bruce]   # mode d'acquisition + méthode (défauts : 2D Bruce)
 #
 # Les CSV sont écrits dans results/run_aracati_<date>/. Pour analyser :
 #   SLAM_RESULTS_DIR=results/run_aracati_2026-... python3 analyze_drift.py
@@ -46,8 +46,20 @@ case "$TYPE" in
   aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" \
                  odom_source:="${ODOM_SOURCE:-cmd_vel}" diso_prior:="${DISO_PRIOR:-cmd_vel}" diso_seed_gt:="${DISO_SEED_GT:-true}" \
                  gt_free_seed:="${GT_FREE_SEED:-true}" heading_from_compass:="${HEADING_COMPASS:-false}" ;;
-  holoocean) roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
-                 rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" nssm:="${NSSM:-false}" ;;
+  holoocean)
+    # ./run_slam.sh holoocean [2D|3D] [Bruce]  — mode et méthode optionnels.
+    #   mode 2D (défaut) : chaîne image polaire -> CFAR (bag actuel).
+    #   mode 3D          : consomme /sonar_points (PointCloud2 3D du simulateur) ;
+    #                      le z est porté partout (CSV, RViz, figures auto-3D).
+    #   méthode Bruce (défaut) : seule implémentée — l'argument est le point
+    #   d'extension pour brancher d'autres méthodes plus tard (cf. holoocean.launch).
+    MODE="$(echo "${2:-2D}" | tr 'A-Z' 'a-z')"
+    METHOD="$(echo "${3:-Bruce}" | tr 'A-Z' 'a-z')"
+    case "$MODE" in 2d|3d) ;; *) echo "mode inconnu: $2 (2D|3D)"; exit 1 ;; esac
+    case "$METHOD" in bruce) ;; *) echo "méthode inconnue: $3 (Bruce — seule implémentée)"; exit 1 ;; esac
+    roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
+                 rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" nssm:="${NSSM:-false}" \
+                 mode:="$MODE" method:="$METHOD" ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac
 

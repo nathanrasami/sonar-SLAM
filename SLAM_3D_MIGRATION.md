@@ -161,3 +161,48 @@ concentré sur 5 (ICP 3D) puis 4 (EKF 6DOF).
 | `bruce_slam/src/bruce_slam/utils/conversions.py` | déjà 6DOF — référence |
 | `bruce_slam/scripts/holoocean_sonar_bridge.py` | entrée sonar (à adapter selon specs ami) |
 | `traj_eval.py` | umeyama 2D à généraliser, associer_par_temps à étendre au z |
+
+---
+
+# PIPELINE UNIFIÉ 2D/3D + CHOIX DE MÉTHODE (07-05) — la proposition retenue
+
+Demande : « peu importe le bag (2D ou 3D), le code doit gérer ; RViz et les images python
+en 2D ou 3D ; au run on choisit ; plus tard on choisit aussi la méthode.
+Ex : ./run_slam.sh holoocean 3D Bruce ».
+
+## Ce qui est EN PLACE (implémenté)
+
+```bash
+./run_slam.sh holoocean             # = 2D Bruce (défauts)
+./run_slam.sh holoocean 3D          # bag 3D du collègue (/sonar_points avec vrai z)
+./run_slam.sh holoocean 3D Bruce    # forme complète
+```
+
+- **mode** (arg launch, choisi AU RUN — pas d'auto-détection du bag : explicite = pas de
+  surprise, et un garde-fou existe déjà côté analyse, cf. plus bas) :
+  - `2d` → `sonar_source=image` : chaîne actuelle (bridge image polaire → CFAR) ;
+  - `3d` → `sonar_source=points3d` : consomme directement le PointCloud2 3D du
+    simulateur (`sonar_points_bridge.py`).
+- **Le z traverse TOUTE la chaîne dans les deux modes** : `dvl_imu_odom` publie
+  z = −depth (capteur réel), les 3 CSV ont des colonnes z, RViz est nativement 3D.
+- **Figures python AUTO-3D** : `bilan_run.py` et `traj_on_cloud.py` détectent
+  `std(z) > 0.2 m` et colorent le nuage par z (sinon rendu 2D classique). Aucun
+  argument à passer : un bag plat sort en 2D, un bag 3D sort en 3D — c'est le
+  garde-fou : si tu lances `3D` et que les figures sortent plates, le bag n'a pas
+  de relief (comme l'actuel test.bag, z=0 partout, vérifié).
+- **method** (arg launch, `bruce` défaut et seul implémenté) : le nœud SLAM est gardé
+  par `if method=='bruce'` → pour ajouter une méthode (ex. SC+USBL d'Aracati), dupliquer
+  le groupe SLAM avec son yaml et son `if`. run_slam.sh valide l'argument (message clair
+  si méthode inconnue).
+
+## Les limites assumées (et l'étape suivante)
+
+- Le graphe reste **Pose2 (2.5D)** : x,y,θ optimisés, z PORTÉ (pas optimisé) depuis le
+  capteur de pression — honnête et suffisant tant que le véhicule navigue à profondeur
+  quasi-constante par segments. C'est le « 3D » de l'argument aujourd'hui.
+- **Vraie 3D** (l'étape périlleuse, à n'ouvrir QUE si le bag 3D du collègue le justifie) :
+  passer le graphe en Pose3/iSAM2 + ICP 3D — gros chantier détaillé dans les sections
+  précédentes de ce document. L'architecture ci-dessus est prête à l'accueillir (le
+  mode 3d alimente déjà des nuages 3D au SLAM).
+- Checklist bag 3D (rappel HOLOOCEAN_3D_GUIDE.md) : `std(z) > 0.5 m` sur /sonar_points,
+  sinon le mode 3d n'apportera rien de plus que le 2d.

@@ -22,7 +22,22 @@
          avec z réel (aujourd'hui z=0 partout). Le graphe reste 2D (projection) ;
          la carte 3D vraie se reconstruit offline. Si le fix 3D n'arrive pas,
          on reste simplement en "image". -->
-    <arg name="sonar_source" default="image"/>
+    <arg name="sonar_source" default="$(eval 'points3d' if arg('mode') == '3d' else 'image')"/>
+
+    <!-- ============ PIPELINE UNIFIÉ 2D/3D + MÉTHODE (07-05) ============
+         mode : "2d" (défaut) ou "3d" — choisi AU RUN (./run_slam.sh holoocean 3D).
+           2d → sonar_source=image (chaîne polaire CFAR, bag actuel, z porté = -depth)
+           3d → sonar_source=points3d (PointCloud2 3D du simulateur, bag du collègue)
+         Le reste de la chaîne est IDENTIQUE : le z est porté de bout en bout
+         (dvl_imu_odom publie z=-depth ; CSV avec colonnes z ; RViz est nativement 3D ;
+         les figures python passent en 3D AUTOMATIQUEMENT si std(z)>0.2 —
+         bilan_run/traj_on_cloud colorent par z). Le graphe reste Pose2 (2.5D) :
+         la vraie 3D (Pose3/iSAM2) est l'étape suivante, cf. SLAM_3D_MIGRATION.md.
+         method : "bruce" (défaut, seule implémentée). Point d'extension : le groupe
+         SLAM ci-dessous est gardé par method=='bruce' — pour ajouter une méthode,
+         dupliquer le groupe avec sa config yaml et son if. -->
+    <arg name="mode" default="2d"/>
+    <arg name="method" default="bruce"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -62,8 +77,10 @@
             <node if="$(eval arg('sonar_source') == 'points3d')" pkg="bruce_slam"
                   name="sonar_points_bridge" type="sonar_points_bridge.py" output="screen"/>
 
-            <!-- SLAM node (nssm off pour le 1er run — cf. slam_holoocean.yaml) -->
-            <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
+            <!-- SLAM node — méthode "bruce" (extension : dupliquer ce nœud avec
+                 son yaml et un if method=='<autre>') -->
+            <node if="$(eval arg('method') == 'bruce')"
+                  pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
                 <param name="enable_slam" value="true"/>
                 <param name="nssm/enable" value="$(arg nssm)"/>
