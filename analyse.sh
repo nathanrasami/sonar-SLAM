@@ -42,7 +42,7 @@ case "$RUN" in
     # grotte 3D : profiler VERTICAL SeaKing projeté le long de la traj SLAM
     # (la figure « du site » du dataset) → grotte_3d.html interactif
     if [ -f "$HERE/caves.bag" ]; then
-        run_py caves_3d.py "$CHEMIN" --bag "$HERE/caves.bag"
+        run_py caves_3d.py "$CHEMIN" --bag "$HERE/caves.bag" --with-map
     fi
     ;;
   run_holoocean_*)

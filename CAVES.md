@@ -52,10 +52,14 @@ run** : CFAR threshold 80 vs intensités max 191 ; keyframe_translation vs vites
 
 ## 3. Particularités — et la question « 3D ? »
 
-- **2.5D immédiat** : la branche hérite du pipeline holoocean → le z de `/odometry`
-  (~14 m, variable dans la grotte) est porté dans les CSV/figures ; le sonar Micron est
-  HORIZONTAL → la carte est une coupe horizontale peinte à profondeur variable.
-  Les figures passent en 3D automatiquement si std(z) > 0.2 m (pipeline unifié).
+- **⚠ le nuage Micron n'est PAS de la vraie 3D — c'est un RUBAN 2.5D** (mesuré,
+  07-06) : std(z) INTRA-scan = 0.0000 m — chaque tour est une tranche horizontale
+  plate posée au z de la pose ; les 4.3 m de variance globale viennent uniquement de
+  la profondeur de la trajectoire. C'est PHYSIQUE, pas un bug : le Micron n'encode
+  aucune élévation (son ouverture verticale ~35° fait même de chaque tranche une
+  APPROXIMATION). Impossible d'en tirer de la vraie 3D. Rôles : le Micron = le SLAM
+  (trajectoire, loops) ; la 3D = le SeaKing ci-dessous. `grotte_3d.html --with-map`
+  superpose les deux (ruban orange + parois colorées).
 - **La vraie 3D : ✅ FAITE (07-06) — `analysis/caves_3d.py`** : le profiler SeaKing
   VERTICAL (97 501 faisceaux) projeté le long de la trajectoire SLAM interpolée →
   la cavité 3D « comme sur le site du dataset », OFFLINE, sans toucher au graphe.

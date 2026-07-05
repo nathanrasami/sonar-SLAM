@@ -36,6 +36,8 @@ def main():
     ap.add_argument("--rmin", type=float, default=1.0, help="m, ignore le champ proche")
     ap.add_argument("--phi0", type=float, default=0.0, help="offset angle faisceau (deg)")
     ap.add_argument("--flip-phi", action="store_true", help="inverse le sens du balayage")
+    ap.add_argument("--with-map", action="store_true",
+                    help="superpose le nuage Micron du SLAM (ruban 2.5D) aux parois")
     a = ap.parse_args()
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     bag = a.bag or os.path.join(root, "caves.bag")
@@ -94,6 +96,15 @@ def main():
 
     import plotly.graph_objects as go
     fig = go.Figure()
+    if a.with_map:
+        mp = os.path.join(a.run, "pointcloud.csv")
+        if os.path.exists(mp):
+            c = np.genfromtxt(mp, delimiter=",", names=True)
+            cz = c["z"] if "z" in c.dtype.names else np.zeros(len(c))
+            fig.add_trace(go.Scatter3d(
+                x=c["x"], y=c["y"], z=cz, mode="markers",
+                name="carte Micron (ruban 2.5D — tranches horizontales)",
+                marker=dict(size=1.2, color="orange", opacity=0.45)))
     fig.add_trace(go.Scatter3d(
         x=P[:, 0], y=P[:, 1], z=P[:, 2], mode="markers", name="parois (SeaKing)",
         marker=dict(size=1.3, color=P[:, 2], colorscale="Viridis", opacity=0.7,
