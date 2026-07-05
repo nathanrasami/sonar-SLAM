@@ -29,7 +29,13 @@ def _load_cloud(run_dir):
         if c.size == 0:
             continue
         if f == "pointcloud.csv" and "intensity" in c.dtype.names:
-            c = c[c["intensity"] >= 255]
+            keep = c[c["intensity"] >= 255]
+            # holoocean : le chemin polaire ne remplit pas l'intensité (tout à 0)
+            # → le filtre viderait le nuage ; on ne l'applique que s'il reste du monde
+            if len(keep) >= 100:
+                c = keep
+        if c.size == 0 or len(np.atleast_1d(c)) < 10:
+            continue
         z = c["z"] if "z" in c.dtype.names else None
         return np.column_stack([c["x"], c["y"]]), z, f
     raise FileNotFoundError("aucun pointcloud*.csv dans " + run_dir)
