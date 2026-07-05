@@ -26,8 +26,50 @@ def wrap(a):
 
 def main(run_dir, theta_ref=None):
     ld = lambda f: np.genfromtxt(os.path.join(run_dir, f), delimiter=",", names=True)
-    traj, gt = ld("trajectory.csv"), ld("groundtruth.csv")
+    traj = ld("trajectory.csv")
     cloud = ld("pointcloud.csv")
+
+    # SANS GT (ex. dataset caves : grotte, aucune vérité terrain continue n'existe) :
+    # bilan réduit — trajectoire + ERREUR DE FERMETURE (le retour au départ est la
+    # métrique de substitution) + nuage/NN. Pas de traceback, un bilan quand même.
+    if not os.path.exists(os.path.join(run_dir, "groundtruth.csv")):
+        est = np.column_stack([traj["x"], traj["y"]])
+        P = np.column_stack([cloud["x"], cloud["y"]])
+        rng = np.random.default_rng(0)
+        S = P[rng.choice(len(P), min(8000, len(P)), replace=False)]
+        from scipy.spatial import cKDTree as _KD
+        d2, _ = _KD(S).query(S, k=2)
+        nn = float(np.median(d2[:, 1]))
+        closure = float(np.hypot(*(est[-1] - est[0])))
+        dr = np.column_stack([traj["dr_x"], traj["dr_y"]])
+        closure_dr = float(np.hypot(*(dr[-1] - dr[0])))
+        print(f"{os.path.basename(run_dir)} : KF={len(traj)} SANS GT | "
+              f"fermeture SLAM={closure:.2f} m (odom entrée {closure_dr:.2f}) | "
+              f"cloud {len(P)} pts NN={nn:.3f}")
+        fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.5))
+        ax = axes[0]
+        ax.plot(est[:, 0], est[:, 1], "b-", lw=1, label="SLAM")
+        ax.plot(*est[0], "k^", ms=9, label="départ")
+        ax.plot(*est[-1], "ks", ms=7, label="arrivée")
+        ax.set_title(f"Trajectoire — fermeture {closure:.2f} m (pas de GT continue)")
+        ax.legend(); ax.set_aspect("equal")
+        ax = axes[1]
+        if "z" in cloud.dtype.names and np.nanstd(cloud["z"]) > 0.2:
+            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="viridis",
+                            alpha=0.6, linewidths=0)
+            plt.colorbar(sc, ax=ax, label="z (m)", shrink=0.8)
+        else:
+            ax.scatter(P[:, 0], P[:, 1], s=0.15, c="k", alpha=0.4, linewidths=0)
+        ax.set_title(f"Pointcloud — {len(P)} pts, NN {nn:.3f} m")
+        ax.set_aspect("equal")
+        fig.suptitle(os.path.basename(run_dir))
+        fig.tight_layout()
+        out = os.path.join(run_dir, "bilan_run.png")
+        fig.savefig(out, dpi=120)
+        print("->", out)
+        return
+
+    gt = ld("groundtruth.csv")
 
     # --- ATE Umeyama
     est = np.column_stack([traj["x"], traj["y"]])
