@@ -19,7 +19,9 @@ invariants s'appliquent ici aussi — stamps recopiés, chiralité à tester).
 
 Params : ~scan_topic (/sonar_micron_ros), ~range_m (0 = lire msg.range_max),
 ~beam_tol_deg (regroupement des angles), ~min_coverage_deg (déclenche la
-publication d'un tour, défaut 300°), ~intensity_scale (échelle → uint8).
+publication d'un tour ; défaut 350° — VALIDÉ sur le bag réel : pas 1.8°, 200
+faisceaux/tour, 8.6 s/tour ; à 300° on amputait un coin de ~60°),
+~intensity_scale (échelle → uint8 ; bag réel : max 191 → 1.0 suffit).
 """
 import numpy as np
 import rospy
@@ -34,7 +36,7 @@ class MsisScanBridge:
         self.scan_topic = rospy.get_param("~scan_topic", "/sonar_micron_ros")
         self.range_m = float(rospy.get_param("~range_m", 0.0))  # 0 → msg.range_max
         self.beam_tol = np.deg2rad(float(rospy.get_param("~beam_tol_deg", 0.5)))
-        self.min_cov = np.deg2rad(float(rospy.get_param("~min_coverage_deg", 300.0)))
+        self.min_cov = np.deg2rad(float(rospy.get_param("~min_coverage_deg", 350.0)))
         self.iscale = float(rospy.get_param("~intensity_scale", 1.0))
         self.beams = {}          # angle (rad, wrap [0,2π)) -> (stamp, intensities)
         self.first_angle = None
