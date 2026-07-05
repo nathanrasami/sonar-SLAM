@@ -65,7 +65,18 @@ case "$TYPE" in
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" nssm:="${NSSM:-false}" \
                  mode:="$MODE" method:="$METHOD" ;;
-  *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
+  caves)
+    # ./run_slam.sh caves [Bruce|Bruce_Sonar_USBL] — dataset CIRS underwater caves.
+    # ⚠ 1er réflexe sur un bag neuf : python3 analysis/inspect_bag.py caves.bag
+    METHOD="$(echo "${2:-Bruce}" | tr 'A-Z' 'a-z')"
+    case "$METHOD" in
+      bruce) ;;
+      bsu|bruce_sonar_usbl) METHOD="bruce_sonar_usbl" ;;
+      *) echo "méthode inconnue: $2 (Bruce | Bruce_Sonar_USBL)"; exit 1 ;;
+    esac
+    roslaunch bruce_slam caves.launch bag_file:="${BAG_CAVES:-$HERE/caves.bag}" \
+              rate:="${RATE:-1.0}" nssm:="${NSSM:-false}" method:="$METHOD" ;;
+  *) echo "Type inconnu: $TYPE (aracati|holoocean|caves)"; exit 1 ;;
 esac
 
 echo "[run_slam] Terminé. Analyse : ./analyse.sh $(basename "$RUN_DIR")"

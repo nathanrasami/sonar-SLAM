@@ -1,0 +1,36 @@
+# Feature extraction — dataset CIRS caves (MSIS Micron assemblé en tours par
+# msis_scan_bridge). ⚠ PREMIER RUN = CALIBRATION : le Micron est bien plus
+# bruité que le simulateur — si le CFAR sort trop/pas assez de points, jouer
+# threshold (80) et Pfa (0.1). Comparer visuellement l'image feature RViz.
+CFAR:
+  Ntc: 20
+  Ngc: 4
+  Pfa: 0.1
+  rank: 10
+  alg: 'SOCA'
+
+filter:
+  # 07-03 : 80/10 ne laissait que ~29 pts/KF (murs lointains détectés mais quasi
+  # invisibles). Le simu est propre (peu de speckle) → extraction plus généreuse.
+  threshold: 50
+  resolution: 0.5
+  radius: 1.0
+  min_points: 5
+  skip: 1
+
+visualization:
+  coordinates: 'polar'
+  radius: 2
+  color: [0, 165, 255]
+
+compressed_images: False
+cartesian_mode: False
+
+# Descripteur SONAR Context (publié seulement si enable — surchargé par le launch
+# quand method=bruce_sonar_usbl). intensity_threshold calibré P900 (95) : sur les
+# images propres du simulateur, vérifier que le contexte n'est pas vide (log au 1er run).
+sonar_context:
+  enable: False
+  num_azimuth: 40
+  num_range: 40
+  intensity_threshold: 95

@@ -33,6 +33,13 @@ run_py() {  # lance un script s'il existe ; n'arrête jamais la chaîne
 }
 
 case "$RUN" in
+  run_caves_*)
+    # ===== chaîne CAVES : GT éparse (cônes) → pas d'ATE classique en v1 =====
+    # les scripts GT-dépendants sont sautés ; la carte et la trajectoire restent.
+    echo "[analyse] caves : pas de /pose_gt continu — figures sans ATE (cf. DATASETS.md)"
+    run_py traj_on_cloud.py "$CHEMIN"
+    run_py traj_on_cloud.py "$CHEMIN" "$CHEMIN/carte_finale.png"
+    ;;
   run_holoocean_*)
     # ===== chaîne HOLOOCEAN (refactor 07-05) =====
     # un seul script génère : carte_finale, error_over_time (Umeyama + origine),
