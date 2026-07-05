@@ -224,7 +224,16 @@ pas de rescale ; sections S1/S2/S3 façon DISO ; ATE première-pose instable —
 mesurée ; RE trans %/rot °/m comparables aux tables DISO/ISOPoT) + NOUVELLE métrique carte
 (nuage vs re-rendu poses GT : 1.2a méd 0.11 m). Relecture/retouches par Nathan ensuite.
 
-## 8. PHASE ULTIME — RU1-RU4 FAITS (07-04) : 🏆 CHAMPION RU1 (σ1.8) 1.47 m
+## 8. PHASE ULTIME — CLOSE ET FUSIONNÉE (07-05)
+
+> **Branche `Bruce_Ultime` fusionnée dans `Bruce_Sonar_USBL` puis archivée**
+> (tag `archive/Bruce_Ultime`) : la répétabilité (TESTS.md §2.4) a montré σ1.4 ≈ σ1.8
+> (BSU méd 1.50 ≤ Ultime 1.54) et tout le reste était déjà partagé — aucun avantage
+> propre. BSU récupère : ULTIME.md (historique), le code des expériences rejetées
+> U4/U6 (off), les boutons USBL_SIGMA/LOOP_UNION/USBL_ADAPTIVE. **Le dépôt revient à
+> 4 branches : main, Bruce, Bruce_Sonar_USBL (= LA contribution), holoocean.**
+
+### (historique 07-04) RU1-RU4 : 🏆 CHAMPION RU1 (σ1.8) 1.47 m
 
 Directive : partir des 2 bases (traj `Bruce_Sonar_USBL` + carte `Bruce`) pour une branche
 « ultime ». Plan détaillé, verdicts et journal : **`ULTIME.md`** (branche `Bruce_Ultime`).
