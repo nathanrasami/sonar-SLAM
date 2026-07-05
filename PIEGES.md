@@ -121,3 +121,13 @@ saturés (frames sonar perdues : 615 KF au lieu de 665) et contraintes fausses c
 acceptées par le PCM (210 constraints, S3 3.70 m). La porte géométrique 10 m de SC n'est
 pas un détail : c'est elle qui tue les faux positifs AVANT l'ICP. Tout nouveau détecteur
 de candidats doit passer par une porte équivalente.
+
+## 13. La chaîne image de feature_extraction suppose un FOV < 180° (vécu : caves, 07-05)
+
+La conversion cartésienne du chemin polaire (`generate_map_xy` + remap) calcule la
+largeur du canvas via sin(FOV/2) : pour un MSIS 360°, sin(180°)≈0 → TOUTES les
+coordonnées s'effondrent. Symptôme sournois : nuage minuscule et BIT-IDENTIQUE quels
+que soient les seuils CFAR (672 pts sur 2 runs caves — aucun paramètre n'y change rien,
+ce qui est LA signature : si régler un seuil ne change pas la sortie, le goulot est en
+aval du seuil). Règle : sonar à couverture ≥180° → features calculées EN POLAIRE
+(CFAR sur l'image polaire + r·cosθ/r·sinθ), cf. msis_scan_bridge.py branche caves.
