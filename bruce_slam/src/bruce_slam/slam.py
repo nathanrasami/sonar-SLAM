@@ -120,7 +120,10 @@ class SLAM(object):
         self.sc_dist_threshold = 0.35  # distance cosinus max pour valider
         self.sc_max_azimuth_shift = 10
         self.sc_max_range_shift = 5
-        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
+        # U4 (branche Ultime) : UNION des détecteurs — soumettre à l'aval les
+        # candidats de SC ET du gating natif (dédupliqués), le PCM commun tranche.
+        self.sc_union = False
+        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu, detector)
 
         # USBL — facteurs de POSITION ABSOLUE acoustique (ancrage indépendant de
         # la GT). Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m en
@@ -128,6 +131,15 @@ class SLAM(object):
         # contraint que x,y (le cap reste géré par l'odométrie). cf. USBL_FACTEURS.md
         self.usbl_enable = False
         self.usbl_sigma = 1.4       # m, bruit d'un fix (médiane mesurée vs GT)
+        # U6 (branche Ultime) : σ ADAPTATIF PAR FIX, 100% GT-free — la dispersion
+        # locale des fixes (MAD glissant) estime le bruit réel, qui varie ×3.5 le
+        # long de la mission (méd 0.87 m à t=10-15 min vs 3.09 m à t=25-30, mesuré
+        # vs GT offline ; le proxy corrèle à 0.64 Spearman avec le vrai résidu).
+        # σ_i = clip(k·MAD_local, min, max) ; k=3.4 calé pour médiane 1.8 (=RU1).
+        self.usbl_adaptive = False
+        self.usbl_adaptive_k = 3.4
+        self.usbl_adaptive_min = 0.9
+        self.usbl_adaptive_max = 3.5
         self.usbl_flip_y = False    # néger Y des fixes (repère DISO réfléchi) ; cf. add_usbl
         self.usbl_max_dt = 1.0      # s, fenêtre d'association fix ↔ keyframe
         self.usbl_buffer = []       # (t, x, y) fixes acceptés, rempli par slam_ros
@@ -506,11 +518,11 @@ class SLAM(object):
             return
         t = keyframe.time.to_sec()
         # fix le plus proche en temps (recherche linéaire ; buffer ~1000 fixes max)
-        best, bdt = None, self.usbl_max_dt
-        for ut, ux, uy in self.usbl_buffer:
+        best, bdt, best_idx = None, self.usbl_max_dt, None
+        for i, (ut, ux, uy) in enumerate(self.usbl_buffer):
             dt = abs(ut - t)
             if dt < bdt:
-                bdt, best = dt, (ux, uy)
+                bdt, best, best_idx = dt, (ux, uy), i
         if best is None:
             return
         ux, uy = best
@@ -534,7 +546,11 @@ class SLAM(object):
                 return  # pas encore estimable (pas assez de paires/d'aire) → on attend
             ux, uy = self._apply_usbl_alignment(ux, uy)
         # prior position-only robuste : sigma x,y = usbl_sigma ; sigma θ = 1e6 (libre)
-        model = self.create_robust_noise_model(self.usbl_sigma, self.usbl_sigma, 1e6)
+        # U6 : en mode adaptatif, le σ vient de la dispersion locale des fixes.
+        sigma = self.usbl_sigma
+        if self.usbl_adaptive and best_idx is not None:
+            sigma = self._usbl_adaptive_sigma(best_idx)
+        model = self.create_robust_noise_model(sigma, sigma, 1e6)
         factor = gtsam.PriorFactorPose2(X(self.current_key), gtsam.Pose2(ux, uy, 0.0), model)
         self.graph.add(factor)
         self.usbl_added += 1
@@ -543,11 +559,41 @@ class SLAM(object):
         try:
             import rospy as _rospy
             px, py = keyframe.pose.x(), keyframe.pose.y()
-            _rospy.loginfo("USBL factor #%d on KF%d: fix=(%.2f,%.2f) odom=(%.2f,%.2f) dist=%.2fm dt=%.2fs",
+            _rospy.loginfo("USBL factor #%d on KF%d: fix=(%.2f,%.2f) odom=(%.2f,%.2f) dist=%.2fm dt=%.2fs sigma=%.2f",
                            self.usbl_added, self.current_key, ux, uy, px, py,
-                           ((ux - px) ** 2 + (uy - py) ** 2) ** 0.5, bdt)
+                           ((ux - px) ** 2 + (uy - py) ** 2) ** 0.5, bdt, sigma)
         except Exception:
             pass
+
+    def _usbl_adaptive_sigma(self, j: int) -> float:
+        """U6 : σ par fix depuis la dispersion LOCALE des fixes — 100 % GT-free.
+
+        Proxy validé offline (bag complet vs GT) : écart de chaque fix à la médiane
+        de ses ±4 voisins, agrégé en MAD glissant sur ~21 fixes → corrélation 0.64
+        (Spearman) avec le vrai résidu ; retrouve la fenêtre propre (t=10-15 min,
+        σ̂ min) et la fenêtre multipath (t=25-30 min, σ̂ max) sans aucune GT.
+        Invariant par rotation/réflexion du repère (distances seulement) → s'applique
+        indifféremment avant/après le recalage monde→odométrie.
+
+        Args:
+            j: index (dans usbl_buffer) du fix associé au keyframe courant.
+
+        Returns:
+            float: σ (m) borné [usbl_adaptive_min, usbl_adaptive_max].
+        """
+        buf = self.usbl_buffer
+        lo = max(0, j - 20)
+        prox = []
+        for i in range(lo, j + 1):
+            a, b = max(0, i - 4), min(len(buf), i + 5)
+            mx = float(np.median([p[1] for p in buf[a:b]]))
+            my = float(np.median([p[2] for p in buf[a:b]]))
+            prox.append(np.hypot(buf[i][1] - mx, buf[i][2] - my))
+        if not prox:
+            return self.usbl_sigma
+        mad = 1.4826 * float(np.median(prox))
+        return float(np.clip(self.usbl_adaptive_k * mad,
+                             self.usbl_adaptive_min, self.usbl_adaptive_max))
 
     def _estimate_usbl_alignment(self) -> None:
         """Estime la transfo monde→odométrie (rotation OU réflexion + translation, sans
@@ -990,9 +1036,13 @@ class SLAM(object):
         if self.save_fig:
             ret2.plot("step-{}-ssm-icp.png".format(self.current_key))
 
-    def initialize_nonsequential_scan_matching(self) -> InitializationResult:
+    def initialize_nonsequential_scan_matching(self, detector: str = None) -> InitializationResult:
         """Initialize a nonsequential scan matching call. Here we use global ICP to check for loop closures with the
         most recent keyframe and the rest of the map.
+
+        Args:
+            detector: None = comportement historique (SC si sc_enable, sinon gating
+                natif) ; "sc" ou "native" force le détecteur (mode union U4).
 
         Returns:
             InitializationResult: The global-ICP outcome
@@ -1026,7 +1076,8 @@ class SLAM(object):
         # Target points in global frame
         target_points, target_keys = self.get_points(target_frames, None, True)
 
-        if self.sc_enable:
+        use_sc = self.sc_enable if detector is None else (detector == "sc")
+        if use_sc:
             # ===== SONAR Context : sélection du candidat par APPARENCE =====
             # Remplace le gating covariance+FOV et l'argmax(counts) — la source
             # des fake loops quand l'odométrie a dérivé. L'aval est inchangé.
@@ -1084,6 +1135,12 @@ class SLAM(object):
             ret.target_key = target_frames[
                 np.argmax(counts)
             ]  # this is critical, the one with the most points overlapping
+
+            # journal U4 : en mode union, tracer aussi les candidats du gating
+            # natif (sc_dist=-1 : pas de distance d'apparence pour ceux-là)
+            if self.sc_union:
+                self.sc_log.append((ret.source_key, int(ret.target_key),
+                                    -1.0, 0, 0, 1, "nssm"))
 
         ret.target_pose = self.keyframes[ret.target_key].pose
         ret.target_points = Keyframe.transform_points(
@@ -1239,7 +1296,7 @@ class SLAM(object):
         # 3) seuil de validation + journal (étape 5 : precision/recall offline)
         retenu = best[1] < self.sc_dist_threshold
         self.sc_log.append((self.current_key - 1, best[0], round(best[1], 4),
-                            best[2], best[3], int(retenu)))
+                            best[2], best[3], int(retenu), "sc"))
         return best if retenu else None
 
     def add_nonsequential_scan_matching(self) -> ICPResult:
@@ -1254,12 +1311,48 @@ class SLAM(object):
         if self.current_key < self.nssm_params.min_st_sep:
             return
 
-        # init the search with a global ICP call
-        ret = self.initialize_nonsequential_scan_matching()
+        # U4 (branche Ultime) : union des détecteurs. L'apparence (SC) et le
+        # gating géométrique natif voient des candidats DIFFÉRENTS ; en mode
+        # union on soumet les deux à l'aval (shgo/ICP), dédupliqués, et le PCM
+        # commun tranche. Hors union : comportement historique inchangé.
+        if self.sc_enable and self.sc_union:
+            detectors = ("sc", "native")
+        elif self.sc_enable:
+            detectors = ("sc",)
+        else:
+            detectors = ("native",)
 
-        # if the global ICP call did not work, return
-        if not ret.status:
-            return
+        out, tried = None, set()
+        for detector in detectors:
+            # init the search with a global ICP call
+            ret = self.initialize_nonsequential_scan_matching(detector)
+
+            # if the global ICP call did not work, try the next detector
+            if not ret.status:
+                continue
+
+            # les deux détecteurs d'accord sur le même candidat → un seul ICP
+            if ret.target_key in tried:
+                continue
+            tried.add(ret.target_key)
+
+            ret2 = self._process_nssm_candidate(ret)
+            if out is None:
+                out = ret2
+        return out
+
+    def _process_nssm_candidate(self, ret: InitializationResult) -> ICPResult:
+        """ICP + garde-fous + PCM pour UN candidat initialisé.
+
+        Corps historique de add_nonsequential_scan_matching, inchangé — extrait
+        pour pouvoir traiter plusieurs candidats par cycle en mode union (U4).
+
+        Args:
+            ret (InitializationResult): candidat initialisé (global ICP ok)
+
+        Returns:
+            ICPResult: the loop we have found, returns for debugging perposes
+        """
 
         # package the global ICP call result
         ret2 = ICPResult(ret, self.nssm_params.cov_samples > 0)

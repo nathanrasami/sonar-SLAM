@@ -62,6 +62,11 @@ sonar_context:
   # porte géométrique calibrée cmd_vel (cap imprécis → estimé moins fiable que DISO).
   # Run 100943 : gate=20 m laissait passer 244/659 candidats dont des faux courts-terme.
   gate_distance: 10.0
+  # U4 (branche Ultime) : UNION des détecteurs — les candidats du gating natif
+  # (covariance+argmax counts) s'AJOUTENT à ceux de SC (dédupliqués), le PCM commun
+  # tranche. Piloté au run par LOOP_UNION=true ./run_slam.sh (le launch surcharge).
+  # coût : jusqu'à 2 shgo/keyframe → RATE=0.5 si le CPU sature. cf. ULTIME.md U4.
+  union: False
 
 # USBL — facteurs de POSITION ABSOLUE acoustique dans le graphe (cf. USBL_FACTEURS.md).
 # Ancre l'odométrie cmd_vel sur les fixes /usbl_point, indépendamment de la GT.
@@ -69,15 +74,25 @@ sonar_context:
 # prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
 usbl:
   enable: True       # ablation : True pour ancrer sur USBL
-  sigma: 1.4         # CHAMPION FINAL (config 1.2a, run 003823 : ATE 1.50 m). Le test 1.4
-                     # (SSM + σ2.5) a montré que relâcher l'ancre AVEC Sonar Context aggrave
-                     # (3.13 m) — contrairement à la branche Bruce pur où σ2.5 aide (B' 1.88).
-                     # Chaque pipeline a son σ optimal : ici 1.4 avec les loops SC.
+  sigma: 1.4         # 🏆 CHAMPION (1.2a 003823 + runs finaux BSU_1/2 : 1.45/1.50/1.52,
+                     # méd 1.50 — MEILLEURE médiane du stage). La répétabilité (07-05) a
+                     # montré que σ1.8 (ex-branche Ultime : 1.47/1.54/1.60) est ÉQUIVALENT
+                     # dans la variance ICP ±0.1 → on garde 1.4. Rejouer un σ :
+                     # USBL_SIGMA=x ./run_slam.sh. (SSM+σ2.5 = 3.13 ; Bruce pur → σ2.5.)
   flip_y: False      # False pour odom_source=cmd_vel (repère monde, compas). Mettre True
                      # UNIQUEMENT avec odom_source=diso (DISO sort en repère réfléchi Y :
                      # sans flip → ATE 13.9 m, avec → ~0.9 m).
   max_dt: 1.0        # s, fenêtre d'association fix ↔ keyframe
   max_speed: 3.0     # m/s, gate outliers (rejette les sauts ~73 m)
+  # U6 : σ ADAPTATIF PAR FIX, GT-free — TESTÉ ET REJETÉ (RU5 161907 : ATE 1.62 vs
+  # 1.47 pour σ fixe 1.8). Le bruit réel varie bien ×3.5 et le proxy MAD le suit
+  # (corr. 0.64), mais l'imperfection résiduelle sur-raidit par endroits (adaptive_min
+  # 0.9 < champion) → bilan négatif. Variante non testée si on y revient :
+  # adaptive_min: 1.4. Activer : USBL_ADAPTIVE=true ./run_slam.sh.
+  adaptive: False
+  adaptive_k: 3.4
+  adaptive_min: 0.9
+  adaptive_max: 3.5
 
 pz_samples: 0
 pz_detection_rate: 0.3

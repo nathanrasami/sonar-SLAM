@@ -51,6 +51,9 @@ case "$RUN" in
     fi ;;
 esac
 
+# trajectoire plaquée sur NOTRE nuage (même repère, aucune GT) — tous types de runs
+run_py traj_on_cloud.py "$CHEMIN"
+
 # bilan compact (1 image : traj+ATE Umeyama, cloud+NN, erreur de cap over time)
 run_py bilan_run.py "$CHEMIN"
 

@@ -117,17 +117,24 @@ class SLAMNode(SLAM):
         # porte géométrique : distance max (m) entre source et candidat dans
         # l'estimé courant (l'apparence propose, la géométrie vérifie)
         self.sc_gate_distance = rospy.get_param(ns + "sonar_context/gate_distance", 20.0)
+        # U4 (branche Ultime) : union des détecteurs SC + gating natif
+        self.sc_union = rospy.get_param(ns + "sonar_context/union", False)
         self._descriptor_buffer = {}  # (sec, nsec) -> (context, ring_key)
         if self.sc_enable:
             rospy.Subscriber(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,
                              self._descriptor_callback, queue_size=50)
-        print("SONAR CONTEXT: ", self.sc_enable)
+        print("SONAR CONTEXT: ", self.sc_enable, " UNION: ", self.sc_union)
 
         # USBL — facteurs de position absolue acoustique (cf. slam.add_usbl, USBL_FACTEURS.md)
         self.usbl_enable = rospy.get_param(ns + "usbl/enable", False)
         self.usbl_sigma = rospy.get_param(ns + "usbl/sigma", 1.4)
         self.usbl_max_dt = rospy.get_param(ns + "usbl/max_dt", 1.0)
         self.usbl_max_speed = rospy.get_param(ns + "usbl/max_speed", 3.0)
+        # U6 : σ adaptatif par fix (dispersion locale des fixes, GT-free — cf. slam.py)
+        self.usbl_adaptive = rospy.get_param(ns + "usbl/adaptive", False)
+        self.usbl_adaptive_k = rospy.get_param(ns + "usbl/adaptive_k", 3.4)
+        self.usbl_adaptive_min = rospy.get_param(ns + "usbl/adaptive_min", 0.9)
+        self.usbl_adaptive_max = rospy.get_param(ns + "usbl/adaptive_max", 3.5)
         # flip_y : néger Y des fixes USBL pour les mettre dans le repère DISO (axe Y
         # inversé, det(R)=-1 — cf. offline_sim). SANS ce flip, USBL (repère monde) et
         # DISO (repère réfléchi) sont en handedness opposés → gtsam déforme la trajectoire
@@ -669,7 +676,7 @@ class SLAMNode(SLAM):
             with open(sc_path, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["source_key", "target_key", "sc_dist",
-                                 "shift_azimuth", "shift_range", "retenu"])
+                                 "shift_azimuth", "shift_range", "retenu", "detector"])
                 writer.writerows(self.sc_log)
             rospy.loginfo("Sonar Context log saved to %s", sc_path)
 
