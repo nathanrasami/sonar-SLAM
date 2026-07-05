@@ -20,8 +20,13 @@
     <param name="use_sim_time" value="true"/>
 
     <!-- rejeu du bag. required=true : fin de bag → export CSV (invariant GARDE_FOU §2.7) -->
+    <!-- ⚠ filtre topics : on ne rejoue QUE ce qu'on consomme. Le /tf du bag (127 Hz,
+         stamps répétés, spam TF_REPEATED_DATA) entre en CONFLIT avec notre TF
+         map/world et peut figer l'affichage RViz ; le seaking (50 Hz) est inutile
+         en v1. ⚠ ne pas appuyer sur ESPACE dans le terminal : rosbag play se met
+         en PAUSE (« Hit space to toggle paused »). -->
     <node pkg="rosbag" name="rosbag_play" type="play" output="screen" required="true"
-          args="$(arg bag_file) --clock -r $(arg rate) -q"/>
+          args="$(arg bag_file) --clock -r $(arg rate) -q --topics /sonar_micron_ros /odometry /imu_adis_ros /depth_sensor"/>
 
     <!-- Odométrie : le dead-reckoning DVL+IMU FOURNI par le dataset (nav_msgs/Odometry),
          relayé tel quel. Alternative future : intégrer /dvl_linkquest + /imu_adis_ros
