@@ -56,11 +56,16 @@ run** : CFAR threshold 80 vs intensités max 191 ; keyframe_translation vs vites
   (~14 m, variable dans la grotte) est porté dans les CSV/figures ; le sonar Micron est
   HORIZONTAL → la carte est une coupe horizontale peinte à profondeur variable.
   Les figures passent en 3D automatiquement si std(z) > 0.2 m (pipeline unifié).
-- **La vraie porte vers la 3D : le profiler SeaKing VERTICAL** (97 501 faisceaux
-  inutilisés en v1). Chemin balisé : profils verticaux projetés le long de la
-  trajectoire SLAM → carte 3D de la galerie reconstruite OFFLINE (aucun changement du
-  graphe). C'est le pendant caves du « mode 3d » holoocean, et l'étape 2 naturelle de
-  cette branche.
+- **La vraie 3D : ✅ FAITE (07-06) — `analysis/caves_3d.py`** : le profiler SeaKing
+  VERTICAL (97 501 faisceaux) projeté le long de la trajectoire SLAM interpolée →
+  la cavité 3D « comme sur le site du dataset », OFFLINE, sans toucher au graphe.
+  Détection = retour le plus fort par faisceau (>60, champ proche 1 m ignoré) ;
+  géométrie validée en coupe transverse (plafond au-dessus, plancher au-dessous du
+  véhicule). Sorties : `grotte_3d.csv` + `grotte_3d.html` (plotly interactif),
+  appelé automatiquement par `./analyse.sh <run_caves>` si caves.bag est présent.
+  ⚠ En RViz LIVE, la carte Micron reste une tranche 2D à plat : NORMAL (sonar
+  horizontal, le topic cloud est 2D) — le relief vit dans les produits offline
+  (carte_3d.html = carte Micron en 2.5D ; grotte_3d.html = la cavité SeaKing).
 - **Distorsion de balayage** : 8.6 s/tour à ~0.2 m/s → jusqu'à ~1.7 m de déplacement
   PENDANT un tour. v1 assume (le SLAM voit un scan « moyenné ») ; si les scans sortent
   smeared ou l'ICP décroche : compensation de mouvement par interpolation `/odometry`

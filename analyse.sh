@@ -36,9 +36,14 @@ case "$RUN" in
   run_caves_*)
     # ===== chaîne CAVES : GT éparse (cônes) → pas d'ATE classique en v1 =====
     # les scripts GT-dépendants sont sautés ; la carte et la trajectoire restent.
-    echo "[analyse] caves : pas de /pose_gt continu — figures sans ATE (cf. DATASETS.md)"
+    echo "[analyse] caves : pas de /pose_gt continu — figures sans ATE (cf. CAVES.md)"
     run_py traj_on_cloud.py "$CHEMIN"
     run_py traj_on_cloud.py "$CHEMIN" "$CHEMIN/carte_finale.png"
+    # grotte 3D : profiler VERTICAL SeaKing projeté le long de la traj SLAM
+    # (la figure « du site » du dataset) → grotte_3d.html interactif
+    if [ -f "$HERE/caves.bag" ]; then
+        run_py caves_3d.py "$CHEMIN" --bag "$HERE/caves.bag"
+    fi
     ;;
   run_holoocean_*)
     # ===== chaîne HOLOOCEAN (refactor 07-05) =====
