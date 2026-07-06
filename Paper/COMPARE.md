@@ -1,132 +1,135 @@
-# COMPARE.md — Nos runs Aracati2017 vs les méthodes présentées dans `Paper/`
+# COMPARE.md — nos runs Aracati2017 face aux méthodes publiées
 
-Uniquement des tableaux (protocole détaillé : `MINI_PAPIER.md` §VI, `analysis/paper_eval.py`).
-Runs source : `TESTS_image/run_aracati_2026-07-04_233119_Bruce_USBL_1` (**Bruce**, σ2.5 USBL
-soft-anchor, sans Sonar Context) et `TESTS_image/run_aracati_2026-07-04_201541_Bruce_Sonar_USBL_1`
-(**Bruce_Sonar_USBL**, champion répété, σ1.4 + Sonar Context). Recalculés le 07-06 avec
-`paper_eval.py` (mêmes formules que le mini-papier, pas de nouveaux runs).
+Document pour la slide « comparaison des métriques ». Nos chiffres : recalculés avec
+`analysis/paper_eval.py` sur `TESTS_image/run_aracati_2026-07-04_233119_Bruce_USBL_1`
+(**Bruce**, USBL σ2.5, sans Sonar Context) et `…201541_Bruce_Sonar_USBL_1` (**BSU**,
+champion σ1.4 + Sonar Context). Chiffres publiés : Table I d'ISOPoT, Table II de DISO.
 
 ---
 
-## 1. Seule métrique dont NOUS disposons pour toutes nos méthodes : ATE Umeyama SE(2), par section
+## 0. Comment lire (glossaire)
 
-Alignement rigide optimal (position+cap, sans échelle) sur toute la trajectoire, puis re-aligné
-indépendamment sur chaque tiers temporel (S1/S2/S3, ~15 min chacun). **Ni DISO ni ISOPoT ne
-publient cette variante** (ils utilisent l'alignement 1ʳᵉ-pose par section, cf. tableau 2) — ce
-tableau ne compare donc que nos propres méthodes entre elles.
+| Terme | Sens |
+|---|---|
+| **ATE** | Absolute Trajectory Error : distance moyenne (RMSE) entre trajectoire estimée et vérité terrain DGPS |
+| **ATE Umeyama** | l'ATE après le MEILLEUR recalage rigide possible (rotation+translation optimales) → mesure la justesse de FORME. Notre métrique interne |
+| **ATE ancré (1ʳᵉ-pose)** | la trajectoire n'est recalée QUE sur son point de départ → toute la dérive s'accumule. Convention de DISO/ISOPoT. TOUJOURS plus grand que l'Umeyama |
+| **S1 / S2 / S3** | la mission de 44 min coupée en 3 sections (~15 min), métrique recalculée par section |
+| **Trans. (%)** | erreur relative de translation sur des segments de 10 % du trajet (en % de la longueur) → précision LOCALE, peu sensible aux conventions. La plus comparable entre papiers |
+| **Rot. (°/m)** | erreur relative de rotation par mètre parcouru sur les mêmes segments |
+| **Aux** | capteurs AUXiliaires utilisés en plus du sonar : « Aucun » = sonar seul ; « Odom+Mag » = odométrie du bord + cap magnétique ; nous = odométrie du bord + USBL |
+| **SLAM vs odométrie** | une odométrie (DISO, ISOPoT, SONIC) estime le mouvement pas-à-pas et dérive ; un SLAM (nous) referme des boucles et s'ancre (USBL) → autre problème, autre profil d'erreur |
 
-| Méthode | ATE um. global (m) | S1 (m) | S2 (m) | S3 (m) | Cap méd. (°) |
+⚠ Deux limites permanentes de la comparaison : (1) leurs sections = 3 séquences séparées
+redémarrées, les nôtres = tiers temporels d'une mission continue (frontières non publiées) ;
+(2) l'ATE ancré dépend énormément de l'ancre de départ — mesuré chez nous : 8.6 → 1.9 m selon
+la longueur de corde utilisée pour fixer le cap initial (on utilise 15 m partout).
+
+---
+
+## 1. Verdict (pour la slide)
+
+- **Métrique la plus robuste (Trans. %) : nous devant.** BSU **5.0 %** vs ISOPoT-assisté 9.69 %,
+  DISO 13.9 %, meilleur publié.
+- **ATE ancré par section : partagé.** ISOPoT-assisté gagne S1 (3.2 m) ; **nous gagnons S2
+  (BSU 2.38 m) et S3 (Bruce 1.75 m)**. Il n'est PAS meilleur sur les 3 sections.
+- Notre point faible S1 est identifié : peu de boucles détectées en début de mission + seed de
+  cap USBL (course-over-ground) bruité au départ → en métrique ancrée, ce cap initial fait
+  tourner toute la section. En Umeyama, S1 BSU = 1.78 m (la forme est bonne).
+- **Nature des méthodes** : ISOPoT = réseaux PRÉ-ENTRAÎNÉS (TAPNext pour le suivi de points,
+  ResNet50 pour les descripteurs — du deep learning, PAS des LLM), inférence GPU.
+  Bruce_SLAM = 100 % géométrique (CFAR, ICP, graphe de facteurs iSAM2), zéro apprentissage,
+  CPU, embarquable. Aucune méthode du comparatif n'utilise de LLM.
+
+---
+
+## 2. Nos méthodes entre elles — ATE Umeyama par section (métrique interne)
+
+DISO/ISOPoT ne publient pas cette variante → tableau interne uniquement.
+
+| Méthode | ATE global (m) | S1 | S2 | S3 | Cap méd. (°) |
 |---|---|---|---|---|---|
-| Odométrie pure (`/cmd_vel`) | 10.61 | — | — | — | — |
-| **Bruce** (σ2.5, sans Sonar Context) | 1.74 | 2.04 | 1.62 | 1.41 | 2.0 |
-| **Bruce_Sonar_USBL** (champion, σ1.4 + SC) | **1.45** | **1.78** | **1.40** | **1.08** | 3.0 |
-| Référence assistée GT (borne, DISO+GT-seed) | 0.89 | 0.49 | 1.18 | 0.57 | 1.6 |
+| Odométrie pure `/cmd_vel` | 10.61 | — | — | — | — |
+| **Bruce** (σ2.5, sans SC) | 1.74 | 2.04 | 1.62 | 1.41 | **2.0** |
+| **Bruce_Sonar_USBL** (champion) | **1.45** | **1.78** | **1.40** | **1.08** | 3.0 |
+| Référence assistée GT (borne basse) | 0.89 | 0.49 | 1.18 | 0.57 | 1.6 |
 
-- Bruce_Sonar_USBL gagne S2/S3 nettement (loops Sonar Context, qui n'existent pas sur la branche
-  Bruce pure) mais perd S1 (5.13 m en 1ʳᵉ-pose, cf. tableau 2 — début de mission, peu de boucles
-  encore détectées).
-- Chiffres de continuité avec le mini-papier (run `003823`, config identique, plus ancien) :
-  ATE 1.50 m, S1/S2/S3 1.81/1.36/1.27 — cohérent avec la répétabilité déjà mesurée
-  (1.45-1.60 m, méd. 1.5±0.1, cf. `TESTS.md` §2.4).
+- BSU gagne toutes les sections en Umeyama ; l'écart vient des boucles Sonar Context.
+- Continuité : le run historique du mini-papier (`003823`, même config) donnait 1.50 m —
+  cohérent avec la répétabilité 1.5 ± 0.1 m (6 runs, TESTS.md §2.4).
 
 ---
 
-## 2. Convention comparable à ISOPoT/DISO : ATE 1ʳᵉ-pose par section
+## 3. Comparaison aux papiers — ATE ancré par section (leur convention)
 
-C'est la métrique que publient DISO et ISOPoT : alignement sur le **départ de chaque section
-seulement** (pas de best-fit) → mesure la dérive long-horizon, pas la précision moyenne. Beaucoup
-plus sévère que l'Umeyama du tableau 1 (cf. `MINI_PAPIER.md` §6.2b) — **ne pas comparer les deux
-tableaux entre eux**, seulement ligne à ligne dans un même tableau.
+Meilleur de chaque colonne en **gras**. Lignes publiées = Table I d'ISOPoT (leur toolbox).
 
-| Aux | Méthode | ATE S1/S2/S3 (m) | Trans. (%) | Rot. (°/m) |
-|---|---|---|---|---|
-| Aucun | SONIC (Aracati, ISOPoT Table I) | 36.6 / 113.3 / 69.8 | 137.65 | 2.45 |
-| Aucun | ISOPoT (sonar seul) | **8.8 / 12.7 / 16.7** | 22.76 | 0.99 |
-| Odom+Mag | Odométrie seule (ISOPoT Table I) | 5.8 / 12.5 / 6.5 | 19.07 | 0.0 |
-| Odom+Mag | DISO (re-testé par ISOPoT) | 5.3 / 6.1 / 10.9 | 13.90 | 0.44 |
-| Odom+Mag | SONIC (Odom+Mag) | 7.0 / 11.2 / 13.7 | 22.83 | 0.0 |
-| Odom+Mag | ISOPoT (Odom+Mag) | **3.2 / 3.5 / 4.6** | 9.69 | 0.0 |
-| USBL+loops | **Bruce** (nous, σ2.5) | 4.79 / 3.55 / 1.75 | 23.63¹ | 0.057 |
-| USBL+loops+SC | **Bruce_Sonar_USBL** (nous, champion) | **5.13 / 2.38 / 4.42** | 5.00 | 0.090 |
-| — | Odométrie pure (nous, `/cmd_vel`) | — | 32.6 | 0.00 |
+| Aux | Méthode | S1 (m) | S2 (m) | S3 (m) | Trans. (%) | Rot. (°/m) |
+|---|---|---|---|---|---|---|
+| Aucun | SONIC | 36.6 | 113.3 | 69.8 | 137.65 | 2.45 |
+| Aucun | ISOPoT | 8.8 | 12.7 | 16.7 | 22.76 | 0.99 |
+| Odom+Mag | Odométrie seule (la leur, reset/section) | 5.8 | 12.5 | 6.5 | 19.07 | **0.0** |
+| Odom+Mag | DISO | 5.3 | 6.1 | 10.9 | 13.90 | 0.44 |
+| Odom+Mag | SONIC | 7.0 | 11.2 | 13.7 | 22.83 | **0.0** |
+| Odom+Mag | ISOPoT | **3.2** | 3.5 | 4.6 | 9.69 | **0.0** |
+| USBL+boucles | **Bruce** (nous) | 4.79 | 3.55 | **1.75** | 23.63¹ | 0.057 |
+| USBL+boucles | **Bruce_Sonar_USBL** (nous) | 5.13 | **2.38** | 4.42 | **5.00** | 0.090 |
 
-¹ Trans. 23.6 % de ce run précis est un artefact du seed de cap USBL (β 112° au lieu des ~94°
-habituels) qui gonfle la RE (déplacements exprimés dans le repère de chaque pose) sans affecter
-l'ATE ni la carte — cf. `TESTS.md` §2.4 note 4. Les autres runs Bruce mesurés : ~9-12 %.
+¹ artefact de CE run (seed de cap USBL né tourné de ~16°, β 112° vs ~94° habituels) : gonfle la
+RE sans toucher l'ATE ni la carte (TESTS.md §2.4 note 4). Les autres runs Bruce : ~9-12 %.
 
-**Piège à ne pas reproduire en slide** (déjà noté dans `ISOPoT.md` §"Attention au piège") : nos
-méthodes sont des **SLAM** (ancrage absolu USBL + fermetures de boucle) contre des **odométries
-pures/frontales** (DISO, ISOPoT, SONIC) — même sur le même dataset, ce n'est pas le même problème
-résolu. Une odométrie qui bat notre SLAM en 1ʳᵉ-pose ne serait pas surprenante ; ce n'est pas le
-cas ici mais l'inverse ne prouve pas grand-chose non plus dans l'autre sens.
-
-DISO publie aussi ses propres chiffres Aracati dans sa Table II, en **RE% par section** (pas en
-ATE — protocole différent de sa ré-évaluation par ISOPoT) : Trans. 5.91/9.08/7.28 → 8.69 %
-overall, Rot. 0.17/0.19/0.16 → 0.25°/m overall. Les deux jeux de chiffres DISO (ici et dans le
-tableau ci-dessus) **ne sont pas le même run/toolbox** — ne pas les fusionner.
+Notes de lecture :
+- Le « Rot. 0.0 » de toutes les lignes Odom+Mag est PAR CONSTRUCTION : leur cap est remplacé
+  par le magnétomètre, une odométrie ne le modifie jamais. Nos 0.057-0.090 ne sont pas « moins
+  bons » : le SLAM ajuste le cap via les boucles (voir §5).
+- Leur « Odométrie seule » (19 %) repart de zéro à chaque section ; la nôtre court 44 min
+  d'affilée (32.6 %) — mêmes données, protocole différent.
+- DISO publie AUSSI ses propres chiffres (sa Table II, autre toolbox) : Trans. 5.91/9.08/7.28
+  → 8.69 % global, Rot. → 0.25°/m. Ne pas mélanger avec sa ré-évaluation par ISOPoT ci-dessus.
 
 ---
 
-## 3. Erreur relative globale (RE, segments 10 %) — résumé simple à l'oral
+## 4. Pourquoi ISOPoT-assisté nous bat en S1 (et pas ailleurs)
 
-| Méthode | Trans. (%) | Rot. (°/m) | Type |
+1. **La métrique ancrée favorise leur construction** : cap = magnétomètre brut (jamais dévié),
+   translation = fusion odométrie+tracking appris, très propre à court terme. Nous, le graphe
+   bouge tout (cap compris) pour la cohérence GLOBALE — excellent en Umeyama (1.45 m), pénalisé
+   en ancré quand l'ancre de départ est bruitée.
+2. **Notre S1 démarre mal par nature** : seed de cap USBL estimé sur les premiers fixes
+   (bruités) + presque pas de revisites au début → rien pour corriger avant S2.
+3. **Les réseaux aident leur translation locale** (TAPNext suit les points là où les détecteurs
+   classiques échouent sur Aracati), mais ils ne expliquent pas tout : leur ISOPoT SANS
+   auxiliaires fait 8.8/12.7/16.7 — c'est le magnétomètre + l'odométrie du bord qui font
+   l'essentiel du gain assisté, pas le deep seul.
+4. Rappel d'échelle : sur la MÉTRIQUE LOCALE robuste (Trans. %), nous restons devant (5.0 vs
+   9.69) ; et eux ne publient aucune carte — nous livrons trajectoire ET carte (0.075/0.43 m).
+
+---
+
+## 5. La nuance « magnétomètre » (ta question sur la triche)
+
+- Le README d'Aracati2017 dit verbatim : *« the angular velocity in Z (heading) is estimated
+  from the **vehicle** compass »* → compas embarqué SUR le ROV (pas sur le bateau, qui ne
+  porte que le DGPS de vérité terrain). Capteur légitime sur un UV.
+- Le bag n'expose AUCUNE autre source de cap que `/cmd_vel` → leur « Mag » et notre wz sont
+  très probablement le MÊME signal physique. Preuve numérique : notre odométrie a une Rot. de
+  0.000-0.003°/m, identique à leurs lignes Odom+Mag.
+- Donc : pas une triche d'ISOPoT, la même convention que nous — à déclarer (on le fait,
+  mini-papier §1.1) mais pas à leur reprocher. Non vérifié à 100 % : le topic exact remappé
+  dans leur code (DISO est open source si besoin de certitude).
+
+---
+
+## 6. Méthodes de `Paper/` non comparables en chiffres sur Aracati
+
+| Papier | Testé Aracati ? | Pourquoi non comparable | Ce qu'on en a pris |
 |---|---|---|---|
-| SONIC sonar-only | 137.65 | 2.45 | odométrie front-end pure |
-| ISOPoT sonar-only | 22.76 | 0.99 | odométrie front-end pure |
-| Odométrie /cmd_vel (Aracati, tous) | ~19-33 | **0.00** | odométrie du bord (compas) |
-| DISO (assisté) | 13.90 | 0.44 | odométrie front-end + odom ext. |
-| SONIC (assisté) | 22.83 | 0.00 | odométrie front-end + odom ext. |
-| ISOPoT (assisté) | **9.69** | 0.00 | odométrie front-end + odom ext. |
-| **Bruce_Sonar_USBL** (nous) | **5.00** | 0.090 | **SLAM** (USBL absolu + loops SC) |
-| **Bruce** (nous, run cité) | 23.63¹ | 0.057 | **SLAM** (USBL absolu, sans SC) |
-
-¹ voir note du tableau 2 — artefact de ce run précis, pas de la méthode (autres runs Bruce : ~9-12 %).
+| Sonar Context (Kim 2023) | ✅ en Précision-Recall (pas d'ATE) | métrique différente | notre détecteur de boucles (adapté P900) |
+| DRACo-SLAM | ❌ | multi-robot, DVL+IMU absents d'Aracati | inspiration pose-graph |
+| ULCDfMS | ❌ | sonar mécanique rotatif (→ branche caves) | compensation balayage (piste caves) |
+| Factor Graph INS/USBL/DVL | ❌ | code non publié, IMU+DVL requis | facteur USBL robuste (Cauchy) |
 
 ---
 
-## 4. Le cap à 0.00°/m : nuance magnétomètre — réponse à ta question
-
-Tous les « Odom+Mag » ci-dessus affichent une erreur de rotation **quasi nulle**, ce qui ressemble
-à de la triche. Ce qu'on sait avec certitude (audit du bag Aracati2017, `FABLE.md` §2) :
-
-- Le bag Aracati2017 lui-même **n'expose que 8 topics**, aucun `/imu` ni `/compass` brut —
-  seulement `/cmd_vel`, dont le README du dataset précise (verbatim) : *« the angular velocity
-  in Z (heading) is estimated from the vehicle compass »*. C'est donc bien un compas **embarqué
-  sur le véhicule** (le ROV LBV300-5), **pas** un instrument du bateau porteur du DGPS — le README
-  dit explicitement « vehicle compass », et le bateau ne porte que le DGPS de vérité terrain.
-- Notre propre odométrie `/cmd_vel` (même source, aucune GT) a une RE rotation mesurée de
-  **0.00-0.003 °/m** sur tous nos runs (tableaux ci-dessus) — **identique** aux lignes « Odom+Mag »
-  de DISO/SONIC/ISOPoT. C'est une coïncidence trop precise pour ne pas être le même signal : il n'y
-  a qu'**une seule** source de cap publiée dans ce dataset, donc « leur » magnétomètre et « notre »
-  compas `/cmd_vel` sont très probablement **le même topic**, pas un capteur supplémentaire qu'ils
-  auraient eux-mêmes rajouté.
-- Point que je n'ai **pas** vérifié formellement : le nom exact du topic ROS que DISO/ISOPoT
-  remappent en interne pour leur bloc « Odom+Mag » (leur code de chargement Aracati n'est pas
-  inspecté ligne à ligne ici). DISO publie son code (https://github.com/SenseRoboticsLab/DISO) —
-  à ouvrir si tu veux la certitude à 100 % plutôt qu'une très forte présomption.
-
-**Conclusion pour la slide** : ce n'est pas une triche isolée d'ISOPoT — c'est la même
-convention que nous (cap = compas du bord, légitime sur un UV réel), et probablement le **même
-topic physique** que notre `/cmd_vel`. Le tableau 3 le confirme numériquement : nos RE rotation
-(0.057-0.090°/m) sont même légèrement supérieures à 0.00 parce que le SLAM *touche* au cap via les
-contraintes de boucle/graphe — une odométrie pure ne le fait jamais, d'où le 0.00 exact partout.
-
----
-
-## 5. Méthodes de `Paper/` non comparables numériquement sur Aracati2017
-
-Pas testées sur ce dataset (ou pas en ATE/RE) — citées comme inspiration de conception, pas comme
-concurrentes chiffrées :
-
-| Papier | Testé sur Aracati ? | Pourquoi non comparable | Rôle dans notre pipeline |
-|---|---|---|---|
-| **Sonar Context** (Kim, ICRA 2023) | ✅ mais en Précision-Recall (PR-curve loop closure), pas ATE | métrique différente | base du détecteur de boucles par apparence (§III mini-papier) |
-| **DRACo-SLAM** | ❌ (multi-robot, DVL+IMU requis) | dataset et capteurs différents (Aracati n'a ni DVL ni IMU) | inspiration architecture pose-graph multi-robot, non utilisée telle quelle |
-| **ULCDfMS** (Loop) | ❌ | sonar mécanique rotatif (branche `caves`, pas Aracati) | inspiration compensation de balayage lent (piste ouverte, caves) |
-| **Factor Graph INS/USBL/DVL** | ❌ (code non publié, IMU 200Hz+DVL requis) | capteurs absents d'Aracati | inspiration facteur USBL robuste (Cauchy) dans notre back-end (§2.4) |
-
----
-
-*Sources numériques : `analysis/paper_eval.py` (nos runs, recalculé 07-06) ; `Paper/Sonar/DISO.md`
-Table II ; `Paper/Sonar/ISOPoT.md` Table I ; `Paper/MiniPapier/MINI_PAPIER.md` §6.3
-(référence GT, continuité 1.2a).*
+*Sources : `analysis/paper_eval.py` (nos runs, 07-06) · `Paper/Sonar/ISOPoT.md` Table I ·
+`Paper/Sonar/DISO.md` Table II · `MINI_PAPIER.md` §6.2 (conventions), §6.3 (référence GT).*
