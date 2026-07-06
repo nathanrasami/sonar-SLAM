@@ -1,4 +1,5 @@
 RÈGLES D'EFFICACITÉ (MODE STAGE) :
+    Commence chaque réponse par mon prénom
 
     Ne scanne JAMAIS l'intégralité du repo sans permission.
 
