@@ -89,11 +89,9 @@ if os.path.exists(diso_path):
     diso = pd.read_csv(diso_path)
     est_d_p, ate_diso = aligner_origine(diso[["x", "y"]].to_numpy(), diso["time"], gt, "DISO")
 
-# Odométrie pure = ré-intégration OFFLINE — seulement si odometry.csv absent
-# (sinon doublon divergent de la vraie entrée du SLAM, cf. analyze_drift)
+# Odométrie pure (dead-reckoning /cmd_vel)
 est_p_p = ate_pure = None
-odom_csv = os.path.join(results_dir, "odometry.csv")
-if not os.path.exists(odom_csv) and os.path.exists(bag_path):
+if os.path.exists(bag_path):
     pure = odometrie_pure_depuis_bag(bag_path)
     if pure is not None:
         est_p_p, ate_pure = aligner_origine(np.column_stack([pure["x"], pure["y"]]),
