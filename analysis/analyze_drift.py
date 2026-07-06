@@ -61,7 +61,12 @@ if os.path.exists(gt_path):
         est_o, ate_odom, _ = aligner(odom[["x", "y"]].to_numpy(), odom["time"], gt, "Odométrie")
 
     est_p = ate_pure = None
-    if os.path.exists(bag_path):
+    # « Odom pure » = RE-intégration OFFLINE de /cmd_vel (approximation d'analyse,
+    # jamais vue par le SLAM). Depuis que le nœud exporte odometry.csv (la VRAIE
+    # entrée du SLAM), la ré-intégration fait DOUBLON et diverge en cap intégré
+    # (~1.4°/min, schéma d'intégration ≠) → on ne la trace QUE si odometry.csv
+    # manque (vieux runs). cf. discussion 07-06 « jaune vs violet ».
+    if not os.path.exists(odom_path) and os.path.exists(bag_path):
         pure = odometrie_pure_depuis_bag(bag_path)
         if pure is not None:
             est_p, ate_pure, _ = aligner(np.column_stack([pure["x"], pure["y"]]),
