@@ -1,4 +1,44 @@
-# PROGRESS — état au 2026-07-05 — ✅ STAGE ARACATI BOUCLÉ (runs finaux + audit GT-free)
+# PROGRESS — état au 2026-07-06 (soir) — mémoire native + COMPARE.md + caves validée
+
+## 🧠 MÉMOIRE REFONDUE (07-06 soir) — claude-mem SUPPRIMÉ, natif en place
+- claude-mem v13 installé puis **supprimé le soir même** : ses hooks bloquaient les réponses
+  (worker port 37700 muet → CLI en attente infinie). Nettoyage TOTAL fait (machine + 5 branches).
+  ⚠ Ne JAMAIS réinstaller d'outil mémoire tiers à hooks (leçon en auto-memory).
+- Architecture finale : **CLAUDE.md v2** (41 l, IDENTIQUE 5 branches — resync si modif) +
+  **`.claude/rules/branche.md`** par branche (~10 l, spécificités locales ; main : aucun) +
+  **auto-memory native** (commune aux 5 branches et discussions, index 21/200 lignes).
+- **Prochaine étape (Nathan, nouvelle discussion)** : ajouter une règle dédiée à l'ère
+  Claude Opus (quand Fable 5 ne sera plus accessible) — candidat naturel : CLAUDE.md §dédié
+  ou `.claude/rules/`, à synchroniser sur les 5 branches.
+
+## 📊 PRÉSENTATION (07-06) — Paper/COMPARE.md (5 branches)
+- Tableaux comparatifs pour la slide : ATE par section S1/S2/S3 en DEUX conventions
+  (Umeyama = interne ; 1ʳᵉ-pose = comparable ISOPoT/DISO), RE trans/rot, méthodes non
+  comparables listées. Runs recalculés via paper_eval.py : `233119_Bruce_USBL_1` (1.74) et
+  `201541_BSU_1` (1.45).
+- Nuance « magnéto » ISOPoT : README Aracati = *vehicle compass* (embarqué ROV, pas le bateau) ;
+  une seule source de cap dans le bag → leur Odom+Mag ≈ notre /cmd_vel (rot 0.00°/m identique).
+  Certitude 100 % nécessiterait d'ouvrir le code DISO (topic exact non vérifié).
+
+## 📈 FIX doublon odométrie « jaune/violet » (07-06, 5 branches)
+- analyze_drift/analyze_origine ne tracent la ré-intégration offline (« Odom pure », violette,
+  θ0=0, divergence cap ~1.4°/min) QUE si odometry.csv absent (vieux runs). La JAUNE
+  (odometry.csv = vraie entrée du SLAM) est la seule canonique.
+
+## 🕳 CAVES (07-06) — chaîne VALIDÉE, runs de suite listés
+- Bridge MSIS v2 OK (CFAR interne, PIEGES §13 FOV<180°) ; run Nathan : 227 KF, 494 m,
+  fermeture 8.47 m (1.7 %, SLAM=odom sans loops) ; grotte 3D SeaKing (caves_3d.py, 69 854 pts,
+  --with-map) ; ruban Micron = 2.5D mesuré (std z intra-scan 0). Doc : CAVES.md.
+- Reste caves : ① run loops `NSSM=true ./run_slam.sh caves` (refermer les 8.47 m) ;
+  ② `./run_slam.sh caves Bruce_Sonar_USBL` (recalibrer τ SC via loops_detected.csv) ;
+  ③ optionnel : compensation balayage 8.6 s (ULCDfMS), aerial view (image à fournir).
+
+## 📌 Reste global
+- Relecture par Nathan : MINI_PAPIER.md, BRUCE_SLAM.md, COMPARE.md.
+- HoloOcean 3D : bag du collègue (stratégies + garde-fous : HOLOOCEAN_3D_GUIDE.md, GARDE_FOU).
+- Optionnel : SONIC offline, MCFAR.
+
+# Historique — état au 2026-07-05 — ✅ STAGE ARACATI BOUCLÉ (runs finaux + audit GT-free)
 
 ## 🧭 SUITE HOLOOCEAN (07-05 soir)
 
