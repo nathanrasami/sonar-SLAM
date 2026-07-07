@@ -2,7 +2,8 @@
 
 > Chaîne complète validée sur simulateur HoloOcean (bag test.bag 61 s : /sonar, /dvl, /imu,
 > /depth, /ground_truth). Odométrie GT-free = DVL+IMU intégrés. Un seul run à la fois.
-> Docs : `HOLOOCEAN_GARDE_FOU.md` (manuel complet + pannes), `HOLOOCEAN_3D_GUIDE.md` (bag 3D à venir).
+> Docs : `HOLOOCEAN_GARDE_FOU.md` (manuel complet + pannes), `HOLOOCEAN_3D_GUIDE.md`
+> (v2 07-07 : objectifs PASS/FAIL pour le bag 3D du collègue).
 
 ## 1. Lancer un run (bag 61 s → run ~1 min, s'arrête seul)
 
@@ -21,23 +22,28 @@ Sorties dans `results/run_holoocean_<date>/`.
 | arg 2 : `2D` \| `3D` | 2D | 2D = chaîne image polaire→CFAR ; 3D = /sonar_points du simulateur |
 | arg 3 : `Bruce` \| `Bruce_Sonar_USBL` | Bruce | méthode (bsu = loops par apparence SC, sans USBL : pas de capteur simulé) |
 | `ODOM_SOURCE` | dvl | `dvl` = DVL+IMU intégrés (GT-free) · `gt` = /ground_truth relayé (debug seulement) |
-| `NSSM` | false | fermetures de boucle (bag court : peu utile en 61 s) |
+| `SSM` | **false** | ICP séquentiel — mesuré 07-07 : seul → ATE 4.79 m (remplace le facteur DVL par un recalage sonar biaisé). `SSM=true` = parité Bruce original |
+| `NSSM` | **true** | fermetures de boucle (min_st_sep 25 dans le yaml : neutre sur 61 s — 0 loop passe le gate —, prêt pour un bag long ; sep 8 = fausses loops 0.96/2.52 m) |
 | `BAG_HOLO` | test.bag | autre bag (ex. test_2.bag, futur bag 3D du collègue) |
 | `RATE` | 1.0 | vitesse de rejeu |
+
+Défauts figés 07-07 (7 runs discriminants) : `./run_slam.sh holoocean` nu → **ATE 0.13 m ×2 répétable**.
 
 ## 3. Analyser
 
 ```bash
-./analyse.sh run_holoocean_<date>        # holoocean_report : toutes les figures d'un coup
+./analyse.sh run_holoocean_<date>        # TOUT d'un coup (unifié 07-07) : holoocean_report
+                                         # + paper_eval (ATE um/fp, RE, S1/S2/S3, cap, carte)
+                                         # + bilan_run (1 image)
 ./analyse.sh 3D run_holoocean_<date>     # + carte 3D INTERACTIVE (rotation souris) en dernier
-python3 analysis/bilan_run.py results/run_holoocean_<date>   # bilan 1 image
 ```
 
 ## 4. Lire les résultats
 
 | Sortie | Signification | Attendu (dvl) |
 |---|---|---|
-| console ATE | erreur vs /ground_truth (Umeyama) | **0.13 m** (répétable au cm) |
+| console ATE | erreur vs /ground_truth (Umeyama) | **0.13 m** (répétable au cm, défauts 07-07) |
+| console paper_eval | ATE um/fp, RE %/°/m, sections S1-S3, cap, carte | — |
 | `carte_finale.png` | trajectoire plaquée sur le nuage | 4 murs nets |
 | `error_over_time.png` | erreurs Umeyama ET ancrée-origine | — |
 | `pointcloud_filtered.png` | gauche nuage+traj, droite traj seule | — |
