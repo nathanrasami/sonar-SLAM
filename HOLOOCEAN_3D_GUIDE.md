@@ -188,23 +188,150 @@ sinon le sonar continue de voir l'ancienne géométrie.
 
 ---
 
-## 8. DEMANDE v4 (07-08, Nathan) — prochaine itération des bags
+## 8. DEMANDE v4 — SPÉCIFICATION COMPLÈTE (07-08, Nathan → agent Opus du collègue)
 
-Les 2 bags sont validés côté SLAM (ATE 0.03 m ; carte 3D GT-free profiler×SLAM
-à 0.02 m de la carte GT). Pour l'itération suivante, deux demandes :
+> Les bags v3 sont **validés côté SLAM** (ATE 0.03 m ×2 ; carte 3D GT-free
+> profiler×SLAM à 0.021 m de la carte GT). Cette section est la spec de la
+> **prochaine itération (traj 3)**, écrite pour un agent **Opus** : tout est
+> explicite, avec code de référence et critères PASS/FAIL binaires. Suivre
+> l'ordre §8.5 (bag court d'abord). Base de départ = `gen_bag_3d.py` v3 :
+> on MODIFIE trois choses, tout le reste (topics, bruits, conventions §3) est
+> inchangé.
 
-1. **Vraie 3D par le SONAR PRINCIPAL aussi** (pas seulement le profiler vertical) :
-   l'ImagingSonar doit fournir de l'information d'ÉLÉVATION intra-ping —
-   option recommandée : **tilt oscillant en pitch** (le plan de scan monte/descend,
-   ex. ±15° sinusoïdal sur ~10 s) ; alternative : publier l'élévation par pixel si
-   le simulateur l'expose. Critère PASS identique au contrat : std(z) INTRA-message
-   de `/sonar_points` > 0.5 m. But : que le SLAM lui-même (et pas seulement la
-   carte offline) voie de la 3D → prépare la migration Pose3.
-2. **Publier les points en repère VÉHICULE** (`frame_id = "auv0"`), PAS en monde :
-   `/sonar_points` et `/profiler_points` transformés par la pose GT cachent de la
-   GT dans les données. En repère capteur/véhicule, la carte se construit avec la
-   trajectoire SLAM SANS dé-projection (aujourd'hui on doit inverser via GT —
-   artefact de format, cf. analysis/profiler_slam_3d.py). Un vrai sonar logge en
-   repère capteur : c'est aussi plus réaliste.
+### 8.1 Changement 1 — trajectoire « errance aléatoire bornée » (remplace la sinusoïde z)
 
-(Le reste du contrat §3-4 inchangé : mêmes topics, conventions, bruits.)
+Le robot suit toujours le rectangle médian (§2), mais on ajoute des excursions
+**ALÉATOIRES dans les 4 directions** : gauche/droite (offset latéral) ET haut/bas
+(profondeur). Exemple voulu : « 0.7 m gauche, 0.1 m haut, 0.6 m bas, 0.7 m haut,
+0.6 m droite » — ordre et amplitudes au hasard, MAIS toujours dans le couloir :
+
+- **Latéral** : offset `lat(s)` ⊥ au chemin, tiré au hasard, **|lat| ≤ 1.0 m**
+  (murs/bloc à 2.2 m de la médiane → marge garantie ≥ 1.2 m > zone aveugle).
+- **Vertical** : `z(s)` tiré au hasard dans **[−5.2, −1.8] m** (marges surface/fond).
+- **Lisse** : une « décision » aléatoire tous les ~8 m d'abscisse, interpolée
+  PCHIP (pas d'à-coups, pas d'overshoot hors bornes — c'est LA raison de PCHIP
+  plutôt que spline cubique classique qui déborde entre les nœuds).
+- **roll = 0 et pitch = 0 PARTOUT** (inchangé — « grande route ») ; yaw = tangente
+  du chemin RÉEL (médiane+offset), |dyaw/dt| < 30°/s à vérifier.
+- **Boucle fermée** : offsets forcés à 0 aux deux extrémités du périmètre ;
+  2 tours ; le tour 2 peut utiliser un AUTRE tirage (revisites imparfaites =
+  réalistes) OU le même (revisites exactes) — les deux intéressent Nathan,
+  générer le même tirage par défaut (plus simple pour les loops).
+- **SEED loggé** : imprimer et écrire la seed dans `validation_3d/full_run.log`
+  (reproductibilité — un bag non reproductible n'est pas un résultat).
+
+```python
+# ─── v4 : errance aléatoire bornée (à intégrer dans gen_bag_3d.py) ──────────
+import numpy as np
+from scipy.interpolate import PchipInterpolator
+
+SEED   = 42      # ⚠ logger la valeur ; changer = autre trajectoire
+N_MAX  = 1.0     # offset latéral max (m)
+Z_MIN, Z_MAX = -5.2, -1.8
+L_SEG  = 8.0     # distance moyenne entre 2 décisions aléatoires (m)
+
+def offsets_aleatoires(perim, seed=SEED):
+    """lat(s), z(s) aléatoires lisses, bornés, nuls aux extrémités (fermeture)."""
+    rng = np.random.default_rng(seed)
+    n = max(8, int(perim / L_SEG))
+    s_nodes = np.linspace(0.0, perim, n + 1)
+    lat = rng.uniform(-N_MAX, N_MAX, n + 1)
+    z   = rng.uniform(Z_MIN, Z_MAX, n + 1)
+    lat[0] = lat[-1] = 0.0
+    z[0]  = z[-1]  = 0.5 * (Z_MIN + Z_MAX)
+    return PchipInterpolator(s_nodes, lat), PchipInterpolator(s_nodes, z)
+
+def pose_at_v4(t, V_FWD, perim, chemin_median, f_lat, f_z):
+    """chemin_median(s) -> (c [x,y], t_hat unitaire) : fonction EXISTANTE v3.
+    Même tirage aux 2 tours : s = (V_FWD*t) % perim."""
+    s = (V_FWD * t) % perim
+    c, t_hat = chemin_median(s)
+    n_hat = np.array([-t_hat[1], t_hat[0]])          # normale GAUCHE du chemin
+    p = c + f_lat(s) * n_hat
+    # yaw = tangente du chemin réel (différence finie sur 0.5 m)
+    s2 = (s + 0.5) % perim
+    c2, t2 = chemin_median(s2)
+    p2 = c2 + f_lat(s2) * np.array([-t2[1], t2[0]])
+    yaw = np.arctan2(p2[1] - p[1], p2[0] - p[0])
+    return p[0], p[1], float(f_z(s)), yaw            # roll = pitch = 0
+# ⚠ DVL : vz et la vitesse latérale ne sont PLUS nuls → v_monde par différence
+#   finie centrale sur pose_at_v4 (dt=0.05), puis v_vehicule = R^T · v_monde
+#   comme en v3. Ne PAS garder l'ancienne dérivée analytique de la sinusoïde.
+```
+
+### 8.2 Changement 2 — vraie 3D par le SONAR PRINCIPAL : tilt oscillant
+
+L'ImagingSonar « SonarFin » ne reste plus à plat : son plan de scan **oscille en
+pitch** → l'information d'élévation intra-ping apparaît, le SLAM (pas seulement
+la carte offline) voit de la 3D. C'est l'équivalent simulé d'un sonar sur rotateur.
+
+- `tilt(t) = 15° · sin(2π · t / 10 s)` (amplitude 15°, période 10 s → à 5 Hz,
+  50 pings par cycle ; à 0.35 m/s le robot avance 3.5 m par cycle).
+- **Deux implémentations possibles, dans l'ordre de préférence :**
+  a) si HoloOcean permet de changer la rotation du capteur au tick :
+     `rotation = [0, tilt_deg(t), 0]` (vrai rendu incliné — le mieux) ;
+  b) sinon : garder le capteur à plat MAIS générer un 2ᵉ ImagingSonar incliné
+     fixe (+15°) et alterner… NON — préférer a) ; si a) impossible, le dire à
+     Nathan AVANT de coder autre chose.
+- **Publier l'angle** : nouveau topic **`/sonar_tilt`** (`std_msgs/Float64`,
+  radians, même stamp que `/sonar`) — le SLAM en a besoin pour projeter chaque
+  ping dans le bon plan. Sans ce topic, le tilt est inutilisable.
+- Projection des points (remplace celle du §3.6) :
+  `p_capteur = Ry(tilt) · r·[cos a, −sin a, 0]` avec, en ENU véhicule
+  (x avant, y gauche, z haut) : `Ry(θ): x' = x·cosθ + z·sinθ ; z' = −x·sinθ + z·cosθ`.
+  ⚠ VÉRIFIER LE SIGNE sur une frame de test : tilt > 0 doit produire des échos
+  de mur à z > z_robot (fan qui regarde vers le HAUT). Si c'est l'inverse,
+  inverser le signe — le critère de vérif est dans check §8.5.
+
+### 8.3 Changement 3 — points en repère VÉHICULE (plus de GT cachée)
+
+- `/sonar_points` et `/profiler_points` : **`frame_id = "auv0"`**, points
+  `p_capteur`/`p_vehicule` SANS transformation monde. (En v3 la pose GT était
+  cachée dans les PointCloud2 — Nathan devait la dé-projeter, artefact de
+  format ; un vrai sonar logge en repère capteur.)
+- `/ground_truth` reste publié tel quel (évaluation SEULEMENT côté SLAM).
+- Ne PAS oublier : le profiler garde son `R_roll(90°)` AVANT sortie (repère
+  véhicule quand même), le sonar principal applique `Ry(tilt)` du §8.2.
+
+### 8.4 Livrables
+
+| Fichier | Contenu |
+|---|---|
+| `holoocean_3d_traj3.bag` | errance aléatoire + tilt sonar + profiler + `/sonar_tilt`, points en repère véhicule, 2 tours, même seed loggée |
+| (option, si temps) `holoocean_3d_traj3b.bag` | même chose, seed différente (répétabilité côté SLAM) |
+
+### 8.5 Ordre de travail imposé + critères PASS/FAIL (agent Opus : suivre tel quel)
+
+1. `gen_bag_3d.py --traj 3 --test 60` (bag court) puis les checks 2-6 dessus.
+2. **Enveloppe** : sur toutes les poses GT — distance à TOUS les murs/bloc
+   ≥ 1.2 m ; z ∈ [−5.5, −1.5] ; |dyaw/dt| < 30°/s. (Étendre `check_bag_3d.py`.)
+3. **Errance** : std(lat) > 0.4 m ET std(z traj) > 0.8 m ET aucune corrélation
+   triviale (pas une sinusoïde : au moins 6 extrema locaux de z par tour).
+4. **Tilt** : `/sonar_tilt` présent, amplitude ±15°±1°, période 10 s ±0.5 ;
+   **std(z) INTRA-message des points du sonar principal > 0.5 m** sur les pings
+   à |tilt| > 8° (points reprojetés monde via GT pour le check) ; signe vérifié
+   (tilt>0 → échos au-dessus du z robot).
+5. **Repères** : `frame_id == "auv0"` sur les 2 topics de points ; un point de
+   mur reprojeté monde via la pose GT du même stamp doit tomber à < 0.3 m du
+   plan du mur connu (sinon la projection/le signe est faux).
+6. **Fermeture** : ‖p(fin tour) − p(début)‖ < 2 m ; roll = pitch = 0 exact.
+7. Seulement si 2-6 PASS : générer les 2 tours complets + relancer les checks +
+   PNG de frames (`check_sonar_frames.py`) + tout logger dans `full_run.log`.
+8. En cas de blocage (API rotation au tick indisponible, signe ambigu…) :
+   NE PAS improviser une variante silencieuse — noter le blocage dans ce doc
+   (§9 dialogue) et demander à Nathan.
+
+### 8.6 Suggestions optionnelles (si le reste est PASS et qu'il reste du temps)
+
+- Bruits « réalistes v2 » : DVL σ 0.01→0.02 m/s, gyro σ 0.002→0.005 rad/s
+  (dérive DR visible → les loops SLAM deviennent enfin UTILES en simu).
+- IMU : ajouter les accélérations propres (centripète + heave) — cohérence
+  physique complète (§3.2 les omet).
+- Un 3ᵉ tour à vitesse différente (0.5 m/s) : teste la robustesse temporelle.
+
+---
+
+## 9. Dialogue (réponses/blocages du collègue → Nathan)
+
+*(section à remplir par l'agent du collègue : blocages §8.5.8, choix faits,
+valeurs mesurées aux checks — une entrée datée par itération)*
