@@ -14,7 +14,10 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from scipy.spatial import cKDTree
+
+CMAP_Z = LinearSegmentedColormap.from_list("z_redblue", ["red", "blue"])
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from traj_eval import umeyama, appliquer, calculer_ate, associer_par_temps
@@ -55,7 +58,7 @@ def main(run_dir, theta_ref=None):
         ax.legend(); ax.set_aspect("equal")
         ax = axes[1]
         if "z" in cloud.dtype.names and np.nanstd(cloud["z"]) > 0.2:
-            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="Blues",
+            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap=CMAP_Z,
                             alpha=0.6, linewidths=0)
             plt.colorbar(sc, ax=ax, label="z (m)", shrink=0.8)
         else:
@@ -113,7 +116,7 @@ def main(run_dir, theta_ref=None):
     ax = axes[1]
     # 3D-aware : si le nuage a une colonne z avec du relief, on colore par z
     if "z" in cloud.dtype.names and np.nanstd(cloud["z"]) > 0.2:
-        sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="Blues",
+        sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap=CMAP_Z,
                         alpha=0.6, linewidths=0)
         plt.colorbar(sc, ax=ax, label="z (m)", shrink=0.8)
         ax.set_title(f"Pointcloud 3D (z couleur) — {len(P)} pts, NN {nn:.3f} m")
