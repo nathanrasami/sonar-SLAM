@@ -114,17 +114,27 @@ Notes de lecture :
 
 ---
 
-## 5. La nuance « magnétomètre » (ta question sur la triche)
+## 5. La nuance « magnétomètre » — VÉRIFIÉE dans le bag (07-06)
 
-- Le README d'Aracati2017 dit verbatim : *« the angular velocity in Z (heading) is estimated
-  from the **vehicle** compass »* → compas embarqué SUR le ROV (pas sur le bateau, qui ne
-  porte que le DGPS de vérité terrain). Capteur légitime sur un UV.
-- Le bag n'expose AUCUNE autre source de cap que `/cmd_vel` → leur « Mag » et notre wz sont
-  très probablement le MÊME signal physique. Preuve numérique : notre odométrie a une Rot. de
-  0.000-0.003°/m, identique à leurs lignes Odom+Mag.
-- Donc : pas une triche d'ISOPoT, la même convention que nous — à déclarer (on le fait,
-  mini-papier §1.1) mais pas à leur reprocher. Non vérifié à 100 % : le topic exact remappé
-  dans leur code (DISO est open source si besoin de certitude).
+- **Embarqué : OUI.** README Aracati2017 verbatim : *« the angular velocity in Z (heading) is
+  estimated from the **vehicle** compass »*. ISOPoT §IV.D précise : *« the heading sensor is
+  mounted above the waterline and thus provides near ground-truth heading »* — cohérent : le
+  ROV naviguait EN SURFACE sous la planche DGPS, son compas était émergé. Capteur du véhicule
+  dans les deux sources.
+- **Le même signal : PROUVÉ.** (a) `rosbag info` : le bag n'a que 8 topics (cmd_vel, dgps,
+  dgps_point, pose_gt, son, surface, usbl, usbl_point) — AUCUNE source de cap à part
+  `/cmd_vel` ; (b) mesure directe : ∫wz sur 120 s = −88.26° et Δyaw(/pose_gt) sur la même
+  fenêtre = +88.26° — **identiques à 0.01° près** (signe = convention NED/ENU) → le cap de la
+  « GT » et wz dérivent du MÊME compas ; (c) le config officiel de DISO (GitHub) lit
+  `/odom_pose`, l'odométrie du package aracati2017 construite sur cmd_vel+compas (topic absent
+  du bag, généré au replay).
+- **wz = vitesse angulaire : OUI.** `/cmd_vel` est un `geometry_msgs/TwistStamped` (14 435 msgs),
+  wz = `twist.angular.z` en rad/s (échantillons : 0.0105-0.0752) ; notre nœud intègre
+  `θ += wz·dt` (`cmd_vel_odom.py:67`).
+- Conséquence à assumer en slide : le « cap GT » de nos métriques (yaw de /pose_gt) n'est PAS
+  indépendant du compas — c'est pour ça que TOUTES les méthodes Odom+Mag (nous compris) ont
+  une erreur de rotation ≈ 0 ; seule la POSITION GT (DGPS) est indépendante. Exactement la
+  mise en garde d'ISOPoT : la comparaison signifiante porte sur translation et ATE.
 
 ---
 
