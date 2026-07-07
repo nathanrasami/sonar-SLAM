@@ -9,7 +9,7 @@
 
 ```bash
 ./run_slam.sh holoocean                          # 2D, méthode Bruce, odom dvl — attendu ATE 0.13 m
-./run_slam.sh holoocean 2D Bruce_Sonar_USBL      # méthode du stage (loops SC, alias: bsu)
+./run_slam.sh holoocean 2D Bruce_Sonar           # méthode du stage sans USBL (loops SC, alias: bs)
 ./run_slam.sh holoocean 3D Bruce                 # consomme /sonar_points (PointCloud2 3D), z porté partout
 ```
 
@@ -20,7 +20,7 @@ Sorties dans `results/run_holoocean_<date>/`.
 | Arg/Var | Défaut | Rôle |
 |---|---|---|
 | arg 2 : `2D` \| `3D` | 2D | 2D = chaîne image polaire→CFAR ; 3D = /sonar_points du simulateur |
-| arg 3 : `Bruce` \| `Bruce_Sonar_USBL` | Bruce | méthode (bsu = loops par apparence SC, sans USBL : pas de capteur simulé) |
+| arg 3 : `Bruce` \| `Bruce_Sonar` | Bruce | méthode (bs, ex-BSU sans le U : pas d'USBL simulé — loops par apparence SC) |
 | `ODOM_SOURCE` | dvl | `dvl` = DVL+IMU intégrés (GT-free) · `gt` = /ground_truth relayé (debug seulement) |
 | `SSM` | **false** | ICP séquentiel — mesuré 07-07 : seul → ATE 4.79 m (remplace le facteur DVL par un recalage sonar biaisé). `SSM=true` = parité Bruce original |
 | `NSSM` | **true** | fermetures de boucle (min_st_sep 25 dans le yaml : neutre sur 61 s — 0 loop passe le gate —, prêt pour un bag long ; sep 8 = fausses loops 0.96/2.52 m) |

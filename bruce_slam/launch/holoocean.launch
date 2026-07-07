@@ -75,7 +75,7 @@
                 <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
                     <!-- descripteur SONAR Context publié seulement pour la méthode BSU -->
                     <param name="sonar_context/enable"
-                           value="$(eval arg('method') == 'bruce_sonar_usbl')"/>
+                           value="$(eval arg('method') == 'bruce_sonar')"/>
                     <rosparam command="load" file="$(find bruce_slam)/config/feature_holoocean.yaml" subst_value="true"/>
                 </node>
             </group>
@@ -96,12 +96,12 @@
                 <env name="SLAM_RESULTS_DIR" value="$(optenv SLAM_RESULTS_DIR results)"/>
             </node>
 
-            <!-- SLAM node — méthode "bruce_sonar_usbl" (contribution Aracati : loops
+            <!-- SLAM node — méthode "bruce_sonar" (ex-BSU renommée 07-07 : pas d'USBL
+                 dans les bags holoocean → la contribution Aracati se réduit aux loops
                  par apparence SONAR Context ; l'aval shgo/ICP/PCM inchangé).
-                 nssm/enable FORCÉ true (SC vit dans la machinerie NSSM) ; usbl reste
-                 off (pas de capteur USBL dans les bags holoocean). Seuils SC calibrés
-                 Aracati → recalibrer via loops_detected.csv (cf. slam_holoocean.yaml). -->
-            <node if="$(eval arg('method') == 'bruce_sonar_usbl')"
+                 nssm/enable FORCÉ true (SC vit dans la machinerie NSSM). Seuils SC
+                 calibrés Aracati → recalibrer via loops_detected.csv (slam_holoocean.yaml). -->
+            <node if="$(eval arg('method') == 'bruce_sonar')"
                   pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
                 <rosparam command="load" file="$(find bruce_slam)/config/slam_holoocean.yaml" subst_value="true"/>
                 <param name="enable_slam" value="true"/>

@@ -36,12 +36,13 @@ nssm:
   cov_samples: 30
 
 pcm_queue_size: 5
-min_pcm: 4
+min_pcm: 4  # testé 3 le 07-07 : ne change rien (le blocage est l'ICP en aval,
+            # pas le gate) → on garde 4, ne JAMAIS affaiblir les portes (PIEGES §12).
 
 pz_samples: 0
 pz_detection_rate: 0.3
 
-# SONAR Context (méthode "bruce_sonar_usbl" : ./run_slam.sh holoocean 2D Bruce_Sonar_USBL).
+# SONAR Context (méthode "bruce_sonar", ex-BSU : ./run_slam.sh holoocean 2D bs).
 # Remplace la DÉTECTION de candidat du NSSM par la place recognition par apparence ;
 # l'aval (shgo, ICP+cov, PCM) est inchangé. enable est surchargé par le launch selon
 # la méthode — laisser False ici. ⚠ dist_threshold et gate_distance sont CALIBRÉS SUR
@@ -51,7 +52,9 @@ pz_detection_rate: 0.3
 sonar_context:
   enable: False
   knn: 5
-  dist_threshold: 0.70
+  dist_threshold: 0.87  # recalibré holoocean 07-07 (Aracati 0.70) : les 4 candidates
+                        # du 1er run bs (203438) étaient TOUTES vraies (fin↔départ,
+                        # sc_dist 0.83-0.85) mais rejetées par le seuil Aracati.
   max_azimuth_shift: 10
   max_range_shift: 5
   gate_distance: 10.0

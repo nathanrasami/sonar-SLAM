@@ -14,8 +14,8 @@
 #     l'odométrie snappe/saute sur chaque fix bruité (1.4 m, max 73 m) → trajectoire en
 #     ZIGZAG, ATE 1.45 -> 4.66 m. Le bon réglage : front-end = dead-reckoning LISSE,
 #     back-end = ancrage USBL (facteurs gtsam). cf. run 111133 (zigzag) vs 135228 (propre).
-#   ./run_slam.sh holoocean [2D|3D] [Bruce|Bruce_Sonar_USBL]   # défauts : 2D Bruce
-#     Bruce_Sonar_USBL (alias bsu) = loops par apparence SC (sans USBL : pas de capteur)
+#   ./run_slam.sh holoocean [2D|3D] [Bruce|Bruce_Sonar]   # défauts : 2D Bruce
+#     Bruce_Sonar (alias bs, ex-BSU sans le U : pas d'USBL simulé) = loops par apparence SC
 #
 # Les CSV sont écrits dans results/run_aracati_<date>/. Pour analyser :
 #   SLAM_RESULTS_DIR=results/run_aracati_2026-... python3 analyze_drift.py
@@ -59,8 +59,9 @@ case "$TYPE" in
     case "$MODE" in 2d|3d) ;; *) echo "mode inconnu: $2 (2D|3D)"; exit 1 ;; esac
     case "$METHOD" in
       bruce) ;;
-      bsu|bruce_sonar_usbl) METHOD="bruce_sonar_usbl" ;;  # contribution Aracati (loops SC)
-      *) echo "méthode inconnue: $3 (Bruce | Bruce_Sonar_USBL)"; exit 1 ;;
+      bs|bruce_sonar|bsu|bruce_sonar_usbl) METHOD="bruce_sonar" ;;  # loops SC (renommée
+        # 07-07 : Bruce_Sonar — pas d'USBL dans les bags holoocean ; alias bsu conservé)
+      *) echo "méthode inconnue: $3 (Bruce | Bruce_Sonar)"; exit 1 ;;
     esac
     # Défauts MESURÉS 07-07 : SSM=false (ICP séquentiel biaisé → 4.79 m), NSSM=true
     # (loops PCM → 0.96 m ; tout off = 0.13 m). Parité Bruce original : SSM=true.

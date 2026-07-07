@@ -17,6 +17,22 @@
 - ⚠ nssm sep25 sur CE bag = 0 loop (les candidates fin de parcours seules < min_pcm 4) :
   neutre ici, la machinerie loops reste prête pour un bag long (3D collègue).
 
+## 🔬 JOURNAL R3 (07-07 soir) — Bruce_Sonar (ex-BSU) testée sur holoocean : 1er essai
+- Renommage : méthode holoocean `bruce_sonar_usbl` → **`bruce_sonar`** (alias bs ; bsu
+  accepté en legacy) — pas d'USBL simulé, le U était mensonger. Fichiers : run_slam.sh,
+  holoocean.launch, README, yaml/feature commentaires.
+- Runs bs (3) : ATE 0.13 m = DR à chaque fois (aucune loop au graphe). Chaîne SC :
+  - ✅ détection par apparence : les SEULES candidates émises sont VRAIES (fin↔départ,
+    KF56-59 ↔ KF0-2) — le descripteur SC marche même sur rendu simulateur ;
+  - ✅ rétention : dist_threshold 0.70 (Aracati) rejetait tout (sc_dist 0.83-0.85) →
+    recalibré **0.87** (yaml, prévu par le commentaire d'origine) → 3/3 retenues ;
+  - ❌ acceptation : 0 au graphe, même avec min_pcm 4→3 (remis à 4) → le blocage est
+    le RECALAGE ICP/PCM en aval — même cause racine que le SSM à 4.79 m : features
+    simulateur trop pauvres. Piste close jusqu'au fix rendu sonar (guide 3D §0).
+- 💡 à garder en tête (Nathan) : si on revient à la config native Bruce (IMU+DVL),
+  explorer des alternatives à Sonar Context pour le front (place recognition) et le
+  back-end — SC n'est peut-être pas optimal hors Aracati.
+
 ## 📐 HOLOOCEAN_3D_GUIDE v2 (07-07 ap-m) — respécifié sur directives Nathan
 - v1 (558 l, code détaillé) → v2 (~120 l, OBJECTIFS + critères PASS/FAIL) : le collègue
   a Fable 5, pas besoin du code. v1 récupérable via git (commit précédent).
