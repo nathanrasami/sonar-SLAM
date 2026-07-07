@@ -35,6 +35,18 @@ def callback(msg: Image):
         rospy.loginfo(f"[sonar_bridge] {num_ranges} ranges × {num_beams} beams, "
                       f"res={_range_resolution:.4f} m/bin, FOV={FOV_DEG}°")
 
+    # Bags 3D 07-07 : /sonar est en 32FC1 [0,1] (échos murs ≤ 0.47) alors que TOUTE la
+    # chaîne aval (CFAR intensity_threshold 95, applyColorMap de feature_extraction:271)
+    # attend le mono8 0-255 des anciens bags → conversion 32FC1 → mono8 ×255 ici.
+    # (0.47*255 ≈ 120 > 95 : les murs repassent le seuil sans retoucher le yaml.)
+    if msg.encoding == "32FC1":
+        arr = np.frombuffer(msg.data, dtype=np.float32).copy()
+        if arr.size and float(arr.max()) <= 1.0:
+            arr *= 255.0
+        msg.data = np.clip(arr, 0, 255).astype(np.uint8).tobytes()
+        msg.encoding = "mono8"
+        msg.step = msg.width
+
     # NB : OculusPingUncompressed n'a PAS de champ num_beams (déduit de len(bearings))
     ping = OculusPingUncompressed()
     ping.header          = msg.header

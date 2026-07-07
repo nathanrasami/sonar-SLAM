@@ -1,5 +1,16 @@
 # PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
 
+## 🤿 07-07 SOIR (session Fable close à 91%) — SUITE 3D AUTONOME LANCÉE
+- Bags copiés dans `bag/`. Run traj1 lancé ; 1er échec diagnostiqué : /sonar = 32FC1
+  [0,1] → applyColorMap crash (feature_extraction:271) + CFAR aveugle (seuil 95/255).
+  FIX : bridge convertit 32FC1→mono8 ×255 (holoocean_sonar_bridge.py). Run relancé,
+  Nathan confirme À L'ÉCRAN : traj + sonar OK, « bon résultat ».
+- **`suite_3d.sh` tourne en nohup** : attend fin traj1 → analyse → run traj2 →
+  analyse → profiler_3d.py (nuage vraie-3D de /profiler_points, z<0) → commit+push
+  auto. **Tout se lit dans `results/suite_3d.log`** + 2 derniers run_holoocean_*.
+- Session suivante : lire suite_3d.log, vérifier ATE traj1/traj2 + profiler_3d.png,
+  puis reprendre le plan ci-dessous (SC/loops sur bag long, SSM re-test rendu propre).
+
 ## 🚀 REPRISE ICI (nouvelle discussion) — runs des bags 3D du collègue
 Contexte : guide v3 = `HOLOOCEAN_3D_GUIDE.md` (écrit par le Fable du collègue, bags
 GÉNÉRÉS et PASS toutes checklists). Bags PAS ENCORE SUR CETTE MACHINE :
