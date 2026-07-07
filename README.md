@@ -23,11 +23,11 @@ Sorties dans `results/run_holoocean_<date>/`.
 | arg 3 : `Bruce` \| `Bruce_Sonar` | Bruce | méthode (bs, ex-BSU sans le U : pas d'USBL simulé — loops par apparence SC) |
 | `ODOM_SOURCE` | dvl | `dvl` = DVL+IMU intégrés (GT-free) · `gt` = /ground_truth relayé (debug seulement) |
 | `SSM` | **false** | ICP séquentiel — mesuré 07-07 : seul → ATE 4.79 m (remplace le facteur DVL par un recalage sonar biaisé). `SSM=true` = parité Bruce original |
-| `NSSM` | **true** | fermetures de boucle (min_st_sep 25 dans le yaml : neutre sur 61 s — 0 loop passe le gate —, prêt pour un bag long ; sep 8 = fausses loops 0.96/2.52 m) |
+| `NSSM` | **false** | loops natives : 4 acceptées au tour 2 du bag 3D → ATE 0.84 m vs 0.03 sans (07-08) — loops sûres = méthode `bs` (SC gate) |
 | `BAG_HOLO` | test.bag | autre bag (ex. test_2.bag, futur bag 3D du collègue) |
 | `RATE` | 1.0 | vitesse de rejeu |
 
-Défauts figés 07-07 (7 runs discriminants) : `./run_slam.sh holoocean` nu → **ATE 0.13 m ×2 répétable**.
+Défauts figés 07-08 (bags 3D complets) : `./run_slam.sh holoocean` nu → **ATE 0.03 m ×2** (bag1 676 s). Carte 3D GT-free : `analysis/profiler_slam_3d.py` (NN 0.02 m vs carte GT).
 
 ## 3. Analyser
 

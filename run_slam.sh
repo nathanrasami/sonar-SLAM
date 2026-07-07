@@ -63,11 +63,12 @@ case "$TYPE" in
         # 07-07 : Bruce_Sonar — pas d'USBL dans les bags holoocean ; alias bsu conservé)
       *) echo "méthode inconnue: $3 (Bruce | Bruce_Sonar)"; exit 1 ;;
     esac
-    # Défauts MESURÉS 07-07 : SSM=false (ICP séquentiel biaisé → 4.79 m), NSSM=true
-    # (loops PCM → 0.96 m ; tout off = 0.13 m). Parité Bruce original : SSM=true.
+    # Défauts MESURÉS (07-07 bag court, 07-08 bags 3D complets) : SSM=false (ICP
+    # séquentiel biaisé : 4.79/1.45 m) ; NSSM=false (4 loops natives tour 2 → 0.84 m
+    # vs 0.03 sans). Loops sûres : méthode bs (SC gate, 0 fausse acceptée).
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" \
-                 ssm:="${SSM:-false}" nssm:="${NSSM:-true}" \
+                 ssm:="${SSM:-false}" nssm:="${NSSM:-false}" \
                  mode:="$MODE" method:="$METHOD" ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac

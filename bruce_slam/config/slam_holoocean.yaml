@@ -52,9 +52,9 @@ pz_detection_rate: 0.3
 sonar_context:
   enable: False
   knn: 5
-  dist_threshold: 0.87  # recalibré holoocean 07-07 (Aracati 0.70) : les 4 candidates
-                        # du 1er run bs (203438) étaient TOUTES vraies (fin↔départ,
-                        # sc_dist 0.83-0.85) mais rejetées par le seuil Aracati.
+  dist_threshold: 0.98  # recalibré 07-08 sur bags 3D (0.87 rejetait les vraies
+                        # revisites tour2↔tour1 à 0.95-0.99, run 111933) ; 0.87 datait
+                        # de l'ancien bag court (candidates 0.83-0.85). Aracati : 0.70.
   max_azimuth_shift: 10
   max_range_shift: 5
   gate_distance: 10.0

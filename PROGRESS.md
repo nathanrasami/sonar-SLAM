@@ -1,4 +1,28 @@
-# PROGRESS — 2026-07-08 — bags 3D VALIDÉS (0.03 m, vraie 3D prouvée) + ablations en cours
+# PROGRESS — 2026-07-08 — MEILLEUR RÉSULTAT figé : 0.03 m ×2 + carte 3D GT-free 0.02 m
+
+## 🏆 07-08 (pleine capacité) — campagne « meilleur résultat » CLOSE
+- **Arbitrage loops (bag1 complet, 2 tours, DR 0.03, 1 variable/run)** :
+  NSSM natif 0.84 m (4 loops tour 2 nuisibles) · **NSSM off 0.03 m** · bs+SC 0.98 :
+  0.03 m, 218 candidates retenues (toutes vraies revisites), 0 acceptée par l'ICP
+  aval, 0 dégradation → gates SC SÛRS, ICP simu = le verrou (partout).
+- **Défauts FIGÉS** (répétés ×2 par la commande nue, runs 124548/131322 = 0.03 m) :
+  run_slam.sh + launch → `ssm:=false nssm:=false` ; SC dist_threshold 0.98 (yaml).
+  Le plancher = la DR (quasi parfaite en simu) : les loops n'apportent rien ICI —
+  elles serviront sur données réelles (drift) une fois l'ICP fiable.
+- **🏆 LIVRABLE PHARE : carte 3D 100 % GT-free** = sections /profiler_points
+  re-projetées sur la traj SLAM (`analysis/profiler_slam_3d.py`) :
+  **NN médian 0.021 m / p90 0.041 m vs carte GT** (135 802 pts). Piège résolu :
+  aligner repère SLAM→monde avant la métrique (Umeyama, comme l'ATE) — sans ça
+  on mesure le décalage de repère (6.1 m), pas la carte. Sorties png/html/npy
+  dans run 105410.
+- **Guide §8 (demande v4 au collègue)** : vraie 3D par le sonar PRINCIPAL (tilt
+  oscillant, critère std(z) intra > 0.5 m) + points en repère VÉHICULE (auv0),
+  pas monde (la transformation GT cachée dans les bags actuels oblige la
+  dé-projection de profiler_slam_3d.py).
+- Reste : Pose3/iSAM2 (avec le futur bag tilt) ; ICP simu (verrou des loops) ;
+  maillage/densification de la carte GT-free.
+
+# (précédent) PROGRESS — 2026-07-08 — bags 3D VALIDÉS (0.03 m, vraie 3D prouvée) + ablations en cours
 
 ## ✅ 07-08 : bags 3D validés + prochaines étapes lancées (fin de session Fable)
 - traj1 (arrêt 471 s) : ATE 0.03 m, z porté, cloud NN 0.027 — pseudo-3D OK.

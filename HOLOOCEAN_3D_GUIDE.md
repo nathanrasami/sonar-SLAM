@@ -185,3 +185,26 @@ sinon le sonar continue de voir l'ancienne géométrie.
 3. Bruit 0.05 → nuages remplis de fantômes (échos réels ~0.25-0.47) → réduit à 0.01.
 4. Zone navigable établie depuis le `/ground_truth` du bag manuel du 30-06
    (30 688 poses) puis affinée par sondes sonar perpendiculaires.
+
+---
+
+## 8. DEMANDE v4 (07-08, Nathan) — prochaine itération des bags
+
+Les 2 bags sont validés côté SLAM (ATE 0.03 m ; carte 3D GT-free profiler×SLAM
+à 0.02 m de la carte GT). Pour l'itération suivante, deux demandes :
+
+1. **Vraie 3D par le SONAR PRINCIPAL aussi** (pas seulement le profiler vertical) :
+   l'ImagingSonar doit fournir de l'information d'ÉLÉVATION intra-ping —
+   option recommandée : **tilt oscillant en pitch** (le plan de scan monte/descend,
+   ex. ±15° sinusoïdal sur ~10 s) ; alternative : publier l'élévation par pixel si
+   le simulateur l'expose. Critère PASS identique au contrat : std(z) INTRA-message
+   de `/sonar_points` > 0.5 m. But : que le SLAM lui-même (et pas seulement la
+   carte offline) voie de la 3D → prépare la migration Pose3.
+2. **Publier les points en repère VÉHICULE** (`frame_id = "auv0"`), PAS en monde :
+   `/sonar_points` et `/profiler_points` transformés par la pose GT cachent de la
+   GT dans les données. En repère capteur/véhicule, la carte se construit avec la
+   trajectoire SLAM SANS dé-projection (aujourd'hui on doit inverser via GT —
+   artefact de format, cf. analysis/profiler_slam_3d.py). Un vrai sonar logge en
+   repère capteur : c'est aussi plus réaliste.
+
+(Le reste du contrat §3-4 inchangé : mêmes topics, conventions, bruits.)
