@@ -8,8 +8,14 @@
   RUN A = SSM=true sur rendu propre (réf ancien rendu : 4.79 m ; témoin nu : 0.03 m) ·
   RUN B = méthode bs (SC) sur traj1 2 tours (lire loops_detected.csv, seuil 0.87 à
   recalibrer si besoin). 1 variable/run.
-- Reste (session suivante) : verdicts A/B → si SC détecte, recalibrer dist_threshold ;
-  reconstruction profiler raffinée (maillage/densité) ; Pose3 (SLAM_3D_MIGRATION.md).
+- **VERDICTS ablations (07-08, témoin 0.03 m/0 loop)** :
+  - RUN A SSM=true (110806) : **1.45 m** — mieux que l'ancien rendu (4.79) mais 48× pire
+    que la DR → **SSM définitivement OFF en simu** (l'ICP séquentiel ne bat jamais la DVL).
+  - RUN B bs/SC (111933) : 0.03 m, 0 loop acceptée MAIS SC détecte de **VRAIES revisites
+    tour2↔tour1** (191↔0, 198-202↔5, sc_dist 0.95-0.99) rejetées par le seuil 0.87.
+- Reste (session suivante) : recalibrer dist_threshold ~0.98 + vérifier que l'ICP aval
+  accepte (sinon même blocage que bag court) ; reconstruction profiler raffinée
+  (maillage/densité) ; Pose3 (SLAM_3D_MIGRATION.md).
 
 # (précédent) PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
 
