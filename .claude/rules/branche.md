@@ -7,5 +7,7 @@
   répétables) → **0.13 m ×2**. Parité Bruce testable : `SSM=true ./run_slam.sh holoocean`.
 - Analyse : `./analyse.sh <run>` = rapport + paper_eval + bilan (unifiés 07-07).
 - Analyse dédiée : holoocean_report.py via ./analyse.sh (étiquettes DR IMU+DVL).
-- 3D à venir (bag du collègue) : stratégies + garde-fous dans HOLOOCEAN_3D_GUIDE.md
-  (⚠ test « 2.5D plaqué » : std(z) INTRA-message > 0.5 m) et GARDE_FOU si format différent.
+- 3D à venir (bag du collègue) : HOLOOCEAN_3D_GUIDE.md **v2 07-07** (objectifs pour son
+  Fable 5) — robot À PLAT (« grande route », roll=0), départ DANS la structure, fix arcs
+  + fuite mur gauche ; Traj 1 = pseudo-3D (spirale profondeur, intra-msg ~0 NORMAL) ;
+  Traj 2 = vraie 3D par le SONAR (⚠ preuve = std(z) INTRA-message > 0.5 m).

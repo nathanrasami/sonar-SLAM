@@ -17,6 +17,19 @@
 - ⚠ nssm sep25 sur CE bag = 0 loop (les candidates fin de parcours seules < min_pcm 4) :
   neutre ici, la machinerie loops reste prête pour un bag long (3D collègue).
 
+## 📐 HOLOOCEAN_3D_GUIDE v2 (07-07 ap-m) — respécifié sur directives Nathan
+- v1 (558 l, code détaillé) → v2 (~120 l, OBJECTIFS + critères PASS/FAIL) : le collègue
+  a Fable 5, pas besoin du code. v1 récupérable via git (commit précédent).
+- Nouvelles specs : fix rendu sonar AVANT tout (arcs + « fuite » mur GAUCHE parallèle au
+  robot, suspect réflexion/multipath) ; départ DANS la structure ; **« grande route » :
+  roll=0 permanent, le bas regarde le bas** (fini l'hélice roll=φ de v1) ;
+  **Traj 1 = pseudo-3D** (spirale en profondeur, robot à plat — 2.5D assumé, intra-msg ~0
+  normal) ; **Traj 2 = vraie 3D par le SONAR** (profiler vertical recommandé, ou tilt) —
+  preuve = std(z) intra-message > 0.5 m.
+- Préparation vérifiée pour bags longs 2D/3D : défauts SSM off/NSSM sep25 compatibles
+  (revisites > 25 s passent) ; mode 3D branché (sonar_points_bridge) ; ⚠ bridge
+  RANGE_M=40/FOV=120 codés en dur ; graphe encore Pose2 (2.5D).
+
 ## 🧰 analyse.sh unifié (07-07 ap-m)
 - `paper_eval.py` intégré à `./analyse.sh` (chaînes aracati ET holoocean ; sauté sur caves,
   GT continue requise) — vérifié sur 162710 : holoocean_report + paper_eval + bilan_run
