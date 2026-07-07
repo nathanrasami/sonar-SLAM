@@ -72,11 +72,19 @@ Meilleur de chaque colonne en **gras**. Lignes publiées = Table I d'ISOPoT (leu
 | Odom+Mag | DISO | 5.3 | 6.1 | 10.9 | 13.90 | 0.44 |
 | Odom+Mag | SONIC | 7.0 | 11.2 | 13.7 | 22.83 | **0.0** |
 | Odom+Mag | ISOPoT | **3.2** | 3.5 | 4.6 | 9.69 | **0.0** |
-| USBL+boucles | **Bruce** (nous) | 4.79 | 3.55 | **1.75** | 23.63¹ | 0.057 |
-| USBL+boucles | **Bruce_Sonar_USBL** (nous) | 5.13 | **2.38** | 4.42 | **5.00** | 0.090 |
+| Odom+USBL | **Bruce** (nous) | 4.79 | 3.55 | **1.75** | 23.63¹ | 0.057 |
+| Odom+USBL | **Bruce_Sonar_USBL** (nous) | 5.13 | **2.38** | 4.42 | **5.00** | 0.090 |
 
-¹ artefact de CE run (seed de cap USBL né tourné de ~16°, β 112° vs ~94° habituels) : gonfle la
-RE sans toucher l'ATE ni la carte (TESTS.md §2.4 note 4). Les autres runs Bruce : ~9-12 %.
+¹ ARTEFACT DE SEED, mesuré sur 4 runs (07-06) : le cap initial (course-over-ground des premiers
+fixes USBL, bruités) tire un offset β différent à chaque run, et sur Bruce rien ne le corrige
+ensuite (les facteurs USBL ne touchent que x,y ; BSU, lui, redresse θ via ses boucles SC).
+La RE exprime les déplacements dans le repère de CHAQUE pose (rotation par −θ) → un θ décalé
+gonfle Trans. % (~1 %/degré) sans toucher l'ATE (qui compare des positions, recollées par
+l'ancre USBL). Corrélation mesurée : β 90.3° → 4.83-5.00 % (Bruce_2 sans USBL, BSU_1) ;
+β 100.5° → 11.96 % (Bruce_USBL_2) ; β 112.4° → 23.63 % (ce run). **Chiffres à retenir en
+slide : Bruce+USBL ≈ 12 %, Bruce pur sans USBL = 4.83 %** ; le 23.6 % ne caractérise pas la
+méthode, seulement le tirage de seed de ce run. (Bruce sans USBL part de cap 0 fixe — pas de
+seed estimé — d'où son β pile nominal.)
 
 Notes de lecture :
 - Le « Rot. 0.0 » de toutes les lignes Odom+Mag est PAR CONSTRUCTION : leur cap est remplacé
