@@ -1,4 +1,17 @@
-# PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
+# PROGRESS — 2026-07-08 — bags 3D VALIDÉS (0.03 m, vraie 3D prouvée) + ablations en cours
+
+## ✅ 07-08 : bags 3D validés + prochaines étapes lancées (fin de session Fable)
+- traj1 (arrêt 471 s) : ATE 0.03 m, z porté, cloud NN 0.027 — pseudo-3D OK.
+- traj2 (arrêt 404 s) : ATE 0.03 m + **profiler_3d.png/.html** (murs VERTICAUX 0→−11 m,
+  186 852 pts) = vraie 3D par le sonar PROUVÉE. Fix : import mplot3d (conteneur).
+- **`suite_next.sh` en nohup** (résultats → `results/suite_next.log`, commit auto) :
+  RUN A = SSM=true sur rendu propre (réf ancien rendu : 4.79 m ; témoin nu : 0.03 m) ·
+  RUN B = méthode bs (SC) sur traj1 2 tours (lire loops_detected.csv, seuil 0.87 à
+  recalibrer si besoin). 1 variable/run.
+- Reste (session suivante) : verdicts A/B → si SC détecte, recalibrer dist_threshold ;
+  reconstruction profiler raffinée (maillage/densité) ; Pose3 (SLAM_3D_MIGRATION.md).
+
+# (précédent) PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
 
 ## 🤿 07-07 SOIR (session Fable close à 91%) — SUITE 3D AUTONOME LANCÉE
 - Bags copiés dans `bag/`. Run traj1 lancé ; 1er échec diagnostiqué : /sonar = 32FC1
