@@ -1,3 +1,32 @@
+# PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
+
+## 🚀 REPRISE ICI (nouvelle discussion) — runs des bags 3D du collègue
+Contexte : guide v3 = `HOLOOCEAN_3D_GUIDE.md` (écrit par le Fable du collègue, bags
+GÉNÉRÉS et PASS toutes checklists). Bags PAS ENCORE SUR CETTE MACHINE :
+`Scripts_HoloOcean/BAG_files/holoocean_3d_traj{1,2}.bag` (2 × 3.6 Go, 676 s, même
+trajectoire ; traj2 = + `/profiler_points`). À copier d'abord (Nathan).
+
+Plan de runs (UN à la fois, rien committer pendant) :
+1. `BAG_HOLO=<chemin>/holoocean_3d_traj1.bag ./run_slam.sh holoocean` (2D, ~11 min)
+   → `./analyse.sh <run>` ; attendu : DR bon (bruits faibles), SLAM=DR si 0 loop.
+2. Si OK : idem traj2 (SLAM identique) + reconstruction `/profiler_points` offline
+   (adapter analysis/caves_3d.py — lecture directe du topic, points déjà en MONDE).
+3. Option : mode 3D (`./run_slam.sh holoocean 3D` = /sonar_points, z porté).
+
+⚠ PIÈGES CONNUS AVANT LE 1er RUN (vérifiés dans le code ce soir) :
+- **Échelle d'intensité** : nouveaux bags = float [0,1], échos murs ≤ 0.47 (guide §3.5) ;
+  le bridge transmet l'image BRUTE et `feature_holoocean.yaml` a `intensity_threshold: 95`
+  (échelle 0-255 de l'ancien bag) → CFAR aveugle. FIX PROPOSÉ (à faire + vérifier au
+  1er run) : dans holoocean_sonar_bridge.py callback, si `max(img) <= 1.0` → ×255 avant
+  publication (garde les seuils yaml valides). Vérif : compter les features du 1er ping.
+- SC `dist_threshold: 0.87` calibré sur l'ANCIEN rendu → recalibrer via loops_detected.csv
+  (procédure éprouvée : viser retenus tous vrais).
+- NSSM min_st_sep 25 OK pour 676 s (revisites tour 2 ≈ 338 KF d'écart) ; SSM reste off
+  (re-testable SSM=true sur le NOUVEAU rendu propre — l'ICP échouait sur l'ancien).
+- IMU sans accélérations propres (gravité seule, guide §3.2) ; stamps +1 s ; échos ≤0.47.
+- `/profiler_points` traj2 : z>0 possibles (murs émergés) → filtre z<0 (guide §4.1).
+
+## (fait 07-07 ap-m/soir, sessions précédentes)
 # PROGRESS — état au 2026-07-07 (ap-m) — dérive SSM corrigée + analyse unifiée
 
 ## 🔧 JOURNAL R3 (07-07 ap-m) — grosse dérive run 162710 : CORRIGÉE (SSM off, sep 25)
