@@ -55,7 +55,7 @@ def main(run_dir, theta_ref=None):
         ax.legend(); ax.set_aspect("equal")
         ax = axes[1]
         if "z" in cloud.dtype.names and np.nanstd(cloud["z"]) > 0.2:
-            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="viridis",
+            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="Blues",
                             alpha=0.6, linewidths=0)
             plt.colorbar(sc, ax=ax, label="z (m)", shrink=0.8)
         else:
@@ -113,7 +113,7 @@ def main(run_dir, theta_ref=None):
     ax = axes[1]
     # 3D-aware : si le nuage a une colonne z avec du relief, on colore par z
     if "z" in cloud.dtype.names and np.nanstd(cloud["z"]) > 0.2:
-        sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="viridis",
+        sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=cloud["z"], cmap="Blues",
                         alpha=0.6, linewidths=0)
         plt.colorbar(sc, ax=ax, label="z (m)", shrink=0.8)
         ax.set_title(f"Pointcloud 3D (z couleur) — {len(P)} pts, NN {nn:.3f} m")

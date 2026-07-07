@@ -83,7 +83,7 @@ def _matplotlib_fallback(run_dir, save_only):
     P, z, src, traj, tz = _load(run_dir)
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection="3d")
-    sc = ax.scatter(P[:, 0], P[:, 1], z, s=1.2, c=z, cmap="viridis",
+    sc = ax.scatter(P[:, 0], P[:, 1], z, s=1.2, c=z, cmap="Blues",
                     alpha=0.55, linewidths=0)
     fig.colorbar(sc, ax=ax, label="z (m)", shrink=0.6)
     ax.plot(traj["x"], traj["y"], tz, color="red", lw=1.8, label="trajectoire SLAM")

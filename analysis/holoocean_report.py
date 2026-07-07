@@ -87,7 +87,7 @@ def main(run_dir):
 
     def _cloud(ax):
         if en_3d:
-            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=z, cmap="viridis",
+            sc = ax.scatter(P[:, 0], P[:, 1], s=0.3, c=z, cmap="Blues",
                             alpha=0.6, linewidths=0)
             return sc
         ax.scatter(P[:, 0], P[:, 1], s=0.15, c="k", alpha=0.4, linewidths=0)
