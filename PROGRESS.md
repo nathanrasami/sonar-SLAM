@@ -13,9 +13,12 @@
     que la DR → **SSM définitivement OFF en simu** (l'ICP séquentiel ne bat jamais la DVL).
   - RUN B bs/SC (111933) : 0.03 m, 0 loop acceptée MAIS SC détecte de **VRAIES revisites
     tour2↔tour1** (191↔0, 198-202↔5, sc_dist 0.95-0.99) rejetées par le seuil 0.87.
-- Reste (session suivante) : recalibrer dist_threshold ~0.98 + vérifier que l'ICP aval
-  accepte (sinon même blocage que bag court) ; reconstruction profiler raffinée
-  (maillage/densité) ; Pose3 (SLAM_3D_MIGRATION.md).
+- **Run 115143 (bag1 COMPLET 676 s, défauts nus)** : 4 loops NSSM natives acceptées au
+  tour 2 (KF331-336) → **ATE 0.84 m** vs 0.03 (partiel sans loops). Les loops qui
+  passent PCM DÉGRADENT (ICP simu peu fiable) — cohérent avec tous les verdicts.
+- Reste (session suivante) : arbitrer NSSM natif off vs SC seuil ~0.98 (les deux voies
+  butent sur l'ICP simu) ; vérifier l'ICP aval ; reconstruction profiler raffinée
+  (fusion sections×traj SLAM, maillage) ; Pose3 (SLAM_3D_MIGRATION.md).
 
 # (précédent) PROGRESS — état au 2026-07-07 (soir) — BAGS 3D LIVRÉS, runs à faire (session suivante)
 
