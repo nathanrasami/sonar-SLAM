@@ -10,11 +10,17 @@ icp_config: $(find bruce_slam)/config/icp.yaml
 
 point_resolution: 0.3
 
-# SSM/NSSM : True = parité avec le Bruce-SLAM original (jake3991, slam.yaml).
-# Désactivation au run : SSM=false NSSM=false ./run_slam.sh holoocean
-# (le launch surcharge ssm/enable et nssm/enable via args).
+# SSM off / NSSM on+min_st_sep 25 — MESURÉ 07-07 (7 runs, test.bag, ATE Umeyama) :
+#   SSM+NSSM(sep8) 4.79 · SSM seul 4.79 · NSSM seul(sep8) 0.96/2.52 (NON répétable,
+#   fausses loops court-terme, cf. PIEGES §11) · NSSM(sep25) 0.13 ×2 (0 loop passée,
+#   inoffensif) · tout off 0.13.
+# SSM = coupable principal : l'ICP séquentiel REMPLACE le facteur DVL (excellent)
+# par un recalage sonar biaisé (features simulateur éparses/arcs) → dérive dès KF1.
+# NSSM laissé actif avec sep 25 : neutre ici, prêt pour un bag long (vraies loops).
+# Le Bruce original (jake3991) a ssm/nssm True + sep 8 : parité testable au run :
+#   SSM=true ./run_slam.sh holoocean   (le launch surcharge ssm/nssm via args).
 ssm:
-  enable: True
+  enable: False
   min_points: 50
   max_translation: 3.0
   max_rotation: deg(30)
@@ -22,7 +28,7 @@ ssm:
 
 nssm:
   enable: True
-  min_st_sep: 8
+  min_st_sep: 25
   min_points: 50
   max_translation: 10.0
   max_rotation: deg(60)

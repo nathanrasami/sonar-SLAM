@@ -62,10 +62,11 @@ case "$TYPE" in
       bsu|bruce_sonar_usbl) METHOD="bruce_sonar_usbl" ;;  # contribution Aracati (loops SC)
       *) echo "méthode inconnue: $3 (Bruce | Bruce_Sonar_USBL)"; exit 1 ;;
     esac
-    # SSM/NSSM défaut true (parité Bruce original) — opt-out : SSM=false NSSM=false
+    # Défauts MESURÉS 07-07 : SSM=false (ICP séquentiel biaisé → 4.79 m), NSSM=true
+    # (loops PCM → 0.96 m ; tout off = 0.13 m). Parité Bruce original : SSM=true.
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" \
-                 ssm:="${SSM:-true}" nssm:="${NSSM:-true}" \
+                 ssm:="${SSM:-false}" nssm:="${NSSM:-true}" \
                  mode:="$MODE" method:="$METHOD" ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac

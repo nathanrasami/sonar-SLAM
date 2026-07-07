@@ -6,10 +6,13 @@
 # Détecte le type de run et enchaîne les scripts de analysis/ qui s'appliquent —
 # tolérant : un script manquant ou en échec n'arrête pas la suite.
 #   aracati   : analyze_drift / analyze_origine / plot_trajectories / filter_cloud /
-#               render_compass_cloud (U1) / traj_on_cloud / bilan_run
+#               render_compass_cloud (U1) / traj_on_cloud / paper_eval / bilan_run
 #   holoocean : holoocean_report (refactor 07-05 : mêmes NOMS de fichiers, contenus
 #               adaptés — DR = IMU+DVL, pas d'odométrie cmd_vel ; erreurs Umeyama ET
-#               origine ; carte_finale = traj sur nuage) / bilan_run
+#               origine ; carte_finale = traj sur nuage) / paper_eval / bilan_run
+#   paper_eval (07-07, unifié ici) : métriques « façon papier » (ATE um/fp, RE, S1/S2/S3,
+#               cap, carte) imprimées + figures dans le run — GT continue requise
+#               (sauté sur caves).
 #   3D        : ouvre en dernier une carte 3D interactive (rotation souris, façon
 #               MATLAB) — analysis/view3d.py ; sauve aussi carte_3d.png.
 
@@ -51,6 +54,7 @@ case "$RUN" in
     # pointcloud_filtered (nuage+traj | traj seule), pointcloud_map,
     # trajectory_plot / _origine / _comparison — étiquettes DR IMU+DVL correctes.
     run_py holoocean_report.py "$CHEMIN"
+    run_py paper_eval.py "$CHEMIN"
     ;;
   *)
     # ===== chaîne ARACATI (historique) =====
@@ -74,6 +78,7 @@ case "$RUN" in
 
     # trajectoire plaquée sur NOTRE nuage (même repère, aucune GT)
     run_py traj_on_cloud.py "$CHEMIN"
+    run_py paper_eval.py "$CHEMIN"
     ;;
 esac
 

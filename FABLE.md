@@ -224,6 +224,13 @@ pointcloud, loops), en **2D** d'abord, **3D** ensuite. Cf. `SLAM_3D_MIGRATION.md
   n'était jamais tenté). Upstream jake3991 vérifié = True/True → **défauts passés à ON**
   (parité Bruce original) dans yaml + launch (nouvel arg `ssm`) + run_slam.sh
   (`SSM=false NSSM=false` pour retrouver l'ancien état 0.13 m). Cf. PROGRESS.md §R3 07-07.
+- **⚠ VERDICT parité (07-07 ap-m, run 162710 : ATE 4.79 m vs DR 0.12 m) — investigation
+  complète, 7 runs** : **SSM = coupable** (seul → 4.79 m ; l'ICP séquentiel remplace le facteur
+  DVL excellent par un recalage sonar biaisé, features simulateur → dérive dès KF1, cap −0.44 rad).
+  NSSM sep8 non répétable (0.96/2.52 m, fausses loops court-terme = classe PIEGES §11) ;
+  **fix figé : SSM off + NSSM on avec min_st_sep 25 → 0.13 m ×2 répétable** (0 loop sur ce bag
+  court : neutre, machinerie prête pour un bag long). Rejeté : bug bridge/bearing (NSSM seul
+  fonctionne, PCM gate). La parité Bruce reste testable : `SSM=true ./run_slam.sh holoocean`.
 
 ## 7. Mini-papier — ✅ RÉDIGÉ (07-04)
 

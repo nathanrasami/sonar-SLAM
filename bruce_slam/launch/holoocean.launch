@@ -12,12 +12,12 @@
          "dvl" = dead-reckoning /dvl + /imu (dvl_imu_odom.py) → réaliste embarqué. -->
     <arg name="odom_source" default="dvl"/>  <!-- MEILLEURE CONFIG (07-03) : dvl = ATE
          signifiant 0.13 m ; "gt" = validation de chaîne seulement (ATE circulaire ~0). -->
-    <!-- ssm/nssm : défaut TRUE = parité avec le Bruce-SLAM original (jake3991,
-         slam.yaml : ssm.enable/nssm.enable True). Opt-out au run :
-         SSM=false NSSM=false ./run_slam.sh holoocean.
-         Historique : le run de réf 0.13 m (07-03) était fait ssm+nssm OFF ; nssm seul
-         avait donné 2.36 m sur ce bag court (avant fix éventuels, à re-mesurer). -->
-    <arg name="ssm" default="true"/>
+    <!-- ssm/nssm — MESURÉ 07-07 (test.bag, ATE Umeyama) : SSM 4.79 m (ICP séquentiel
+         remplace le facteur DVL excellent par un recalage sonar biaisé → défaut FALSE) ;
+         NSSM sep8 0.96/2.52 non répétable (fausses loops court-terme) → min_st_sep 25
+         dans le yaml : 0.13 m ×2, neutre ici, prêt pour un bag long.
+         Parité Bruce original : SSM=true au run. -->
+    <arg name="ssm" default="false"/>
     <arg name="nssm" default="true"/>
     <!-- sonar_source : "image" (défaut) = chaîne image polaire -> CFAR (2D actuel).
          "points3d" = consomme DIRECTEMENT /sonar_points (PointCloud2 du simulateur)

@@ -1,4 +1,30 @@
-# PROGRESS — état au 2026-07-07 — SSM/NSSM défaut ON (parité Bruce) sur holoocean
+# PROGRESS — état au 2026-07-07 (ap-m) — dérive SSM corrigée + analyse unifiée
+
+## 🔧 JOURNAL R3 (07-07 ap-m) — grosse dérive run 162710 : CORRIGÉE (SSM off, sep 25)
+- Symptôme : run défauts-ON 162710 → ATE 4.79 m (DR 0.12 m), dérive dès KF1 (avant toute loop).
+- Runs discriminants (test.bag, ATE Umeyama) : SSM+NSSM 4.79 · **SSM seul 4.79 (coupable)** ·
+  NSSM seul sep8 : 0.96 puis 2.52 (NON répétable, fausses loops court-terme type PIEGES §11) ·
+  NSSM sep25 : 0.13 ×2 (0 loop passée) · tout off 0.13.
+- Mécanisme : SSM (ICP séquentiel) REMPLACE le facteur DVL (excellent) par un recalage sonar
+  biaisé (features simulateur éparses/arcs) → biais de cap cumulé (θ −0.44 rad en fin).
+  Rejeté : loops NSSM (dérive avant KF24) ; bug bridge/bearing (NSSM seul fonctionne).
+- Modifs (avant → après) :
+  - `slam_holoocean.yaml` : ssm.enable True→**False** ; nssm.min_st_sep 8→**25** (nssm reste True).
+  - `holoocean.launch` : arg ssm true→**false** (nssm reste true) ; commentaires chiffrés.
+  - `run_slam.sh` : `ssm:=${SSM:-false} nssm:=${NSSM:-true}`.
+- Vérifié : `./run_slam.sh holoocean` nu ×2 → **ATE 0.13 m répétable** (164521, 164659).
+  Parité Bruce original au besoin : `SSM=true` (et sep 8 à remettre dans le yaml).
+- ⚠ nssm sep25 sur CE bag = 0 loop (les candidates fin de parcours seules < min_pcm 4) :
+  neutre ici, la machinerie loops reste prête pour un bag long (3D collègue).
+
+## 🧰 analyse.sh unifié (07-07 ap-m)
+- `paper_eval.py` intégré à `./analyse.sh` (chaînes aracati ET holoocean ; sauté sur caves,
+  GT continue requise) — vérifié sur 162710 : holoocean_report + paper_eval + bilan_run
+  s'enchaînent. Les autres scripts hors chaîne = outils d'investigation (sc_bench, verify_
+  fusion, fix_mirror_cloud, inspect_bag) ; analyze_holoocean.py = supersedé (07-05).
+
+---
+# (précédent) PROGRESS — état au 2026-07-07 — SSM/NSSM défaut ON (parité Bruce) sur holoocean
 
 ## ⚙ JOURNAL R3 (07-07) — holoocean : SSM/NSSM passent à TRUE par défaut
 - Constat : runs 141231/135343 → `nssm_constraints=0` partout, colonnes SLAM ≡ DR IMU+DVL
