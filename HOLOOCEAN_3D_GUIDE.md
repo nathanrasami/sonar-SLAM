@@ -321,6 +321,29 @@ la carte offline) voit de la 3D. C'est l'équivalent simulé d'un sonar sur rota
    NE PAS improviser une variante silencieuse — noter le blocage dans ce doc
    (§9 dialogue) et demander à Nathan.
 
+### 8.6bis MONDE CIBLE (décision Nathan 07-08) : **PierHarbor** (officiel, pas de cooking)
+
+La traj 3 ne se fait PLUS dans le couloir `Bruce_slam_nathan` mais dans le monde
+officiel **PierHarbor** du package `Ocean` (scénario de base :
+`PierHarbor-HoveringImagingSonar`, à surcharger avec nos capteurs §3/§8.2) :
+
+- **Pourquoi** : port + quai sur pilotis = jumeau simulé de la mission réelle
+  Aracati (quai en T) — comparaison simu↔réel du même type de scène ; structures
+  bien plus riches que le couloir (pilotis = vraie 3D à cartographier).
+- **À refaire pour ce monde** (méthode déjà éprouvée §7.4) : sonder la zone
+  navigable au sonar + GT, définir le parcours (rectangle ou longée du quai,
+  au choix du plus simple) et les bornes N_MAX/Z_MIN/Z_MAX de l'errance §8.1
+  en conséquence. Les marges restent : ≥ 1.2 m de toute structure, RangeMin 0.5.
+- **Contrôle du véhicule** : rester au **teleport** sur trajectoire analytique
+  (§3.4 v1 — méthode validée). Pour info, l'agent HoveringAUV a aussi un
+  contrôleur PD intégré (consigne [x,y,z,roll,pitch,yaw]) si un jour on veut de
+  la dynamique réaliste — PAS pour ces bags (dérive PID = trajectoire non
+  analytique = IMU/DVL synthétiques faux).
+- Souhait Nathan pour PLUS TARD (pas traj 3) : un monde type **grotte** (caves).
+  Rien d'officiel dans HoloOcean ; le plus proche = **Dam** (paroi relief).
+  Une vraie grotte custom = pipeline UE de cooking (comme Bruce_slam_nathan) —
+  à chiffrer avant de s'y engager.
+
 ### 8.6 Suggestions optionnelles (si le reste est PASS et qu'il reste du temps)
 
 - Bruits « réalistes v2 » : DVL σ 0.01→0.02 m/s, gyro σ 0.002→0.005 rad/s
