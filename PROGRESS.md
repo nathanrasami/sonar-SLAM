@@ -1,4 +1,24 @@
-# PROGRESS — état au 2026-07-06 (soir) — mémoire native + COMPARE.md + caves validée
+# PROGRESS — état au 2026-07-07 — SSM/NSSM défaut ON (parité Bruce) sur holoocean
+
+## ⚙ JOURNAL R3 (07-07) — holoocean : SSM/NSSM passent à TRUE par défaut
+- Constat : runs 141231/135343 → `nssm_constraints=0` partout, colonnes SLAM ≡ DR IMU+DVL
+  bit-à-bit dans trajectory.csv (holoocean_report.py hors de cause). Cause : ssm/nssm
+  `enable: False` dans slam_holoocean.yaml + run_slam.sh qui ne passait `nssm:=false` que.
+- Upstream vérifié (`git show upstream/main:bruce_slam/config/slam.yaml`) : Bruce original
+  = ssm True + nssm True. Décision Nathan : parité → défaut ON, opt-out `SSM=false NSSM=false`.
+- Modifs (avant → après) :
+  - `slam_holoocean.yaml` : ssm.enable False→True ; nssm.enable False→True.
+  - `holoocean.launch` : arg `nssm` false→true ; NOUVEL arg `ssm` (true) ; `ssm/enable`
+    injecté dans les nœuds bruce ET bruce_sonar_usbl (nssm reste forcé true côté BSU).
+  - `run_slam.sh` (holoocean) : passe `ssm:="${SSM:-true}" nssm:="${NSSM:-true}"`.
+- ⚠ L'ancien état de réf (dvl ATE 0.13 m) était ssm+nssm OFF ; nssm seul avait donné 2.36 m
+  sur test.bag (61 s). Reproduire l'ancien : `SSM=false NSSM=false ./run_slam.sh holoocean`.
+  Premier run défaut-ON à évaluer (NON VÉRIFIÉ : aucun run lancé avec ces défauts).
+- Rappel BSU/holoocean : PAS d'USBL dans les bags du collègue → méthode BSU = loops SC
+  uniquement (usbl off, déjà le cas dans le launch).
+
+---
+# (précédent) PROGRESS — état au 2026-07-06 (soir) — mémoire native + COMPARE.md + caves validée
 
 ## 🧠 MÉMOIRE REFONDUE (07-06 soir) — claude-mem SUPPRIMÉ, natif en place
 - claude-mem v13 installé puis **supprimé le soir même** : ses hooks bloquaient les réponses

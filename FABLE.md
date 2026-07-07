@@ -213,6 +213,17 @@ pointcloud, loops), en **2D** d'abord, **3D** ensuite. Cf. `SLAM_3D_MIGRATION.md
 - **Vraie 3D — proposition pour le collègue HoloOcean** (§ dédié dans SLAM_3D_MIGRATION.md) :
   faire osciller le tilt du sonar OU publier le PointCloud2 3D du simulateur, + IMU/pression
   dans le bag. C'est ce qui débloque une carte volumétrique réelle.
+- **⚠ vérifié 07-07** : sur les 2 runs holoocean actuels (`141231`, `135343`), `nssm_constraints`
+  = 0 sur toutes les keyframes → back-end sans contrainte sonar acceptée → colonnes `x,y`
+  (« SLAM ») et `dr_x,dr_y` (DR IMU+DVL) de `trajectory.csv` **identiques bit-à-bit** (diff
+  max ~3e-14). `holoocean_report.py` (labels/colonnes séparés, correct dans le code) trace donc
+  malgré lui deux courbes superposées dans `error_over_time.png`/`trajectory_plot.png` — pas un
+  bug de script, attendu tant qu'aucune correction sonar n'est branchée (avant prépa 3D). Ne pas
+  interpréter un futur écart nul SLAM/DR comme une régression du rapport : normal en l'état.
+  **Suite (07-07 ap-m)** : cause = `ssm/nssm enable: False` dans slam_holoocean.yaml (l'ICP
+  n'était jamais tenté). Upstream jake3991 vérifié = True/True → **défauts passés à ON**
+  (parité Bruce original) dans yaml + launch (nouvel arg `ssm`) + run_slam.sh
+  (`SSM=false NSSM=false` pour retrouver l'ancien état 0.13 m). Cf. PROGRESS.md §R3 07-07.
 
 ## 7. Mini-papier — ✅ RÉDIGÉ (07-04)
 
