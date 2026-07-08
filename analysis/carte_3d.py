@@ -194,9 +194,10 @@ def main():
                          scene=dict(aspectmode="data"),
                          margin=dict(l=0, r=0, t=40, b=0))
         f2.write_html(out + ".html", include_plotlyjs=True)
+        print("->", out + ".html")
     except ImportError:
-        pass
-    print("->", out + ".html/.png/.npy")
+        print("⚠ plotly absent (pip3 install --user plotly) : pas de .html interactif")
+    print("->", out + ".png/.npy")
 
 
 if __name__ == "__main__":

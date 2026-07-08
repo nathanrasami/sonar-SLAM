@@ -1,5 +1,15 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## 🔧 08-07 (suite) : carte_3d auto-réparante + plotly conteneur
+- Nathan a nettoyé un run (garde les CSV seuls) → bag_source.txt supprimé → pas de
+  carte et message trompeur. Fixes vérifiés (run 143452 nettoyé, commande nue) :
+  - analyse.sh retrouve le bag : argument → bag_source.txt → **auto-détection par
+    durée** (trajectory.csv vs rosbag info, match ±5 %) + self-heal (ré-écrit le txt) ;
+  - message d'échec honnête (bag inconnu ≠ pas de vraie 3D) ;
+  - ⚠ PIÈGE trouvé : **plotly absent du conteneur ros1** → les .html étaient sautés
+    en silence (seuls .png/.npy). Installé (`pip3 install --user plotly`, persiste via
+    $HOME) + print honnête dans carte_3d.py. `./analyse.sh 3D 143452` → html 11.8 Mo ✅.
+
 ## 🗺 08-07 soir : carte_3d.py = LA carte 3D unique d'un run (directive Nathan)
 - Règle : UNE carte par run (`carte_3d.html/.png/.npy`), **VRAIE 3D uniquement** —
   gate par PING (std(z) intra > 0.5 m) : les tranches plates (pseudo-3D « 2D plaqué »)
