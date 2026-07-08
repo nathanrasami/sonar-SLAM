@@ -1,5 +1,15 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## ⚠ 08-07 (Opus) : Pose3 RÉFUTÉ comme fix de la carte 3D (test discriminant)
+- Affirmation « il faut Pose3 pour la carte 3D » testée : composer profiler+sonar_points
+  avec la trajectoire GT (= Pose3 PARFAITE) → `_test_gt_topview.png` : **bave quand même**
+  vu de dessus (lames radiales profiler, arcs sonar). Pose3 hors-cause = géométrie capteur.
+- Corroboré : ATE 0.04 m, carte déjà 0.042 m, 0 loop → back-end n'a rien à optimiser en simu.
+- Pose3 reste un chantier réel mais pour données RÉELLES/bruitées (drift z/roll/pitch + loops)
+  et comme fondation front-end tilt — PAS pour la carte de dessus. Détail : SLAM_3D_MIGRATION.md
+  § VÉRIFICATION 08-07. Vrai fix carte présentable = reconstruction offline (fusion XY sonar
+  horizontal + Z profiler), pas le back-end.
+
 ## 🔍 08-07 : pointcloud_map vs carte_3d vus de dessus (question Nathan) — EXPLIQUÉ
 - Constat : vus de dessus, pointcloud_map (poteaux du quai NETS) ≠ carte_3d (empreinte
   brouillée, poteaux noyés). Ce sont 2 nuages de sources DIFFÉRENTES :

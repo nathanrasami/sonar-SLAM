@@ -1,5 +1,37 @@
 # Cadrage migration SLAM 2D → 3D (Bruce-SLAM / HoloOcean)
 
+## ⚠ VÉRIFICATION 08-07 (Opus) — Pose3 ne règle PAS la carte 3D « floue vu de dessus »
+
+**Affirmation testée** (déclarée par Nathan ET par moi-même en session Fable) :
+« il faut Pose3 pour avoir une carte 3D avec les poteaux nets vus de dessus ».
+**RÉFUTÉE par expérience discriminante** (run 143452, traj3 PierHarbor) :
+
+- Test : composer les nuages `/profiler_points` et `/sonar_points` avec la trajectoire
+  **GROUND-TRUTH** (= une Pose3 PARFAITE, borne supérieure de tout SLAM). Résultat :
+  `_test_gt_topview.png` — **les deux bavent quand même** vu de dessus (profiler = lames
+  radiales, sonar = arcs). Aucun poteau net, avec une trajectoire pourtant parfaite.
+- Mécanisme (mesuré, repère véhicule) : profiler = lame verticale `std y_veh 0.00 / z 12.7 m`
+  → projetée au sol = traînée radiale sans largeur. C'est la GÉOMÉTRIE du capteur, pas la
+  dimension de la pose. Une Pose3 (≤ qualité GT) ne peut donc pas l'enlever.
+- Faits corroborants : ATE déjà **0.04 m**, carte GT-free déjà à **0.042 m** de la carte GT,
+  **0 loop** acceptée → le back-end n'a rien à optimiser en simu (DVL + depth quasi-parfaits).
+
+**Conséquence — Pose3 est bien un chantier réel, mais pour d'AUTRES raisons** (pas la carte
+de dessus) :
+1. Données RÉELLES / bruitées : z, roll, pitch dériveraient → Pose3 + loops 3D nécessaires
+   (en simu ici : impact ≈ nul, à re-mesurer sur données réelles).
+2. Fondation pour exploiter le **tilt** (`/sonar_tilt`) dans le FRONT-END : placer chaque
+   feature sonar à sa vraie élévation → rendrait 3D la carte SLAM `pointcloud_map` (qui est
+   propre en XY mais plate). ⚠ ceci exige surtout un changement de front-end, pas juste Pose3.
+
+**Ce qui règle VRAIMENT la carte 3D présentable (offline, sans Pose3)** : la carte de dessus
+propre existe déjà (`pointcloud_map` = features sonar HORIZONTAL, balayage azimutal). Pour une
+carte 3D à poteaux nets : fusionner l'empreinte XY (sonar horizontal) + la hauteur Z (profiler),
+ou voxel/occupancy — travail de RECONSTRUCTION, pas de back-end.
+
+---
+
+
 **MAJ 2026-07-02** — branche dédiée : **`holoocean`** (ex `slam3-d`). À exécuter **après**
 la clôture d'Aracati. Bag cible : **`test.bag`** (le dernier reçu du collègue).
 
