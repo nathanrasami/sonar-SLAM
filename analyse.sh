@@ -46,6 +46,9 @@ case "$RUN" in
     # (la figure « du site » du dataset) → grotte_3d.html interactif
     if [ -f "$HERE/caves.bag" ]; then
         run_py caves_3d.py "$CHEMIN" --bag "$HERE/caves.bag" --with-map
+        # unification 08-07 : LA carte 3D d'un run s'appelle carte_3d.html partout
+        # (grotte_3d = vraie 3D par profiler vertical → c'est la carte du run caves)
+        [ -f "$CHEMIN/grotte_3d.html" ] && cp -f "$CHEMIN/grotte_3d.html" "$CHEMIN/carte_3d.html"
     fi
     ;;
   run_holoocean_*)
@@ -55,6 +58,16 @@ case "$RUN" in
     # trajectory_plot / _origine / _comparison — étiquettes DR IMU+DVL correctes.
     run_py holoocean_report.py "$CHEMIN"
     run_py paper_eval.py "$CHEMIN"
+    # LA carte 3D unique (VRAIE 3D seulement — les tranches pseudo-3D sont
+    # exclues, refus si rien de volumique). Lit bag_source.txt (run_slam.sh) ;
+    # rosbag → conteneur ros1.
+    if [ -f "$CHEMIN/bag_source.txt" ] && [ -f "$(cat "$CHEMIN/bag_source.txt")" ]; then
+        echo "— carte_3d.py (conteneur)"
+        DISTROBOX="$(command -v distrobox 2>/dev/null || echo "$HOME/.opt/bin/distrobox")"
+        "$DISTROBOX" enter ros1 -- bash -lc \
+            "source /opt/ros/noetic/setup.bash; cd '$HERE'; python3 analysis/carte_3d.py '$CHEMIN'" \
+            || echo "  (échec carte_3d — on continue)"
+    fi
     ;;
   *)
     # ===== chaîne ARACATI (historique) =====
@@ -85,7 +98,16 @@ esac
 # bilan compact (1 image : traj+ATE Umeyama, cloud+NN, erreur de cap over time)
 run_py bilan_run.py "$CHEMIN"
 
-# carte 3D interactive (./analyse.sh 3D <run>) — en DERNIER : fenêtre bloquante
-[ -n "$VIEW3D" ] && run_py view3d.py "$CHEMIN"
+# ./analyse.sh 3D <run> : ouvre LA carte 3D (carte_3d.html, VRAIE 3D uniquement).
+# view3d.py (nuage 2D plaqué au z du robot = pseudo-3D) n'est PLUS appelé (08-07) :
+# une carte pseudo-3D est mensongère — s'il n'y a pas de carte_3d.html, on le dit.
+if [ -n "$VIEW3D" ]; then
+    if [ -f "$CHEMIN/carte_3d.html" ]; then
+        xdg-open "$CHEMIN/carte_3d.html" >/dev/null 2>&1 || echo "ouvrir : $CHEMIN/carte_3d.html"
+    else
+        echo "[analyse] pas de carte_3d.html : aucune source VRAIE 3D pour ce run"
+        echo "          (pseudo-3D exclue par principe — cf. analysis/carte_3d.py)"
+    fi
+fi
 
 echo "[analyse] terminé — fichiers dans $CHEMIN"

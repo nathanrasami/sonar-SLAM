@@ -66,6 +66,8 @@ case "$TYPE" in
     # Défauts MESURÉS (07-07 bag court, 07-08 bags 3D complets) : SSM=false (ICP
     # séquentiel biaisé : 4.79/1.45 m) ; NSSM=false (4 loops natives tour 2 → 0.84 m
     # vs 0.03 sans). Loops sûres : méthode bs (SC gate, 0 fausse acceptée).
+    # bag_source.txt : permet à analyse.sh de générer LA carte_3d (vraie 3D) du run.
+    echo "${BAG_HOLO:-$HERE/test.bag}" > "$RUN_DIR/bag_source.txt"
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" \
                  ssm:="${SSM:-false}" nssm:="${NSSM:-false}" \

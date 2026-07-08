@@ -1,4 +1,22 @@
-# PROGRESS — 2026-07-08 — TRAJ3 PierHarbor VALIDÉE (0.04 m, cartes 3D GT-free natives)
+# PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
+
+## 🗺 08-07 soir : carte_3d.py = LA carte 3D unique d'un run (directive Nathan)
+- Règle : UNE carte par run (`carte_3d.html/.png/.npy`), **VRAIE 3D uniquement** —
+  gate par PING (std(z) intra > 0.5 m) : les tranches plates (pseudo-3D « 2D plaqué »)
+  sont exclues ; s'il n'y a AUCUN ping volumique → REFUS explicite, pas de carte.
+- `analysis/carte_3d.py` : auto-détection des sources (p90 sondage + gate/ping),
+  gère v4 (frame auv0 → composition directe pose SLAM, GT-free natif) ET v3
+  (frame map → dé-projection GT du stamp = décodage) ; métrique **Umeyama traj**
+  (remplace première-pose). Pipeline : run_slam.sh écrit `bag_source.txt` →
+  analyse.sh enchaîne carte_3d (conteneur) ; `./analyse.sh 3D` OUVRE carte_3d.html
+  (view3d pseudo-3D débranché) ; caves : grotte_3d.html copié en carte_3d.html.
+- **Tests PASS (3 formats)** : traj3 v4 → profiler+sonar tilté fusionnés, 547 k pts,
+  **NN vs carte GT 0.042/0.076 m** (l'alignement première-pose causait les 0.32-0.59) ;
+  traj2 v3 → profiler dé-projeté, sonar pseudo EXCLU, NN 0.020 m ; traj1 pseudo-only
+  → refus, aucun fichier. Anciens scripts (view3d, profiler_3d, profiler_slam_3d,
+  traj3_map_3d) = outils, plus des livrables.
+
+# (précédent) PROGRESS — TRAJ3 PierHarbor VALIDÉE (0.04 m, cartes 3D GT-free natives)
 
 ## 🏆 08-07 ap-m : traj3 (PierHarbor, contrat v4) reçue et VALIDÉE
 - Bag `bag/holoocean_3d_traj3.bag` (5.5 Go, 1057 s) : conforme v4 sur tout —

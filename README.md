@@ -35,7 +35,10 @@ Défauts figés 07-08 (bags 3D complets) : `./run_slam.sh holoocean` nu → **AT
 ./analyse.sh run_holoocean_<date>        # TOUT d'un coup (unifié 07-07) : holoocean_report
                                          # + paper_eval (ATE um/fp, RE, S1/S2/S3, cap, carte)
                                          # + bilan_run (1 image)
-./analyse.sh 3D run_holoocean_<date>     # + carte 3D INTERACTIVE (rotation souris) en dernier
+./analyse.sh 3D run_holoocean_<date>     # ouvre carte_3d.html — LA carte 3D unique du run,
+                                         # VRAIE 3D uniquement (pings volumiques : profiler,
+                                         # sonar tilté ; tranches pseudo-3D EXCLUES, refus si
+                                         # rien de volumique). Généré via bag_source.txt.
 ```
 
 ## 4. Lire les résultats
