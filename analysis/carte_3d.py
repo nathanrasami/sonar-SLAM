@@ -62,23 +62,6 @@ def voxel_grid(P, vs):
     return sums / cnt[:, None]
 
 
-def vertical_filter(P, cell, zspan_min):
-    """Ne garde que les points des colonnes (x,y) à grande étendue verticale =
-    STRUCTURES VERTICALES (quai, poteaux). Retire le fond plat (bave radiale du
-    profiler vue de dessus) : une cellule de fond a un z-span ~0, un poteau ~sa
-    hauteur. C'est ce qui rend les poteaux nets vus de dessus (vérifié 08-07)."""
-    if not len(P):
-        return P
-    kx = np.floor(P[:, 0] / cell).astype(np.int64)
-    ky = np.floor(P[:, 1] / cell).astype(np.int64)
-    key = kx.astype(np.int64) * 1_000_000 + ky
-    o = np.argsort(key, kind="stable")
-    ks, zs = key[o], P[o, 2]
-    u, st = np.unique(ks, return_index=True)
-    span = np.maximum.reduceat(zs, st) - np.minimum.reduceat(zs, st)
-    return P[np.isin(key, u[span >= zspan_min])]
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
@@ -114,7 +97,7 @@ def main():
         if len(pts) > 10:
             stds[topic].append(pts[:, 2].std())
             frames[topic] = m.header.frame_id
-    retenus, med_std = [], {}
+    retenus = []
     for t in TOPICS:
         if not stds[t]:
             continue
@@ -126,7 +109,7 @@ def main():
         print(f"{t} : std(z) intra méd {med:.2f} / p90 {p90:.2f} m ({frames[t]}) → "
               f"{'vraie 3D (gate par ping en passe 2)' if ok else 'pseudo-3D (tranches), EXCLU'}")
         if ok:
-            retenus.append(t); med_std[t] = med
+            retenus.append(t)
     if not retenus:
         bag.close()
         sys.exit("carte_3d : AUCUNE source vraie-3D dans ce bag — pas de carte "
@@ -181,25 +164,15 @@ def main():
     bag.close()
     S_full = np.vstack([p for lst in S_by.values() for p in lst])
 
-    # ── CARTE = structures verticales (poteaux/quai), fond plat RETIRÉ ──────
-    # Source verticale = topic au plus grand std(z) intra (profiler) ; on y isole
-    # les colonnes à grande étendue z, puis voxel. Repli : nuage complet voxelisé
-    # (si pas de source franchement verticale, ex. relief faible).
-    vert = max(med_std, key=med_std.get) if med_std else None
-    Sv = np.vstack(S_by[vert]) if (vert and S_by[vert]) else S_full
-    zspan_min = max(3.0, 0.30 * (Sv[:, 2].max() - Sv[:, 2].min()))
-    struct = vertical_filter(Sv, 0.5, zspan_min)
-    if len(struct) >= 0.02 * len(Sv):
-        S = voxel_grid(struct, 0.4)
-        kind = f"structures verticales (fond retiré, z-span>{zspan_min:.0f} m)"
-        Gv = np.vstack(G_by[vert]) if (vert and G_by.get(vert)) else None
-        G = voxel_grid(vertical_filter(Gv, 0.5, zspan_min), 0.4) if Gv is not None \
-            and len(Gv) else None
-    else:                                            # repli robuste
-        S = voxel_grid(S_full, 0.4)
-        kind = "nuage complet voxelisé"
-        G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.4) \
-            if has_gt and any(G_by.values()) else None
+    # ── CARTE = nuage 3D COMPLET, dédoublonné par voxel léger (densité) ─────
+    # On garde TOUT (fond + structures) : c'est la carte honnête. Le voxel ne
+    # fait que fusionner les points redondants pour une surface propre — il ne
+    # retire PAS de structure (leçon 08-08 : un filtre de verticalité agressif
+    # vidait la carte, cf. SLAM_3D_MIGRATION.md).
+    S = voxel_grid(S_full, 0.2)
+    kind = "nuage 3D complet (voxel 0.2 m)"
+    G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.2) \
+        if has_gt and any(G_by.values()) else None
     print(f"carte : {len(S_full):,} pts bruts → {len(S):,} pts ({kind})")
     titre_nn = ""
 
