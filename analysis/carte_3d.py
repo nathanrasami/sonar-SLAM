@@ -51,6 +51,34 @@ def rot_z(pts, th):
                  s * pts[:, 0] + c * pts[:, 1], pts[:, 2]]
 
 
+def voxel_grid(P, vs):
+    """Sous-échantillonnage voxel : 1 centroïde par cellule (dédoublonne, allège)."""
+    if not len(P):
+        return P
+    k = np.floor(P / vs).astype(np.int64)
+    _, inv, cnt = np.unique(k, axis=0, return_inverse=True, return_counts=True)
+    sums = np.zeros((len(cnt), 3))
+    np.add.at(sums, inv, P)
+    return sums / cnt[:, None]
+
+
+def vertical_filter(P, cell, zspan_min):
+    """Ne garde que les points des colonnes (x,y) à grande étendue verticale =
+    STRUCTURES VERTICALES (quai, poteaux). Retire le fond plat (bave radiale du
+    profiler vue de dessus) : une cellule de fond a un z-span ~0, un poteau ~sa
+    hauteur. C'est ce qui rend les poteaux nets vus de dessus (vérifié 08-07)."""
+    if not len(P):
+        return P
+    kx = np.floor(P[:, 0] / cell).astype(np.int64)
+    ky = np.floor(P[:, 1] / cell).astype(np.int64)
+    key = kx.astype(np.int64) * 1_000_000 + ky
+    o = np.argsort(key, kind="stable")
+    ks, zs = key[o], P[o, 2]
+    u, st = np.unique(ks, return_index=True)
+    span = np.maximum.reduceat(zs, st) - np.minimum.reduceat(zs, st)
+    return P[np.isin(key, u[span >= zspan_min])]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
@@ -86,7 +114,7 @@ def main():
         if len(pts) > 10:
             stds[topic].append(pts[:, 2].std())
             frames[topic] = m.header.frame_id
-    retenus = []
+    retenus, med_std = [], {}
     for t in TOPICS:
         if not stds[t]:
             continue
@@ -98,7 +126,7 @@ def main():
         print(f"{t} : std(z) intra méd {med:.2f} / p90 {p90:.2f} m ({frames[t]}) → "
               f"{'vraie 3D (gate par ping en passe 2)' if ok else 'pseudo-3D (tranches), EXCLU'}")
         if ok:
-            retenus.append(t)
+            retenus.append(t); med_std[t] = med
     if not retenus:
         bag.close()
         sys.exit("carte_3d : AUCUNE source vraie-3D dans ce bag — pas de carte "
@@ -116,8 +144,9 @@ def main():
     gt_th = np.unwrap(np.array(gt_th)) if gt_th else np.array([])
     has_gt = len(gt_t) > 0
 
-    # ── passe 2 : construction (SLAM = livrable ; GT = référence métrique) ──
-    S_all, G_all, counters = [], [], {t: 0 for t in retenus}
+    # ── passe 2 : construction PAR SOURCE (SLAM = livrable ; GT = réf métrique) ──
+    S_by, G_by = {t: [] for t in retenus}, {t: [] for t in retenus}
+    counters = {t: 0 for t in retenus}
     for topic, m, _ in bag.read_messages(topics=retenus):
         counters[topic] += 1
         if counters[topic] % 2:
@@ -143,20 +172,40 @@ def main():
         w = rot_z(pts, np.interp(t, ts, th_slam))
         w += [np.interp(t, ts, traj["x"]), np.interp(t, ts, traj["y"]),
               np.interp(t, ts, traj["z"])]
-        S_all.append(w[w[:, 2] < 0])
+        S_by[topic].append(w[w[:, 2] < 0])
         if has_gt:                                  # référence carte-GT
             g = rot_z(pts, np.interp(t, gt_t, gt_th))
             g += [np.interp(t, gt_t, gt_x), np.interp(t, gt_t, gt_y),
                   np.interp(t, gt_t, gt_z)]
-            G_all.append(g[g[:, 2] < 0])
+            G_by[topic].append(g[g[:, 2] < 0])
     bag.close()
-    S = np.vstack(S_all)
+    S_full = np.vstack([p for lst in S_by.values() for p in lst])
+
+    # ── CARTE = structures verticales (poteaux/quai), fond plat RETIRÉ ──────
+    # Source verticale = topic au plus grand std(z) intra (profiler) ; on y isole
+    # les colonnes à grande étendue z, puis voxel. Repli : nuage complet voxelisé
+    # (si pas de source franchement verticale, ex. relief faible).
+    vert = max(med_std, key=med_std.get) if med_std else None
+    Sv = np.vstack(S_by[vert]) if (vert and S_by[vert]) else S_full
+    zspan_min = max(3.0, 0.30 * (Sv[:, 2].max() - Sv[:, 2].min()))
+    struct = vertical_filter(Sv, 0.5, zspan_min)
+    if len(struct) >= 0.02 * len(Sv):
+        S = voxel_grid(struct, 0.4)
+        kind = f"structures verticales (fond retiré, z-span>{zspan_min:.0f} m)"
+        Gv = np.vstack(G_by[vert]) if (vert and G_by.get(vert)) else None
+        G = voxel_grid(vertical_filter(Gv, 0.5, zspan_min), 0.4) if Gv is not None \
+            and len(Gv) else None
+    else:                                            # repli robuste
+        S = voxel_grid(S_full, 0.4)
+        kind = "nuage complet voxelisé"
+        G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.4) \
+            if has_gt and any(G_by.values()) else None
+    print(f"carte : {len(S_full):,} pts bruts → {len(S):,} pts ({kind})")
     titre_nn = ""
 
     # ── métrique : alignement UMEYAMA des trajectoires (pas première-pose) ──
-    if has_gt and G_all:
+    if has_gt and G is not None and len(G):
         from scipy.spatial import cKDTree
-        G = np.vstack(G_all)
         gxy = associer_par_temps(ts, gt_t, gt_x, gt_y)
         _, R, tr = umeyama(np.column_stack([traj["x"], traj["y"]]), gxy,
                            with_scale=False)
@@ -184,9 +233,8 @@ def main():
                depthshade=False, label="arrivée")
     ax.legend(loc="lower left", fontsize=8)
     ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)"); ax.set_zlabel("z (m)")
-    ax.set_title(f"{run_name} — carte 3D GT-free (vraie 3D : "
-                 f"{'+'.join(t.strip('/') for t in retenus)}, "
-                 f"{len(S):,} pts){titre_nn}")
+    ax.set_title(f"{run_name} — carte 3D GT-free — {kind}\n"
+                 f"{len(S):,} pts{titre_nn}", fontsize=9)
     fig.tight_layout(); fig.savefig(out + ".png", dpi=140)
     plt.close(fig)
     np.save(out + ".npy", S)

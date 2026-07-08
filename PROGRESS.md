@@ -1,5 +1,18 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## ✅ 08-07 (Opus) : carte 3D à POTEAUX NETS = filtre de verticalité (pas Pose3)
+- Vrai fix (choisi par Nathan) : la carte_3d ne montre plus le fond plat (bave radiale du
+  profiler) mais les STRUCTURES VERTICALES (quai, poteaux). Mécanisme : par cellule (x,y),
+  garder les colonnes à grande étendue z (fond plat = z-span~0 exclu ; poteau = z-span~hauteur).
+- Intégré dans `analysis/carte_3d.py` (vérifié run 143452) : source verticale auto (topic au
+  plus grand std(z) intra = profiler) → vertical_filter(z-span adaptatif ≥ max(3, 0.3·extent))
+  → voxel 0.4 m ; repli nuage complet si trop agressif. Résultat : 547k→15,7k pts, **NN 0.08 m**,
+  vue de dessus enfin nette (2 quais + poteaux, cf. pointcloud_map) ET volume 3D (murs 0→−30 m).
+  Métrique sur carte structure vs carte GT structure (cohérent). Trajectoire + départ/arrivée gardés.
+- Étapes discriminantes (toutes tracées) : voxel seul insuffisant (bave = vraies mesures fond) ;
+  sonar_points trop bruités (arcs, 13,7 M pts, polluent le filtre) → profiler seul ; filtre
+  verticalité = LA clé. Fond volontairement retiré (c'était la bave) — réactivable si besoin.
+
 ## ⚠ 08-07 (Opus) : Pose3 RÉFUTÉ comme fix de la carte 3D (test discriminant)
 - Affirmation « il faut Pose3 pour la carte 3D » testée : composer profiler+sonar_points
   avec la trajectoire GT (= Pose3 PARFAITE) → `_test_gt_topview.png` : **bave quand même**
