@@ -172,10 +172,17 @@ def main():
     # ── sorties : LA carte (repère SLAM, GT-free) ───────────────────────────
     run_name = os.path.basename(a.run.rstrip("/"))
     out = os.path.join(a.run, "carte_3d")
+    tx, ty, tz = traj["x"], traj["y"], traj["z"]   # trajectoire SLAM (même repère)
     fig = plt.figure(figsize=(11, 8))
     ax = fig.add_subplot(111, projection="3d")
     ax.scatter(S[:, 0], S[:, 1], S[:, 2], s=0.3, c=S[:, 2], cmap="viridis",
-               linewidths=0)
+               linewidths=0, alpha=0.5)
+    ax.plot(tx, ty, tz, color="red", lw=1.8, label="trajectoire SLAM")
+    ax.scatter(tx[0], ty[0], tz[0], c="lime", s=70, marker="^",
+               depthshade=False, label="départ")
+    ax.scatter(tx[-1], ty[-1], tz[-1], c="red", s=55, marker="s",
+               depthshade=False, label="arrivée")
+    ax.legend(loc="lower left", fontsize=8)
     ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)"); ax.set_zlabel("z (m)")
     ax.set_title(f"{run_name} — carte 3D GT-free (vraie 3D : "
                  f"{'+'.join(t.strip('/') for t in retenus)}, "
@@ -187,9 +194,19 @@ def main():
         import plotly.graph_objects as go
         i2 = rng.choice(len(S), min(150000, len(S)), replace=False)
         f2 = go.Figure(go.Scatter3d(
-            x=S[i2, 0], y=S[i2, 1], z=S[i2, 2], mode="markers",
+            x=S[i2, 0], y=S[i2, 1], z=S[i2, 2], mode="markers", name="nuage (z)",
             marker=dict(size=1.2, color=S[i2, 2], colorscale="Viridis",
                         colorbar=dict(title="z (m)"))))
+        # trajectoire SLAM par-dessus le nuage + marqueurs départ/arrivée
+        f2.add_trace(go.Scatter3d(x=tx, y=ty, z=tz, mode="lines",
+                                  line=dict(color="red", width=5),
+                                  name="trajectoire SLAM"))
+        f2.add_trace(go.Scatter3d(x=[tx[0]], y=[ty[0]], z=[tz[0]], mode="markers",
+                                  marker=dict(color="lime", size=6, symbol="diamond"),
+                                  name="départ"))
+        f2.add_trace(go.Scatter3d(x=[tx[-1]], y=[ty[-1]], z=[tz[-1]], mode="markers",
+                                  marker=dict(color="red", size=6, symbol="square"),
+                                  name="arrivée"))
         f2.update_layout(title=f"{run_name} — carte 3D GT-free{titre_nn}",
                          scene=dict(aspectmode="data"),
                          margin=dict(l=0, r=0, t=40, b=0))

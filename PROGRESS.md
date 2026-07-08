@@ -1,5 +1,12 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## ➕ 08-07 : trajectoire SLAM dans carte_3d (html + png)
+- Demande Nathan : la carte n'avait que le nuage. Ajout de la trajectoire SLAM
+  (traj x/y/z, même repère GT-free que le nuage) : ligne rouge + marqueurs
+  départ/arrivée, dans le .html plotly (4 traces, légende) ET le .png (légende
+  lower left pour ne pas chevaucher le titre). Vérifié à l'image (run 143452) :
+  errance aléatoire v4 bien visible dans le nuage PierHarbor.
+
 ## 🔧 08-07 (suite) : carte_3d auto-réparante + plotly conteneur
 - Nathan a nettoyé un run (garde les CSV seuls) → bag_source.txt supprimé → pas de
   carte et message trompeur. Fixes vérifiés (run 143452 nettoyé, commande nue) :
