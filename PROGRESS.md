@@ -1,5 +1,21 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## 🎯 08-08 (Opus) : CAUSE RACINE carte 3D — profiler monté vers l'AVANT (pas transverse)
+- Nathan pointe caves_3d.py (reconstruction propre grotte = SLAM 2D + profiler). J'y ai
+  trouvé LA cause de tous mes échecs de rendu 3D sur traj3 :
+  - caves SeaKing : point local (0, r·cosφ, r·sinφ) = plan TRANSVERSE y-z (⊥ mouvement)
+    → sections propres qui enveloppent la traj.
+  - profiler HoloOcean traj3 (mesuré) : std x=8.9 / y=0.00 / z=12.7 = plan x-z (AVANT) →
+    regarde vers l'avant, voit le fond devant → FANS radiaux, pas de sections propres.
+- Donc la méthode de Fable est CORRECTE ; il lui faut juste un profiler TRANSVERSE.
+  Le profiler de traj3 est mal orienté → carte 3D propre IMPOSSIBLE depuis ce bag.
+- Actions : demande collègue mise à jour (HOLOOCEAN_3D_GUIDE §2.3bis : profiler en y-z,
+  critère std(x)≈0). Reconstruction propre = caves_3d.py directement, dès le prochain bag.
+- Essais offline tracés dans _copy (démo) : extrusion (XY CFAR pointcloud_map + Z profiler,
+  marche mais « brouillon » selon Nathan) ; per-beam strongest (méthode caves) réduit le
+  bruit mais garde les fans du fond car profiler avant-orienté. Aucun ne remplace la vraie
+  fix = capteur transverse. carte_3d.py laissé en nuage dense complet (état stable actuel).
+
 ## ⚠→✅ 08-08 (Opus) : carte 3D = NUAGE DENSE COMPLET (filtre verticalité RÉVERTÉ)
 - FAUSSE PISTE assumée : j'avais mis un filtre de verticalité (garder colonnes à grand z-span,
   retirer le fond) → 547k→15,7k pts. Nathan : « presque plus aucun point », analogie au

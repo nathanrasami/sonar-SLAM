@@ -123,6 +123,28 @@ les PointCloud2 — obligeait à dé-projeter côté SLAM ; un vrai sonar logge 
 repère capteur). `/ground_truth` reste publié tel quel (évaluation seulement).
 Le profiler garde son `R_roll(90°)` avant sortie (repère véhicule quand même).
 
+### 2.3bis ⚠ CHANGEMENT CRUCIAL (08-08) — profiler en TRANSVERSE, pas vers l'avant
+
+**Constat sur traj3** : le profiler y était monté pour balayer le plan **x-z du
+véhicule (avant/haut-bas)** — mesuré côté SLAM : std x=8.9, y=0.00, z=12.7 m. Résultat :
+il regarde VERS L'AVANT, voit le fond marin devant lui → la reconstruction 3D fait des
+**« fans » radiaux** et on ne peut PAS reconstruire une carte propre.
+
+**La reconstruction 3D propre (méthode validée sur grottes réelles, `analysis/caves_3d.py`)
+exige un profiler TRANSVERSE** : le fan doit balayer le plan **y-z du véhicule
+(GAUCHE-DROITE + haut-bas), PERPENDICULAIRE au sens de marche** — comme un vrai profiler
+de coupe (SeaKing sur le dataset grotte). Chaque ping = une **section transverse** de
+l'environnement ; empilées le long de la trajectoire SLAM → volume 3D net.
+
+- **À faire** : monter le ProfilerVert pour que son fan soit dans le plan **y-z véhicule**
+  (perpendiculaire à l'axe d'avance x). En repère véhicule, un point de paroi doit être
+  `(0, r·cosφ, r·sinφ)` (x≈0), PAS `(r·cosφ, 0, r·sinφ)`.
+- **Critère PASS** : sur `/profiler_points` en repère véhicule, **std(x) ≈ 0** et std(y),
+  std(z) grands (l'inverse de traj3). Un ping affiché = un arc TRANSVERSE (coupe), pas un
+  éventail vers l'avant.
+- Côté SLAM, `caves_3d.py` reconstruit alors directement (1 faisceau → retour le plus fort
+  = paroi, projeté le long de la traj) — c'est LA méthode propre, déjà écrite.
+
 ### 2.4 Monde cible : **PierHarbor** (officiel HoloOcean, pas de cooking)
 
 Package `Ocean`, scénario de base `PierHarbor-HoveringImagingSonar` (à surcharger
