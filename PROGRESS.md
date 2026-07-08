@@ -1,4 +1,22 @@
-# PROGRESS — 2026-07-08 — MEILLEUR RÉSULTAT figé : 0.03 m ×2 + carte 3D GT-free 0.02 m
+# PROGRESS — 2026-07-08 — TRAJ3 PierHarbor VALIDÉE (0.04 m, cartes 3D GT-free natives)
+
+## 🏆 08-07 ap-m : traj3 (PierHarbor, contrat v4) reçue et VALIDÉE
+- Bag `bag/holoocean_3d_traj3.bag` (5.5 Go, 1057 s) : conforme v4 sur tout —
+  `/sonar_tilt` ±15.0°, points en repère VÉHICULE (auv0), roll/pitch 0.0000,
+  fermeture 0.00 m, échos méd 0.486 (1ᵉʳ ping 0.047 = face au large, normal).
+- **SLAM 2D (run 143452, défauts nus)** : ATE 0.04 m, 665 KF, z −11.6→−2.4, 0 loop.
+- **Cartes 3D GT-FREE NATIVES** (`analysis/traj3_map_3d.py`, plus de dé-projection GT —
+  composition directe pose SLAM × points véhicule) :
+  - `map3d_profiler` 237 k pts : quai + pilotis + treillis jusqu'à −30 m — NN vs
+    carte GT **0.59/1.65 m** (méd/p90) ;
+  - `map3d_sonar` (tilt) 554 k pts : NN **0.32/0.80 m** — la 3D vue par le SLAM.
+  - ⚠ NN dominé par l'alignement première-pose (yaw t0 × bras de levier ~60 m) —
+    amélioration possible : alignement Umeyama trajectoire avant comparaison.
+- Reste : SC/loops sur traj3 (2 tours → revisites) ; exploiter /sonar_tilt dans la
+  chaîne SLAM (aujourd'hui l'image est traitée comme plane — ok à ±15° mais info
+  élévation perdue) ; Pose3.
+
+# (précédent) PROGRESS — MEILLEUR RÉSULTAT figé : 0.03 m ×2 + carte 3D GT-free 0.02 m
 
 ## 🏆 07-08 (pleine capacité) — campagne « meilleur résultat » CLOSE
 - **Arbitrage loops (bag1 complet, 2 tours, DR 0.03, 1 variable/run)** :
