@@ -1,5 +1,20 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## 🔍 08-07 : pointcloud_map vs carte_3d vus de dessus (question Nathan) — EXPLIQUÉ
+- Constat : vus de dessus, pointcloud_map (poteaux du quai NETS) ≠ carte_3d (empreinte
+  brouillée, poteaux noyés). Ce sont 2 nuages de sources DIFFÉRENTES :
+  - pointcloud_map.csv = features CFAR du **sonar HORIZONTAL** (balaye azimut ±60°,
+    std y_veh 3.4 m) → empreinte XY nette → dessine les 2 quais + pilotis.
+  - carte_3d = **profiler VERTICAL** (+sonar tilté). Profiler : std y_veh **0.00**, std z
+    12.7 m = lame verticale dans l'axe robot → vu de dessus = traînée RADIALE (aucune
+    largeur), rayonne selon le cap → brouille l'empreinte, poteaux noyés.
+- Hypothèse REJETÉE : « le SLAM ignore le tilt → pointcloud_map distordu » — FAUX,
+  pointcloud_map est au contraire le plus net des deux. La cause est l'inverse : le
+  profiler est fait pour la HAUTEUR (z), pas pour l'empreinte XY.
+- Conclusion : complémentaires, pas un bug. Sonar horizontal = OÙ (plan) ; profiler =
+  HAUTEUR (coupe verticale). Une carte 3D à poteaux nets de dessus = fusionner XY(sonar
+  horizontal) + Z(profiler) → c'est le vrai SLAM 3D (Pose3, reste à faire).
+
 ## ➕ 08-07 : trajectoire SLAM dans carte_3d (html + png)
 - Demande Nathan : la carte n'avait que le nuage. Ajout de la trajectoire SLAM
   (traj x/y/z, même repère GT-free que le nuage) : ligne rouge + marqueurs
