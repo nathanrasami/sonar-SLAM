@@ -62,6 +62,26 @@ def voxel_grid(P, vs):
     return sums / cnt[:, None]
 
 
+def per_beam_max(pts):
+    """Réduction « méthode grottes » (caves_3d.py) pour un profiler TRANSVERSE.
+
+    pts : Nx4 (x,y,z,intensity) en repère véhicule, plan transverse x≡0. Chaque
+    faisceau (azimut φ = atan2(-y,-z) dans le plan y-z) a ~2 retours : on garde le
+    plus FORT = la paroi/le fond (1 faisceau ≈ 1 distance). C'est ce qui change une
+    bouillie dense en sections propres empilées le long de la trajectoire → treillis
+    et pilotis lisibles (validé sur traj3 : pilotis −19→−7 m, treillis en X visibles).
+    """
+    if len(pts) < 3 or pts.shape[1] < 4:
+        return pts[:, :3] if len(pts) else pts
+    y, z, i = pts[:, 1], pts[:, 2], pts[:, 3]
+    key = np.round(np.degrees(np.arctan2(-y, -z)) * 2).astype(int)  # bin 0.5°
+    order = np.lexsort((i, key))            # tri par faisceau puis intensité croissante
+    ks = key[order]
+    last = np.ones(len(ks), bool)
+    last[:-1] = ks[1:] != ks[:-1]           # dernier de chaque faisceau = intensité max
+    return pts[order][last][:, :3]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
@@ -82,7 +102,9 @@ def main():
     rng = np.random.default_rng(0)
 
     # ── passe 1 : sondage — quelles sources sont de la VRAIE 3D ? ──────────
-    stds = {t: [] for t in TOPICS}
+    stds = {t: [] for t in TOPICS}      # std(z) intra-ping (sonar tilté oscillant)
+    stds_x = {t: [] for t in TOPICS}    # std(x) intra-ping (≈0 = fan transverse)
+    stds_y = {t: [] for t in TOPICS}    # std(y) intra-ping
     frames = {}
     seen = 0
     bag = rosbag.Bag(bag_path)
@@ -96,20 +118,40 @@ def main():
                                             skip_nans=True)))
         if len(pts) > 10:
             stds[topic].append(pts[:, 2].std())
+            stds_x[topic].append(pts[:, 0].std())
+            stds_y[topic].append(pts[:, 1].std())
             frames[topic] = m.header.frame_id
     retenus = []
     for t in TOPICS:
         if not stds[t]:
             continue
         med, p90 = float(np.median(stds[t])), float(np.percentile(stds[t], 90))
-        # p90 : un capteur oscillant (tilt) alterne pings plats et pings 3D —
-        # on retient le topic si une fraction substantielle est volumique,
-        # puis le gate PAR MESSAGE (passe 2) ne garde que les pings 3D.
-        ok = p90 > SEUIL_VRAIE_3D
-        print(f"{t} : std(z) intra méd {med:.2f} / p90 {p90:.2f} m ({frames[t]}) → "
-              f"{'vraie 3D (gate par ping en passe 2)' if ok else 'pseudo-3D (tranches), EXCLU'}")
+        mx, my = float(np.median(stds_x[t])), float(np.median(stds_y[t]))
+        # Deux géométries de vraie 3D :
+        #  1. sonar tilté oscillant → std(z) intra-ping grand sur les pings inclinés
+        #     (p90 : le tilt alterne pings plats/3D ; le gate par ping en passe 2 trie).
+        #  2. profiler TRANSVERSE (fix §2.3ter) → fan dans le plan y-z : std(x)≈0 et
+        #     std(y) grand. Un fond plat donne std(z)≈0 par ping (r=prof/cosφ) → le
+        #     test std(z) le rejetterait à tort : on le détecte par sa géométrie x≡0.
+        transverse = mx < 0.05 and my > SEUIL_VRAIE_3D
+        ok = p90 > SEUIL_VRAIE_3D or transverse
+        geo = ("profiler transverse (méthode grottes)" if transverse
+               else "vraie 3D (gate par ping en passe 2)" if ok else "pseudo-3D (tranches), EXCLU")
+        print(f"{t} : std(z) méd {med:.2f}/p90 {p90:.2f} | std(x) {mx:.2f} std(y) {my:.2f} m "
+              f"({frames[t]}) → {geo}")
         if ok:
-            retenus.append(t)
+            retenus.append((t, transverse))
+    # Priorité au profiler TRANSVERSE : c'est la source STRUCTURELLE propre (1 paroi
+    # /faisceau, sections empilées → pilotis/treillis nets). Le sonar tilté, lui,
+    # « pulvérise » des fans radiaux (la bouillie qu'on veut éviter) → on l'exclut
+    # de la carte quand un profiler transverse est disponible.
+    transverses = [t for t, tr in retenus if tr]
+    if transverses:
+        retenus = transverses
+        print(f"→ carte STRUCTURELLE (méthode grottes) depuis {retenus} ; "
+              f"sonar tilté exclu (fans radiaux).")
+    else:
+        retenus = [t for t, _ in retenus]
     if not retenus:
         bag.close()
         sys.exit("carte_3d : AUCUNE source vraie-3D dans ce bag — pas de carte "
@@ -137,14 +179,25 @@ def main():
         t = m.header.stamp.to_sec()
         if t > ts[-1] + 0.5:
             continue
-        pts = np.array(list(pc2.read_points(m, field_names=("x", "y", "z"),
-                                            skip_nans=True)))
-        if not len(pts):
-            continue
-        if pts[:, 2].std() <= SEUIL_VRAIE_3D:   # gate par PING : tranche plate
-            continue                             # (ex. tilt≈0) → exclue
-        if len(pts) > 300:
-            pts = pts[rng.choice(len(pts), 300, replace=False)]
+        prof = topic == "/profiler_points" and frames[topic] == "auv0"
+        if prof:
+            # profiler TRANSVERSE (x≡0) : réduction « grottes » 1 retour fort/faisceau.
+            # PAS de gate std(z) par ping : un fond plat donne z≈cst (géométrie
+            # r=prof/cos φ), c'est de la vraie 3D par construction (le fan balaye y-z).
+            pts = np.array(list(pc2.read_points(
+                m, field_names=("x", "y", "z", "intensity"), skip_nans=True)))
+            if len(pts) < 3:
+                continue
+            pts = per_beam_max(pts)
+        else:
+            pts = np.array(list(pc2.read_points(m, field_names=("x", "y", "z"),
+                                                skip_nans=True)))
+            if not len(pts):
+                continue
+            if pts[:, 2].std() <= SEUIL_VRAIE_3D:   # gate par PING : tranche plate
+                continue                             # (ex. tilt≈0) → exclue
+            if len(pts) > 300:
+                pts = pts[rng.choice(len(pts), 300, replace=False)]
         if frames[topic] == "map":                 # v3 : monde → véhicule (GT)
             if not has_gt:
                 continue
@@ -170,7 +223,9 @@ def main():
     # retire PAS de structure (leçon 08-08 : un filtre de verticalité agressif
     # vidait la carte, cf. SLAM_3D_MIGRATION.md).
     S = voxel_grid(S_full, 0.2)
-    kind = "nuage 3D complet (voxel 0.2 m)"
+    kind = ("structurel — méthode grottes, 1 paroi/faisceau (voxel 0.2 m)"
+            if retenus == ["/profiler_points"]
+            else "nuage 3D complet (voxel 0.2 m)")
     G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.2) \
         if has_gt and any(G_by.values()) else None
     print(f"carte : {len(S_full):,} pts bruts → {len(S):,} pts ({kind})")

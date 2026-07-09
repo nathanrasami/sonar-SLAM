@@ -1,3 +1,4 @@
+
 # HOLOOCEAN 3D — Demande traj 3 (v4, 07-08) : PierHarbor + errance aléatoire + tilt sonar
 
 > **Pour** : le collègue HoloOcean + son agent (tout est
@@ -296,3 +297,64 @@ Tous les autres critères §2.6 restent PASS (zone, seed=42, errance, tilt,
 signe, repères, cinématique — inchangés, cf. entrée du 08-07 ci-dessus).
 `holoocean_3d_traj3.bag` livré est donc la version corrigée, prête pour
 `caves_3d.py`.
+
+### 09-07 16:xx — FIX §2.3ter appliqué : `holoocean_3d_traj3.bag` RÉGÉNÉRÉ (profiler boresight vers le bas)
+
+Le mount transverse (fix précédent) laissait le boresight **horizontal** —
+symétrique autour de l'horizontale, donc la moitié de l'azimut regardait
+« vers le haut » (défaut A : 58 % des points au-dessus de la surface) et
+`vehicule_y = r·cos(a)` garde toujours le même signe sur ±60°, donc un seul
+côté du véhicule était couvert (défaut B).
+
+**Fix géométrique** : boresight redirigé **droit vers le bas** au lieu
+d'horizontal. Rotation capteur `[90, 90, 90]` (roll, pitch, yaw) — dérivation :
+avec ce mount, `vehicule = (0, -r·sin(a), -r·cos(a))` pour `a ∈ [-60°, 60°]`.
+Deux conséquences immédiates de la formule :
+- `vehicule_z = -r·cos(a) < 0` **toujours** (`cos(a) ≥ cos(60°) = 0.5`) →
+  plus aucun retour au-dessus de l'horizontale (fixe A).
+- `vehicule_y = -r·sin(a)` **change de signe** selon `a` → un seul capteur
+  couvre les deux côtés (fixe B, pas besoin de 2 profilers).
+
+Nouvelle matrice locale à `gen_bag_3d_v4.py` :
+```python
+R_MOUNT_DOWN = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]], dtype=float)
+```
+
+**Tentatives précédentes écartées** (composition Euler non triviale, pas de
+doc formelle de la convention HoloOcean — testées empiriquement, rejetées sur
+mesure, pas par intuition) :
+- Deux profilers `[90,-30,±90]` (pitch bas + yaw miroir) : le signe du pitch
+  est allé dans le mauvais sens (100 % des points au-dessus, pas <20 %) ET le
+  yaw miroir ne séparait pas gauche/droite comme attendu — changer roll/yaw
+  après le mount `[90,0,90]` casse la propriété `x≈0` (démontré par calcul :
+  `vehicule_x` devient fonction de `sin(Δroll)` ou `sin(Δyaw)`, non nul dès
+  qu'on s'écarte de `[90,·,90]`). Seul **pitch** (avec roll=90, yaw=90 fixés)
+  préserve `x≡0` tout en tournant le fan dans le plan y-z — d'où `[90,90,90]`.
+
+**Validation en 2 temps** (comme le fix précédent) :
+1. Test isolé sur la zone réelle (formule appliquée à la main sur un cas
+   simple, `r=10` fixe) : `z` toujours négatif, `y` couvre les deux signes —
+   confirmé par un test HoloOcean dédié avant de toucher au générateur :
+   `vehicule_z ∈ [-14.0,-13.3]` (jamais >0), `y ∈ [-24.3,+23.3]`
+   (208 pts gauche / 229 pts droite).
+2. **Bug trouvé dans mes propres checks** en testant le bag régénéré (pas
+   dans le mount) :
+   - L'ancien critère `§2.3bis` (`std(y)>0.5`, `std(z)>0.5`) est devenu faux
+     pour ce mount : un plancher plat donne un `z` **quasi constant** par
+     ping (géométrie : `r = profondeur/cos(a)` ⟹ `z = -r·cos(a) = -profondeur`,
+     invariant en `a`) — c'est le comportement attendu (balayage propre d'un
+     plancher plat), pas un défaut. Critère réduit à `std(x)≈0` seul.
+   - `CHECK B` comparait au monde via un `x` fixe (centre de zone) : sur un
+     segment court/rectiligne qui reste entièrement d'un côté de ce point,
+     *tout* tombe « à gauche » quel que soit ce que capte réellement le
+     capteur des deux côtés du véhicule. Corrigé pour comparer au **signe de
+     y en repère véhicule** (gauche/droite du véhicule, pas du monde).
+
+**Checks finaux mesurés sur le bag complet régénéré (2 tours, 5289 pings)** :
+```
+[OK] §2.3ter CHECK A : 0 % des points profiler au-dessus de la surface (attendu <20 %)
+[OK] §2.3ter CHECK B : points profonds (z<-15m) gauche=1 087 018 droite=1 256 824 (attendu >1000 chacun)
+[OK] §2.3ter CHECK C (signe) : 100 % des points profiler sous le robot (attendu >95 %)
+```
+Tous les autres critères §2.6 restent PASS (inchangés). `holoocean_3d_traj3.bag`
+livré est la version finale, prête pour `caves_3d.py`.

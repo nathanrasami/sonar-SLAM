@@ -1,26 +1,30 @@
-# PROGRESS — 2026-07-09 — carte 3D par profiler transverse : marche, 2 défauts de couverture
+# PROGRESS — 2026-07-09 — carte 3D méthode grottes intégrée : bag traj3 corrigé (A/B/C PASS), prêt pour run
 
-## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-07 soir
-**Où on en est** : la vraie carte 3D se fait par la **méthode caves** (SLAM 2D pointcloud+traj
-+ profiler TRANSVERSE, 1 paroi par faisceau = retour le plus fort, projeté le long de la traj).
-Run `run_holoocean_2026-07-09_113928` (bag traj3 transverse) : `carte_3d.html` généré, 316 k
-parois GT-free — **plus de fans radiaux**, reconstruction volumétrique cohérente.
+## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-09
+**Où on en est** : le collègue a livré le bag traj3 FINAL (profiler boresight-bas, guide
+§2.3ter). J'ai **vérifié moi-même** les 3 checks sur le bag (reprojection via pose GT, pas
+sa parole) : **A = 0 % pts z>0 (attendu <20) · B = profond gauche 1.09M / droite 1.26M ·
+C = 100 % sous le robot** → tous PASS. Défauts A/B des itérations précédentes = éliminés.
 
-**MAIS 2 défauts mesurés (dans le BAG/capteur, pas le code)** — le vrai blocage actuel :
-- **A** : 58 % des points profiler à z_monde>0 → le fan vise trop HAUT (surreprésente
-  navire/surface en bouillie jaune). Filtre z<0 = 127 k pts, palliatif.
-- **B** : couverture asymétrique — profiler transverse regarde UN côté → gauche capté profond
-  (−35 m), droite seulement z≈0 (« quai jaune »). Navire au-dessus du ROV noyé, quai droit
-  incomplet. Triangles du trestle : sous-résolus (octree 10 cm).
+**La méthode grottes est maintenant INTÉGRÉE dans `analysis/carte_3d.py`** (plus de script
+séparé). Deux changements :
+1. `per_beam_max()` : pour `/profiler_points` (transverse, x≡0), 1 retour le plus fort par
+   faisceau (bin azimut 0.5°) = paroi → sections propres empilées le long de la traj.
+2. Détection « profiler transverse » en passe-1 par la géométrie (std(x)≈0 & std(y) grand),
+   PAS par std(z) — un fond plat donne z≈cst par ping (r=prof/cosφ) et le test std(z)
+   l'excluait à tort (bug trouvé+corrigé, aurait donné carte vide). Quand un profiler
+   transverse est présent, la carte se fait DEPUIS LUI SEUL ; le sonar tilté
+   (`/sonar_points`) est exclu car il pulvérise des fans radiaux = la bouillie jaune.
 
-**Prochaine action = collègue** : régénérer le bag selon `HOLOOCEAN_3D_GUIDE.md §2.3ter`
-(fixes A/B/C + checks PASS/FAIL). Dès qu'un bag passe A/B/C → reconstruction propre et
-symétrique, sans nouveau code côté SLAM.
+**Validé (poses GT, test de GÉOMÉTRIE seulement)** : pilotis −19→−7 m et treillis en X
+NETS, fond bathymétrique propre, 227 k pts après voxel 0.2 m. PNG 3 vues + fakerun dans le
+scratchpad. Le livrable réel utilisera la pose SLAM (GT-free) — reste à lancer.
 
-**Méthode de reconstruction (à recréer si besoin)** : adapter `analysis/caves_3d.py` — par ping
-`/profiler_points`, binner φ=atan2(z,y) (repère véhicule, 1 faisceau/deg), garder max intensité
-/bin = paroi, composer avec pose SLAM `world = pose + Rz(yaw)·(0,y_veh,z_veh)`, overlay
-`pointcloud_map` orange + traj rouge. (Le carte_3d.npy du run 113928 est cette sortie.)
+**Prochaine action = Nathan** : lancer le run SLAM puis l'analyse :
+```
+BAG_HOLO=$PWD/bag/holoocean_3d_traj3.bag ./run_slam.sh holoocean
+./analyse.sh 3D run_holoocean_<...>        # génère la vraie carte_3d.html GT-free
+```
 ⚠ NE PAS re-tenter Pose3 (réfuté, cf. §Pose3) ni filtres de verticalité agressifs (sur-filtrage).
 
 ## ✅ 09-08 (Opus) : PRÉ-RUN traj3 transverse validé — prêt pour run + vraie carte 3D
