@@ -246,6 +246,21 @@ def main():
         print(f"carte GT-free vs carte GT (Umeyama) : NN méd {med:.3f} m | "
               f"p90 {p90:.3f} m")
 
+    # ── overlay : nuage horizontal du SLAM (pointcloud.csv) = MURS DE QUAI en
+    # plan, dans le même repère SLAM. Le profiler (méthode grottes) donne le
+    # VOLUME (pilotis, treillis, fond) mais le fond marin large « dilue » le
+    # cadrage ; le sonar horizontal, lui, ne voit que les structures verticales
+    # (les 2 quais) → il ENCADRE la trajectoire, comme carte_finale. On superpose
+    # les deux (idem caves_3d.py --with-map). GT-free (nuage SLAM natif). ──────
+    Q = None
+    pc_path = os.path.join(a.run, "pointcloud.csv")
+    if os.path.isfile(pc_path):
+        pc = np.genfromtxt(pc_path, delimiter=",", names=True)
+        qz = pc["z"] if "z" in pc.dtype.names else np.zeros(len(pc))
+        Q = np.column_stack([pc["x"], pc["y"], qz])
+        if len(Q) > 60000:
+            Q = Q[rng.choice(len(Q), 60000, replace=False)]
+
     # ── sorties : LA carte (repère SLAM, GT-free) ───────────────────────────
     run_name = os.path.basename(a.run.rstrip("/"))
     out = os.path.join(a.run, "carte_3d")
@@ -253,7 +268,10 @@ def main():
     fig = plt.figure(figsize=(11, 8))
     ax = fig.add_subplot(111, projection="3d")
     ax.scatter(S[:, 0], S[:, 1], S[:, 2], s=0.3, c=S[:, 2], cmap="viridis",
-               linewidths=0, alpha=0.5)
+               linewidths=0, alpha=0.4)
+    if Q is not None:                              # murs de quai (encadrent la traj)
+        ax.scatter(Q[:, 0], Q[:, 1], Q[:, 2], s=0.5, c="darkorange",
+                   linewidths=0, alpha=0.5, label="murs de quai (sonar horiz.)")
     ax.plot(tx, ty, tz, color="red", lw=1.8, label="trajectoire SLAM")
     ax.scatter(tx[0], ty[0], tz[0], c="lime", s=70, marker="^",
                depthshade=False, label="départ")
@@ -270,9 +288,15 @@ def main():
         import plotly.graph_objects as go
         i2 = rng.choice(len(S), min(150000, len(S)), replace=False)
         f2 = go.Figure(go.Scatter3d(
-            x=S[i2, 0], y=S[i2, 1], z=S[i2, 2], mode="markers", name="nuage (z)",
+            x=S[i2, 0], y=S[i2, 1], z=S[i2, 2], mode="markers",
+            name="volume profiler (z)",
             marker=dict(size=1.2, color=S[i2, 2], colorscale="Viridis",
                         colorbar=dict(title="z (m)"))))
+        if Q is not None:                          # murs de quai (encadrent la traj)
+            f2.add_trace(go.Scatter3d(
+                x=Q[:, 0], y=Q[:, 1], z=Q[:, 2], mode="markers",
+                name="murs de quai (sonar horiz.)",
+                marker=dict(size=1.4, color="darkorange", opacity=0.55)))
         # trajectoire SLAM par-dessus le nuage + marqueurs départ/arrivée
         f2.add_trace(go.Scatter3d(x=tx, y=ty, z=tz, mode="lines",
                                   line=dict(color="red", width=5),
