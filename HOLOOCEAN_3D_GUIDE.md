@@ -223,6 +223,48 @@ avoir une carte juste tout de suite. Quand tu livres un bag qui passe CHECK D, *
 on retirera le patch (sinon double inversion). Même classe de bug que le miroir latéral cmd_vel
 déjà vu sur ce projet.
 
+### 2.3quinquies ⚠ ITÉRATION 4 (09-09) — VOIR AUTOUR du ROV, pas seulement dessous
+
+**Constat côté SLAM** : le profiler actuel (boresight droit vers le BAS, fan ±60°) n'image
+qu'un **coin de 120° vers le bas** → il voit le fond + le bas des murs, mais PAS l'anneau à la
+profondeur du ROV. Résultat : un **trou vertical** entre la trajectoire (profondeur ROV) et les
+structures (en dessous), et les objets à hauteur du ROV hors trajectoire (ex. la coque d'un
+bateau) sont invisibles au profiler. Objectif : que le profiler voie **autour** du véhicule
+(murs jusqu'à la hauteur du ROV, idéalement la section transverse complète qui enveloppe la traj,
+comme le SeaKing du dataset grottes). **En 2 phases (fais la phase 1 ET valide-la AVANT la 2)**.
+
+**PHASE 1 (A) — élargir le fan à ~180°** (change UNE variable) :
+- Garde le mount transverse boresight-bas (§2.3quater, y à corriger) ; augmente l'**ouverture
+  azimutale** du ProfilerVert de **120° → ~180°** (±90° dans le plan transverse y-z).
+- ⚠ **À vérifier** : HoloOcean plafonne peut-être l'azimut de l'`ImagingSonar`/`ProfilingSonar`
+  (souvent ~120-170°). Si le max est < 180°, prends le max possible et **dis-le au §3** (ne force
+  pas une valeur refusée en silence).
+- Ça fait couvrir **horizontale-gauche → fond → horizontale-droite** → les 2 murs de quai
+  jusqu'à la profondeur du ROV + le fond. Le trou se referme pour la moitié basse.
+- **CHECK E (PASS/FAIL)** : reprojette `/profiler_points` en monde via la pose GT ; **PASS si des
+  points de STRUCTURE (murs, pas le fond) atteignent la profondeur du ROV** (z_structure ≳ z_ROV −
+  1 m quelque part le long du parcours), c.-à-d. plus de trou vertical entre la traj et le haut
+  des structures. Vérifie aussi que CHECK D (pas de miroir y) tient toujours.
+
+**PHASE 2 (B) — profiler ROTATIF (le vrai « autour », rendu tunnel grottes)** :
+- Fais **tourner le fan autour de l'axe d'avance x** du véhicule au fil du temps (balayage
+  mécanique, comme un vrai SeaKing) → sur quelques secondes il couvre le **cercle transverse
+  complet (360°)** : mur gauche, haut, mur droit, fond = section qui **enveloppe** la trajectoire.
+- La rotation autour de x **préserve x≡0** (le fan reste dans le plan y-z, il tourne dedans) →
+  sors les points en repère `auv0` avec la rotation DÉJÀ appliquée (comme aujourd'hui) : côté SLAM
+  rien ne change, on compose avec la pose. Publie quand même l'angle de rotation
+  (`/profiler_roll`, std_msgs/Float64, même stamp) au cas où.
+- ⚠ Pièges (on vient d'en vivre un) : le **signe** de la rotation et de y doivent rester cohérents
+  (sinon miroir/tourbillon). Valide sur un bag court AVANT les 18 min.
+- **CHECK F (PASS/FAIL)** : sur une portion droite du parcours, la section transverse reconstruite
+  doit **entourer** la trajectoire (points au-dessus ET en dessous ET des 2 côtés du z_ROV), et la
+  coque du bateau (hors trajectoire, à hauteur ROV) doit apparaître dans `/profiler_points` (plus
+  seulement dans le sonar horizontal).
+
+**Pourquoi A d'abord** : A valide la géométrie fan-large sur un capteur STATIQUE (pas de facteur
+timing de rotation) et sert de repli si la rotation de B est instable ; B n'ajoute alors qu'UNE
+variable (la rotation) sur une base saine. Ne saute pas A.
+
 ### 2.4 Monde cible : **PierHarbor** (officiel HoloOcean, pas de cooking)
 
 Package `Ocean`, scénario de base `PierHarbor-HoveringImagingSonar` (à surcharger
