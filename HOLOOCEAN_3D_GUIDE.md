@@ -249,8 +249,12 @@ des **murs verticaux nets de z=−11 à +6 m** (vraie 3D prouvée). C'est exacte
 | `/sonar_vert_points` | PointCloud2 xyzi | 5 Hz | **repère véhicule, `frame_id=auv0`** |
 
 - Repère véhicule = **x avant, y GAUCHE, z HAUT** (ENU), comme `/imu`, `/dvl`, `/sonar_points`.
+- 🚨 **`frame_id = "auv0"` OBLIGATOIRE, points en repère VÉHICULE.** Si tu publies en repère monde
+  (`frame_id=map`, comme les vieux bags v3/traj2), la **pose GT est cuite dans les points** et la
+  carte 3D n'est plus GT-free → **résultat inutilisable pour le stage** (contrainte absolue :
+  capteurs embarqués seulement, la GT ne sert QU'À l'évaluation). C'est l'erreur exacte de traj2.
 - ⚠ **Attention au miroir** (§2.3quater) : vérifie le SIGNE de z, ne le suppose pas.
-- Position : au même endroit que le sonar SLAM (avant-centre), pas de bras de levier.
+- Position : à côté du sonar SLAM (avant), avec un **bras de levier déclaré** (voir « réalisme » plus bas).
 - `/sonar` (SLAM) **inchangé**. Recommandation : mets son **tilt à 0** (fixe) — le tilt oscillant
   de §2.2 devient inutile puisque l'élévation vient maintenant du sonar vertical, et un sonar SLAM
   fixe est plus proche du vrai Bruce. (Si tu le gardes, garde `/sonar_tilt`.)
@@ -274,13 +278,31 @@ des **murs verticaux nets de z=−11 à +6 m** (vraie 3D prouvée). C'est exacte
 **Ne PAS régénérer les 18 min** tant que E1–E4 ne sont pas tous PASS sur le bag court. Logge les
 4 mesures dans `full_run.log` + une entrée datée au §3.
 
-**Conflits entre les 2 sonars ? Non, en simulation.** HoloOcean rend chaque capteur par lancer de
-rayons indépendant contre l'octree ; il ne simule PAS la propagation acoustique entre capteurs.
-Que les deux fans se croisent est sans effet. Preuve : le bag traj3 actuel fait DÉJÀ tourner deux
-sonars simultanés (`/sonar` imageur + profiler, 5 Hz chacun) sans aucune pollution croisée.
-⚠ Dans le monde RÉEL ce serait un vrai crosstalk (mêmes fréquences, mêmes pings) — les systèmes
-réels utilisent des fréquences différentes ou des pings entrelacés. À mentionner comme limite
-sim ≠ réel, pas à corriger dans le simulateur.
+**⭐ Contrainte de Nathan : le montage doit être RÉALISTE — si la 3D marche, on la fera en vrai.**
+Donc on ne se contente pas de « le simulateur ignore le crosstalk » : on **choisit un matériel réel
+où le crosstalk n'existe pas**, pour que la simu soit *fidèle* et non *optimiste*.
+
+- **Deux têtes à fréquences porteuses DIFFÉRENTES** → elles pinguent simultanément sans se brouiller,
+  exactement comme le simulateur le fait déjà.
+  - `/sonar` (SLAM, horizontal) : classe **~750 kHz**, portée **0.5–40 m** (inchangé).
+  - `/sonar_vert` (vertical 3D) : classe **~1.2 MHz**, portée **0.5–20 m**, **résolution en distance
+    plus fine**. C'est le compromis physique réel (haute fréquence = meilleure résolution, moins de
+    portée) et c'est exactement ce qu'on veut pour la 3D de ce qu'on voit devant.
+  - Si HoloOcean n'expose pas la fréquence : **émule-la** par `RangeMax = 20 m` + un nombre de cases
+    de distance plus élevé (résolution plus fine) sur `/sonar_vert`, et **note-le au §3**.
+- **Bras de levier déclaré** : IRL deux têtes ne peuvent pas être au même point. Monte `/sonar_vert`
+  avec un **décalage constant d'environ 0.15 m** par rapport au sonar SLAM, et **déclare la valeur
+  exacte** (§3 + `full_run.log`). Ne prétends pas qu'elles sont confondues.
+- **Tilt du sonar SLAM = 0** : un tilt mécanique oscillant est une vraie complication matérielle,
+  et l'élévation vient désormais du sonar vertical. Supprime-le (garde `/sonar_tilt` seulement si
+  tu gardes le tilt).
+
+**Conflits entre les 2 sonars ? Non — ni en simu, ni IRL avec ce montage.** HoloOcean rend chaque
+capteur par lancer de rayons indépendant contre l'octree ; il ne simule PAS la propagation
+acoustique entre capteurs. Preuve : le bag traj3 actuel fait DÉJÀ tourner deux sonars simultanés
+(`/sonar` + profiler, 5 Hz chacun) sans aucune pollution croisée. Et avec des porteuses différentes
+(ci-dessus), il n'y en aurait pas non plus en vrai. ⚠ Si tu gardais la MÊME fréquence sur les deux,
+il y aurait un vrai crosstalk IRL (le simulateur ne le montrerait pas) → à éviter.
 
 **Coût de rendu** : un sonar imageur de plus = du ray-cast en plus (tu as déjà bataillé avec
 l'octree). **Recommandé : SUPPRIME le profiler transverse** et garde `{imageur SLAM + sonar
