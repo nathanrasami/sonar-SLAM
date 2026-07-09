@@ -223,6 +223,57 @@ avoir une carte juste tout de suite. Quand tu livres un bag qui passe CHECK D, *
 on retirera le patch (sinon double inversion). Même classe de bug que le miroir latéral cmd_vel
 déjà vu sur ce projet.
 
+### 2.3quinquies ⭐ ITÉRATION 4 (09-09) — AJOUTER un 2ᵉ sonar AVANT, fan VERTICAL (le « + »)
+
+**Objectif de Nathan** : cartographier en 3D **ce que le ROV voit DEVANT** (pas le fond sous lui).
+Le profiler transverse (§2.3ter) cartographie ce qu'on *longe* — ce n'est pas le besoin.
+
+**La demande, en une phrase** : garder le sonar SLAM **inchangé**, et ajouter **à côté, à l'avant,
+un DEUXIÈME sonar identique** (mêmes paramètres : portée 0.5–40 m, ouverture 120°, mêmes bruits),
+simplement **tourné de 90° autour de l'axe d'avance x** → `rotation = [90, 0, 0]` (roll 90°).
+
+Vu de face (le long de x) : le sonar SLAM balaie en `−` (plan x-y, gauche↔droite) et le nouveau
+balaie en `|` (plan **x-z**, haut↔bas). Les deux regardent devant → un `+`. L'ouverture de 120°
+du nouveau est donc en **élévation** (±60° haut/bas) ; son ambiguïté est en **azimut** (les échos
+hors axe sont rabattus sur le plan vertical central — c'est connu et accepté).
+
+**C'est le mount v3 que tu as déjà codé** (`R_MOUNT_PROF`, rotation `[90,0,0]`, bags traj1/traj2
+du couloir) — pas de nouvelle géométrie à inventer. Vérifié côté SLAM sur `holoocean_3d_traj2.bag` :
+`std(x)=7.19  std(y)=0.00  std(z)=1.74` → fan bien dans le plan x-z, et la reconstruction montre
+des **murs verticaux nets de z=−11 à +6 m** (vraie 3D prouvée). C'est exactement ce qu'on veut.
+
+**Livrables** :
+| Topic | Type | Fréquence | Convention |
+|---|---|---|---|
+| `/sonar_vert` | sensor_msgs/Image 32FC1 | 5 Hz | polaire, lignes=range, colonnes=**élévation** ±60° |
+| `/sonar_vert_points` | PointCloud2 xyzi | 5 Hz | **repère véhicule, `frame_id=auv0`** |
+
+- Repère véhicule = **x avant, y GAUCHE, z HAUT** (ENU), comme `/imu`, `/dvl`, `/sonar_points`.
+- ⚠ **Attention au miroir** (§2.3quater) : vérifie le SIGNE de z, ne le suppose pas.
+- Position : au même endroit que le sonar SLAM (avant-centre), pas de bras de levier.
+- `/sonar` (SLAM) **inchangé**. Recommandation : mets son **tilt à 0** (fixe) — le tilt oscillant
+  de §2.2 devient inutile puisque l'élévation vient maintenant du sonar vertical, et un sonar SLAM
+  fixe est plus proche du vrai Bruce. (Si tu le gardes, garde `/sonar_tilt`.)
+- Le profiler transverse (§2.3ter) : **optionnel**, garde-le si c'est gratuit (il donne le fond),
+  mais ce n'est plus la priorité.
+
+**Checks PASS/FAIL (à lancer sur un bag court `--test 60` AVANT le bag complet)** :
+- **CHECK E1 — plan du fan** : sur `/sonar_vert_points` en repère véhicule,
+  **PASS si `std(y) < 0.3` m ET `std(x) > 1` m ET `std(z) > 1` m** (le fan est bien dans x-z).
+  (Le transverse §2.3ter donnait l'inverse : `std(x)=0.00`. Ne pas confondre.)
+- **CHECK E2 — ouverture** : les angles d'élévation `atan2(z, x)` des points doivent couvrir
+  **±60° ± 3°**. PASS si min < −57° et max > +57°.
+- **CHECK E3 — signe (anti-miroir)** : reprojette en monde via la pose GT. Un écho du **fond
+  devant** doit tomber à `z_monde < z_robot` ; un écho de la **surface** à `z_monde > z_robot`.
+  **PASS si > 95 % des échos du fond sont sous le robot.** Si inversé → transposer la matrice
+  de projection (comme le fix R_y du sonar principal, §3 entrée 08-07).
+- **CHECK E4 — structure verticale** : place le ROV face à un mur connu ; reprojette en monde.
+  **PASS si le mur apparaît comme une ligne VERTICALE** (étalement horizontal < 1 m sur ≥ 5 m de
+  hauteur), pas comme des rayons radiaux. C'est le test qui prouve que la 3D avant est réelle.
+
+**Ne PAS régénérer les 18 min** tant que E1–E4 ne sont pas tous PASS sur le bag court. Logge les
+4 mesures dans `full_run.log` + une entrée datée au §3.
+
 ### 2.3quinquies ⚠ ITÉRATION 4 (09-09) — VOIR AUTOUR du ROV, pas seulement dessous
 
 **Constat côté SLAM** : le profiler actuel (boresight droit vers le BAS, fan ±60°) n'image
