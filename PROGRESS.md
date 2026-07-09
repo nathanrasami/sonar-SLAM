@@ -12,11 +12,22 @@
   −19→−7 m et treillis en X NETS sur la VRAIE pose SLAM (pas GT) — vues x-z / y-z du .npy.
   Sortie : `results/run_holoocean_2026-07-09_161938/carte_3d.{html,png,npy}`.
 
-**Méthode carte_3d.py (commit 3bb9d00)** : (1) `per_beam_max()` = 1 retour fort/faisceau
-(bin azimut 0.5°) pour `/profiler_points` transverse ; (2) détection transverse par géométrie
-std(x)≈0 & std(y) grand, PAS std(z) (fond plat = z≈cst/ping → std(z) l'excluait à tort =
-carte VIDE, bug corrigé) ; (3) profiler transverse présent → carte DEPUIS LUI SEUL, sonar
-tilté exclu (fans radiaux = bouillie jaune).
+**Méthode carte_3d.py** : (1) `per_beam_max()` = 1 retour fort/faisceau (bin azimut 0.5°) pour
+`/profiler_points` transverse ; (2) détection transverse par géométrie std(x)≈0 & std(y) grand,
+PAS std(z) (fond plat = z≈cst/ping → std(z) l'excluait à tort = carte VIDE, bug corrigé) ;
+(3) profiler transverse présent → carte DEPUIS LUI SEUL, sonar tilté exclu (fans radiaux) ;
+(4) overlay `pointcloud.csv` (murs de quai orange, sonar horizontal) = encadre la traj comme
+carte_finale (`caves_3d --with-map`) ; (5) **MIROIR y du profiler corrigé** `pts[:,1]=-pts[:,1]`.
+
+**🪞 Bug MIROIR y du profiler (commit 9c4bd6e) — trouvé sur retour Nathan** : les treillis
+apparaissaient ENTRE les quais (or HoloOcean = rien au centre). Diagnostic : structures à
+x≈+2/+38 vs quais vrais −10/+59 ; persiste sous pose GT (ni SLAM ni pose) ; un ping = mur 6 m
+à DROITE du ROV alors que le quai est 6 m à GAUCHE = miroir ; négation de y → structures PILE
+sur les quais. Cause = `/profiler_points` a l'axe y inversé vs convention véhicule (x avant,
+y gauche). Fix analyse = négation y. Résultat : treillis SUR les quais (z −8..−18) coïncidant
+en x avec le tablier orange = vraie fusion 3D, centre vide. **Cause RACINE = repère profiler
+du bag (mount `[90,90,90]`) → à corriger côté générateur holoocean** (patch analyse en attendant ;
+retirer si bag régénéré sans miroir). Même classe que le miroir cmd_vel (tourbillon).
 
 **⚠ Ma faute de procédure (à ne pas refaire)** : j'ai commité 3bb9d00 + fait tourner des
 analyses dans le conteneur ros1 PENDANT le run 161938 (lancé par Nathan à 16:19). Vérifié
