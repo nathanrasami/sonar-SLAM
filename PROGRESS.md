@@ -44,13 +44,33 @@ a posteriori : aucun impact (ATE 0.032, 0 drop ; fichiers commités non chargés
 mais **AVANT tout commit/charge conteneur : `ps aux | grep roslaunch` pour vérifier qu'aucun
 run n'est actif** (règle « un seul run à la fois »).
 
-**🏗️ Reste — architecture profiler « voir AUTOUR » (guide §2.3quinquies, côté collègue)** :
-le profiler actuel (boresight-bas ±60°) ne voit qu'un coin vers le bas → trou entre traj et
-structures, objets à hauteur ROV (bateau) invisibles. Plan décidé avec Nathan : **A puis B**.
-A = élargir l'azimut 120°→~180° (CHECK E : structures atteignent la profondeur ROV). B = profiler
-ROTATIF autour de x (360° transverse, CHECK F : section enveloppe la traj + bateau visible). A
-d'abord pour valider la géométrie fan-large en STATIQUE (dérisque le timing de rotation de B).
-Attente = bag collègue avec la nouvelle config.
+## 🔜 PROCHAINE ÉTAPE — 2ᵉ sonar VERTICAL avant (le « + »), spec écrite, EN ATTENTE du collègue
+
+⚠ Le plan « A puis B » (élargir/faire tourner le profiler TRANSVERSE) est **ABANDONNÉ** : Nathan
+ne veut pas cartographier ce qu'on longe ni le fond, mais **ce qu'on voit DEVANT**.
+
+**Décision d'architecture 09-09** : ajouter un **2ᵉ sonar à l'avant, identique au sonar SLAM mais
+tourné de 90° autour de l'axe d'avance** (`rotation=[90,0,0]`) → fan dans le plan **x-z** (haut/bas).
+Vu de face : `−` (SLAM) + `|` (nouveau) = `+`. Son ambiguïté est en azimut (échos hors axe rabattus).
+- Spec = **guide §2.3quinquies** : topics `/sonar_vert` + `/sonar_vert_points` (**`auv0` obligatoire**) ;
+  checks E1–E4 ; réalisme IRL (porteuses différentes 750 kHz/1.2 MHz → pings simultanés valides sans
+  crosstalk ; bras de levier déclaré ~0.15 m ; tilt du sonar SLAM à 0) ; profiler transverse déclassé.
+- **Déjà validé sur données existantes** : `holoocean_3d_traj2.bag` a cette géométrie
+  (`std(x)=7.19 std(y)=0.00 std(z)=1.74`) → **murs verticaux nets z=−11..+6 m**. Rendu :
+  `results/traj2_plus_3d.html`. Limite connue/assumée : bavure hors axe (ambiguïté d'azimut).
+- 🚨 traj2 est en `frame_id=map` → **GT cuite dans les points**. Le nouveau bag DOIT être en `auv0`.
+- Blocage : le collègue livre le bag. Rien à coder côté SLAM avant (ce sera un ajout à `carte_3d.py`).
+
+## ✅ 09-09 — hypothèse Δz sur les loops : RÉFUTÉE (mesure, pas opinion)
+
+Nathan : « si on revient au même endroit à une hauteur différente, le sonar ne voit pas la même chose
+→ l'ICP échoue ». Testé sur `loops_detected.csv` (runs 125954 / 111933) : **218 candidates retenues
+par le gate SC, 0 acceptée** — mais **|Δz| médian 0.04 m, et 196/218 à |Δz| < 0.20 m**. Des candidates
+à la MÊME profondeur échouent quand même à l'ICP. → **La profondeur n'est PAS la cause du 0/218** ;
+le verrou reste l'ICP sur les features simulateur. Nuance : Δz max ici 2.76 m (pas les 9 m de traj3),
+donc « grand Δz casse l'ICP » n'est pas testé — seulement « Δz≈0 ne le sauve pas ».
+Rappel structurel : le SLAM est `gtsam.Pose2` (3 DOF x,y,yaw) et **`z = −depth`** (capteur de
+pression) → **aucune fermeture de boucle en z, jamais**. On ne fait pas de SLAM 3D.
 
 **Reste (autre)** : fix racine miroir y côté générateur (§2.3quater, CHECK D) → retirer le patch ;
 loops SC sur traj3 ; éventuel traj3b (seed alt). ⚠ NE PAS re-tenter Pose3 (réfuté) ni filtres de
