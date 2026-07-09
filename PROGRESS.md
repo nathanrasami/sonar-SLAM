@@ -16,10 +16,17 @@
 `/profiler_points` transverse ; (2) détection transverse par géométrie std(x)≈0 & std(y) grand,
 PAS std(z) (fond plat = z≈cst/ping → std(z) l'excluait à tort = carte VIDE, bug corrigé) ;
 (3) profiler transverse présent → carte DEPUIS LUI SEUL, sonar tilté exclu (fans radiaux) ;
-(4) **MIROIR y du profiler corrigé** `pts[:,1]=-pts[:,1]`. Carte = **profiler SEUL** (fond +
-treillis des quais colorés par z, vraie 3D) + traj. PAS d'overlay `pointcloud.csv` : c'était de
-la 2.5D étirée (couleur plate), utile seulement avant le fix miroir, retiré depuis (`caves_3d
---with-map` non pertinent une fois le profiler bien placé).
+(4) **MIROIR y du profiler corrigé** `pts[:,1]=-pts[:,1]` ; (5) **COMBLAGE sonar horizontal** :
+on ajoute les points de `pointcloud.csv` là où le profiler n'a rien à <4 m en 3D → le bateau
+(profiler-aveugle) + le haut du quai apparaissent, colorés par z.
+
+**Profiler vs sonar horizontal (complémentaires, à retenir)** : le profiler regarde vers le
+bas (fan ±60°) → vraie 3D de ce que le ROV LONGE (fond + treillis des quais) mais AVEUGLE aux
+structures peu profondes hors trajectoire (le bateau à 15 m/z−8..−11 est à ~73° de la verticale =
+hors fan ; le profiler n'en voit que le fond dessous). Le sonar horizontal (`/sonar`, celui du
+SLAM) = tranche à la profondeur du ROV, portée 40 m → voit le bateau mais en 2.5D. D'où le
+comblage. Carte = profiler 3D (couleur z) + comblage sonar (bateau/tablier, 2.5D, couleur z) + traj.
+Overlay orange plat d'avant = retiré (dédoublait les quais).
 
 **🪞 Bug MIROIR y du profiler (commit 9c4bd6e) — trouvé sur retour Nathan** : les treillis
 apparaissaient ENTRE les quais (or HoloOcean = rien au centre). Diagnostic : structures à
