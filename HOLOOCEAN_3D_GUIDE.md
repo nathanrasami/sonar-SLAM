@@ -145,6 +145,47 @@ l'environnement ; empilées le long de la trajectoire SLAM → volume 3D net.
 - Côté SLAM, `caves_3d.py` reconstruit alors directement (1 faisceau → retour le plus fort
   = paroi, projeté le long de la traj) — c'est LA méthode propre, déjà écrite.
 
+### 2.3ter ⚠ ITÉRATION 2 (09-08) — profiler : couverture + surface (traj3 régénéré à corriger)
+
+Le bag traj3 « transverse » est meilleur mais la carte reconstruite a **2 défauts mesurés
+côté SLAM** (à corriger dans `gen_bag_3d_v4.py`). Pour ton agent : chaque défaut a sa cause,
+son fix, et un **check PASS/FAIL automatique** à lancer sur le bag régénéré (tu as la GT).
+
+**Défaut A — le fan du profiler vise trop VERS LE HAUT.**
+- Mesuré : **58 % des points `/profiler_points` retombent à z_monde > 0** (au-dessus de la
+  surface) → le profiler gaspille la majorité de ses faisceaux sur le navire/surface au lieu
+  des murs immergés. Résultat : carte noyée dans une bouillie jaune, structures profondes rares.
+- Cause probable : après le mount transverse, le boresight du fan (±60° azimut) est incliné
+  vers le haut, pas horizontal.
+- **Fix** : orienter le fan pour qu'il balaye du HORIZONTAL vers le BAS (côté + fond), pas vers
+  le haut. Concrètement, ajuster la rotation de montage du ProfilerVert (le 3ᵉ angle) et/ou
+  réduire l'élévation, puis **vérifier par le check ci-dessous** (ne pas deviner : mesurer).
+- **CHECK A (PASS/FAIL)** : sur le bag, reprojeter `/profiler_points` en MONDE via la pose GT
+  du même stamp ; **PASS si < 20 % des points ont z_monde > 0** (aujourd'hui : 58 % = FAIL).
+
+**Défaut B — couverture asymétrique (profiler regarde UN seul côté).**
+- Mesuré : le côté gauche du parcours est capté en profondeur (jusqu'à −35 m), le côté droit
+  reste à z≈0 (seulement le haut). Un profiler transverse fixe ne voit qu'un bord.
+- **Fix (au choix)** : (1) **DEUX ProfilerVert**, un de chaque côté (fan y-z gauche ET droite,
+  nouveau topic `/profiler_points_r` ou fusionnés) ; OU (2) garder un seul profiler mais faire
+  un **parcours qui longe chaque structure du bon côté** (le côté que le profiler regarde).
+  Option (1) recommandée = plus simple et symétrique.
+- **CHECK B (PASS/FAIL)** : découper la zone en 2 (gauche/droite du centre du parcours) ;
+  **PASS si les DEUX moitiés ont des points profonds** (z_monde < −15 m, au moins quelques
+  milliers chacune). Aujourd'hui : une seule moitié = FAIL.
+
+**Défaut C — le signe z du profiler n'a JAMAIS été vérifié** (seul le tilt du sonar principal
+l'a été, §2.6.4).
+- **CHECK C (PASS/FAIL)** : prendre un ping quand le robot est au-dessus du fond (fond connu
+  par la GT/zone) ; reprojeter en monde ; **PASS si les retours du fond tombent à z_monde <
+  z_robot** (sous le robot), pas au-dessus. Si inversé → transposer la matrice de projection
+  du profiler (comme le fix R_y du sonar principal).
+
+**Rappel méthode de travail (pour ton agent, §2.6.8)** : bag court `--test 60` d'abord, lancer
+CHECK A/B/C dessus, n'écrire le bag complet QUE si les 3 sont PASS, et **logger les 3 chiffres
+mesurés** dans `full_run.log` + une entrée datée au §3 dialogue. Ne PAS régénérer les 18 min si
+un check court échoue.
+
 ### 2.4 Monde cible : **PierHarbor** (officiel HoloOcean, pas de cooking)
 
 Package `Ocean`, scénario de base `PierHarbor-HoveringImagingSonar` (à surcharger
@@ -195,5 +236,63 @@ mission réelle Aracati (quai en T).
 
 ## 3. Dialogue (réponses/blocages du collègue → Nathan)
 
-*(section à remplir par l'agent du collègue : blocages §2.6.8, choix faits,
-valeurs mesurées aux checks — une entrée datée par itération)*
+### 08-07 12:27 — LIVRÉ : `holoocean_3d_traj3.bag` VALIDE (tous checks §2.6 PASS)
+
+**Zone navigable mesurée (PierHarbor, sonde auto)** : anneau rectangulaire
+centre `(495, -647)`, chemin médian **54 × 42 m** (près du spawn officiel du
+scénario), clearance min **5.0 m**, fond le plus haut **-18.5 m**. Errance :
+`N_MAX = 1.2 m`, z ∈ [-11.6, -2.3]. **SEED = 42** (loggée). 2 tours, 1058 s sim,
+5289 pings, fermeture **0.00 m**.
+
+**Checks finaux mesurés** : std(z traj) = 2.31 m, 31 extrema z ; tilt 15.0° /
+10.00 s ; std(z) intra-ping médiane **0.84 m** sur 2830 pings |tilt|>8° ;
+**signe : 100 %** ; frames `auv0` sur les 2 topics points ; max |dyaw/dt| = 6.7 °/s.
+
+**Choix/écarts à connaître (§2.6.8)** :
+1. **Signe pitch UE inversé** : `rotate([0, +30, 0])` incline le plan vers le
+   BAS (vérifié : fond à 10.5 m sous le robot apparaît à ~18 m ≈ 10.5/sin30°).
+   La commande envoyée est donc `-tilt`. `rotate()` fonctionne, latence ~3 ticks
+   (0.15 s = 5° de phase sur la période 10 s, non corrigée).
+2. **Projection** : la formule Ry du §2.2 du guide donne z<0 pour tilt>0 (mesuré
+   0 % au check signe) — on utilise sa **transposée** ; `/sonar_tilt` publie le
+   tilt « physique » (positif = plan vers le haut), cohérent avec la projection.
+3. **Octree 10 cm** (`octree_min: 0.1`) au lieu du défaut 2 cm : la génération
+   2 cm avait atteint 29 Go de JSON sans finir ; 10 cm suffit (r_res sonar
+   7.7 cm). Si tu régénères : le cache est sous
+   `%LOCALAPPDATA%/holoocean/2.3.0/worlds/Ocean/.../Octrees/PierHarbor/`.
+4. **Yaw** calculé sur une base ±0.25 m (le code §2.1 du guide, base 0.5 m,
+   était la bonne idée : une base mm amplifie la courbure PCHIP en jitter).
+5. Bag test intermédiaire : seuil intra-ping 0.25 m (segment droit unique) ;
+   le bag complet est bien validé au seuil contractuel 0.5 m.
+6. Suggestions optionnelles (bruits v2, accels propres, 3ᵉ tour) : non faites,
+   restent dispo dans `gen_bag_3d_v4.py` si besoin (`--seed N` pour traj3b).
+
+### 09-07 11:09 — FIX §2.3bis appliqué : `holoocean_3d_traj3.bag` RÉGÉNÉRÉ (profiler transverse)
+
+Cause confirmée par un test dédié avant de toucher au générateur : avec l'ancien
+mount (rotation capteur `[90,0,0]`, celui de v3/couloir), le profiler garde son
+boresight aligné sur l'axe d'avance du véhicule — correct pour un couloir à cap
+fixe, mais en errance aléatoire (cap qui varie sans cesse) ça donne un fan qui
+« suit » toujours l'avant, d'où les éventails radiaux constatés.
+
+**Fix** : rotation capteur `[90, 0, 90]` (ajout d'un yaw 90° pour rediriger le
+boresight du profiler vers le côté, plan y-z du véhicule) + nouvelle matrice de
+projection locale au script v4 :
+```python
+R_MOUNT_TRANSVERSE = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=float)
+```
+(le `R_MOUNT_PROF` de `gen_bag_3d.py` v3 n'est pas touché — toujours utilisé par
+les bags traj1/traj2 du couloir, cap fixe, où il est correct.)
+
+**Validation en 2 temps** :
+1. Test isolé sur couloir `Bruce_slam_nathan` (murs à distance connue, ~2.4 m) :
+   `std(x)=0.00` exact, `std(z)` étalé ±5.3 m — mount confirmé avant de relancer
+   tout le pipeline PierHarbor (économise le temps de rendu si ç'avait été faux).
+2. Critère `§2.3bis` ajouté à `check_bag_v4.py` (`std(x)<0.3`, `std(y)>0.5`,
+   `std(z)>0.5`) — **mesuré sur le bag complet régénéré** :
+   `std(x)=0.00 std(y)=8.67 std(z)=5.48 m` → **PASS**.
+
+Tous les autres critères §2.6 restent PASS (zone, seed=42, errance, tilt,
+signe, repères, cinématique — inchangés, cf. entrée du 08-07 ci-dessus).
+`holoocean_3d_traj3.bag` livré est donc la version corrigée, prête pour
+`caves_3d.py`.
