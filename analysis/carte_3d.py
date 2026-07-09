@@ -189,6 +189,14 @@ def main():
             if len(pts) < 3:
                 continue
             pts = per_beam_max(pts)
+            # ⚠ MIROIR y du profiler traj3 : les points /profiler_points ont l'axe
+            # y INVERSÉ vs la convention véhicule (x avant, y GAUCHE) qu'attend
+            # rot_z. Preuve (09-09) : sans flip, les murs de quai imagés par le
+            # profiler tombent à x≈+2/+38 (au CENTRE) ; avec y négé ils reviennent
+            # PILE sur les quais du sonar horizontal (x≈−10/+59). Bug de repère du
+            # bag (mount profiler) → à corriger idéalement côté générateur ; en
+            # attendant, on le corrige ici pour une carte juste.
+            pts[:, 1] = -pts[:, 1]
         else:
             pts = np.array(list(pc2.read_points(m, field_names=("x", "y", "z"),
                                                 skip_nans=True)))
