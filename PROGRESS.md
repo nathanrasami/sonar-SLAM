@@ -1,5 +1,17 @@
 # PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
 
+## ✅ 09-08 (Opus) : PRÉ-RUN traj3 transverse validé — prêt pour run + vraie carte 3D
+- Bag `bag/holoocean_3d_traj3.bag` RÉGÉNÉRÉ (profiler transverse, §2.3bis). Vérifs pré-run :
+  - profiler `/profiler_points` repère auv0 : **std x=0.00, y=7.83, z=15.55** → TRANSVERSE ✅
+  - 8 topics présents (profiler_points, sonar_points, sonar_tilt, gt/imu/dvl/depth) ✅
+  - 1 section (plan y-z, x=0.00) = profil cohérent : surface z≈12 + fond z≈−21 + mur diag ✅
+  - /sonar 32FC1 max~0.05 → bridge ×255 en place (échos murs ~0.47→120 > CFAR 95) ✅
+- **RUN à faire (Nathan)** : `BAG_HOLO=$PWD/bag/holoocean_3d_traj3.bag ./run_slam.sh holoocean`
+- **Vraie carte 3D (phase suivante)** : adapter caves_3d.py au profiler HoloOcean transverse
+  (PointCloud2, pas beams bruts) : par ping binner φ=atan2(z,y), max intensité/bin = paroi,
+  projeter le long traj SLAM + overlay pointcloud_map. PAS carte_3d.py brut (mêle sonar_points
+  bruités). Réutiliser caves_3d.py L68-73 (1/faisceau), L77-85 (projection transverse), L97-122 (rendu).
+
 ## 🎯 08-08 (Opus) : CAUSE RACINE carte 3D — profiler monté vers l'AVANT (pas transverse)
 - Nathan pointe caves_3d.py (reconstruction propre grotte = SLAM 2D + profiler). J'y ai
   trouvé LA cause de tous mes échecs de rendu 3D sur traj3 :
