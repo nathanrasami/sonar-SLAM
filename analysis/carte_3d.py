@@ -254,11 +254,28 @@ def main():
         print(f"carte GT-free vs carte GT (Umeyama) : NN méd {med:.3f} m | "
               f"p90 {p90:.3f} m")
 
-    # NB : PAS d'overlay du nuage horizontal (pointcloud.csv). Depuis le fix du
-    # miroir y, le profiler (méthode grottes) place déjà les quais (treillis) au
-    # BON endroit et en VRAIE 3D (dégradé z). Le nuage horizontal serait de la
-    # 2.5D étirée (couleur plate, pas de z) qui dédoublerait les quais → exclu.
-    # La carte = profiler seul (vraie 3D, GT-free) + trajectoire.
+    # ── COMBLAGE par le sonar horizontal (pointcloud.csv) ───────────────────
+    # Le profiler (regard vers le bas, fan ±60°) est AVEUGLE aux structures peu
+    # profondes hors trajectoire (ex. la coque du bateau à 15 m, à ~73° de la
+    # verticale = hors fan) : il n'en voit que le fond en dessous. Le sonar
+    # horizontal (portée 40 m, tranche à la profondeur du ROV) les voit. On ajoute
+    # donc les points du sonar horizontal SEULEMENT là où le profiler n'a RIEN à
+    # proximité 3D (NN > SEUIL) → le bateau + le haut du tablier apparaissent, SANS
+    # dédoubler les treillis que le profiler couvre déjà. Colorés par z (2.5D
+    # honnête, pas d'aplat). GT-free (nuage SLAM natif).
+    G_fill = None
+    pc_path = os.path.join(a.run, "pointcloud.csv")
+    if os.path.isfile(pc_path):
+        pc = np.genfromtxt(pc_path, delimiter=",", names=True)
+        qz = pc["z"] if "z" in pc.dtype.names else np.zeros(len(pc))
+        Q = np.column_stack([pc["x"], pc["y"], qz])
+        from scipy.spatial import cKDTree
+        dnn_q = cKDTree(S).query(Q, k=1)[0]
+        G_fill = Q[dnn_q > 4.0]                 # 4 m : garde bateau (NN~7) + tablier
+        if len(G_fill) > 60000:
+            G_fill = G_fill[rng.choice(len(G_fill), 60000, replace=False)]
+        print(f"comblage sonar horizontal : {len(G_fill):,} pts (bateau + tablier "
+              f"hors portée du profiler)")
 
     # ── sorties : LA carte (repère SLAM, GT-free) ───────────────────────────
     run_name = os.path.basename(a.run.rstrip("/"))
@@ -268,6 +285,10 @@ def main():
     ax = fig.add_subplot(111, projection="3d")
     ax.scatter(S[:, 0], S[:, 1], S[:, 2], s=0.3, c=S[:, 2], cmap="viridis",
                linewidths=0, alpha=0.4)
+    if G_fill is not None and len(G_fill):     # bateau + tablier (sonar horiz., 2.5D)
+        ax.scatter(G_fill[:, 0], G_fill[:, 1], G_fill[:, 2], s=1.0, c=G_fill[:, 2],
+                   cmap="viridis", linewidths=0, alpha=0.7, marker="s",
+                   label="comblage sonar horiz. (bateau/tablier, 2.5D)")
     ax.plot(tx, ty, tz, color="red", lw=1.8, label="trajectoire SLAM")
     ax.scatter(tx[0], ty[0], tz[0], c="lime", s=70, marker="^",
                depthshade=False, label="départ")
@@ -288,6 +309,12 @@ def main():
             name="volume profiler (z)",
             marker=dict(size=1.2, color=S[i2, 2], colorscale="Viridis",
                         colorbar=dict(title="z (m)"))))
+        if G_fill is not None and len(G_fill):  # bateau/tablier (sonar horiz., 2.5D)
+            f2.add_trace(go.Scatter3d(
+                x=G_fill[:, 0], y=G_fill[:, 1], z=G_fill[:, 2], mode="markers",
+                name="comblage sonar horiz. (bateau/tablier, 2.5D)",
+                marker=dict(size=2.0, color=G_fill[:, 2], colorscale="Viridis",
+                            symbol="square", showscale=False)))
         # trajectoire SLAM par-dessus le nuage + marqueurs départ/arrivée
         f2.add_trace(go.Scatter3d(x=tx, y=ty, z=tz, mode="lines",
                                   line=dict(color="red", width=5),
