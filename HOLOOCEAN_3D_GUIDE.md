@@ -187,6 +187,42 @@ CHECK A/B/C dessus, n'écrire le bag complet QUE si les 3 sont PASS, et **logger
 mesurés** dans `full_run.log` + une entrée datée au §3 dialogue. Ne PAS régénérer les 18 min si
 un check court échoue.
 
+### 2.3quater ⚠ ITÉRATION 3 (09-09) — `/profiler_points` a l'axe **y INVERSÉ** (miroir)
+
+Le bag traj3 §2.3ter est bon (A/B/C PASS), la carte 3D marche — MAIS côté SLAM on a trouvé
+que **`/profiler_points` est en miroir sur l'axe y** (gauche↔droite) par rapport à la
+convention véhicule attendue (x avant, **y GAUCHE**, z haut, ENU — la même que `/imu`, `/dvl`,
+`/sonar_points`). Conséquence : les structures verticales imagées par le profiler (murs/treillis
+des quais) sont projetées **du mauvais côté** → elles apparaissent AU CENTRE, entre les 2 quais,
+alors que la scène PierHarbor n'a rien entre les quais.
+
+**Preuve mesurée (côté SLAM, indiscutable)** :
+- Structures hautes du profiler reconstruites à x≈**+2 / +38** ; vrais quais (sonar horizontal
+  `/sonar_points`) à x≈**−10 / +59**. Décalage = image miroir à travers la trajectoire.
+- Persiste même en reprojetant avec la **pose GT** → ce n'est ni le SLAM ni la pose.
+- Un ping isolé près d'un quai : le profiler place le mur **6 m à DROITE** du véhicule alors que
+  le quai réel est **6 m à GAUCHE**.
+- Test décisif : **négation de `y`** des points profiler → les structures retombent PILE sur les
+  quais réels. Donc `y_profiler = −y_véhicule`.
+
+**Fix (côté générateur)** : dans le transform qui met les points du profiler en repère `auv0`,
+**l'axe y est inversé**. Très probablement la matrice `R_MOUNT_DOWN =
+[[0,0,1],[0,1,0],[-1,0,0]]` (ou la composition avec la rotation native du capteur) a une
+**mauvaise handedness sur y**. Corrige le signe de la 2ᵉ composante (ex. `R_MOUNT_DOWN =
+[[0,0,1],[0,-1,0],[-1,0,0]]`, à VÉRIFIER par le check ci-dessous — ne pas deviner, mesurer).
+Ne touche PAS aux autres topics (`/sonar_points`, `/imu`, `/dvl` sont corrects).
+
+**CHECK D (PASS/FAIL)** — sur le bag régénéré, reprojette `/profiler_points` ET `/sonar_points`
+en MONDE via la pose GT du même stamp ; garde les points « hauts » (structure, z_monde > fond+3 m)
+de chaque source ; **PASS si les structures hautes du profiler tombent à < 3 m des murs de
+`/sonar_points`** (mêmes positions de quai), et NON décalées vers le centre. Aujourd'hui (avant
+fix) : profiler à +2/+38 vs sonar à −10/+59 = FAIL.
+
+**En attendant** : côté SLAM on applique un patch (`carte_3d.py` : `pts[:,1] = -pts[:,1]`) pour
+avoir une carte juste tout de suite. Quand tu livres un bag qui passe CHECK D, **dis-le au §3** :
+on retirera le patch (sinon double inversion). Même classe de bug que le miroir latéral cmd_vel
+déjà vu sur ce projet.
+
 ### 2.4 Monde cible : **PierHarbor** (officiel HoloOcean, pas de cooking)
 
 Package `Ocean`, scénario de base `PierHarbor-HoveringImagingSonar` (à surcharger
