@@ -1,31 +1,32 @@
-# PROGRESS — 2026-07-09 — carte 3D méthode grottes intégrée : bag traj3 corrigé (A/B/C PASS), prêt pour run
+# PROGRESS — 2026-07-09 — carte 3D méthode grottes LIVRÉE (run 161938, GT-free NN 5.7 cm)
 
-## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-09
-**Où on en est** : le collègue a livré le bag traj3 FINAL (profiler boresight-bas, guide
-§2.3ter). J'ai **vérifié moi-même** les 3 checks sur le bag (reprojection via pose GT, pas
-sa parole) : **A = 0 % pts z>0 (attendu <20) · B = profond gauche 1.09M / droite 1.26M ·
-C = 100 % sous le robot** → tous PASS. Défauts A/B des itérations précédentes = éliminés.
+## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-09 soir
+**FAIT — carte 3D structurelle GT-free livrée.** Run `run_holoocean_2026-07-09_161938`
+(bag traj3 FINAL corrigé, profiler boresight-bas §2.3ter). Chaîne complète, vérifiée :
+- **Bag** : CHECK A/B/C revérifiés par moi (reproj pose GT) : A=0 % z>0, B=1.09M g/1.26M d,
+  C=100 % sous robot → PASS. Mount `[90,90,90]`/`R_MOUNT_DOWN`.
+- **Run SLAM** : 667 keyframes, **ATE 0.032 m** (RMSE 0.036), dt max 2.0 s (aucun drop),
+  z peuplé −11.6→−2.3 → sain, = champion.
+- **Carte** (`carte_3d.py`, méthode grottes) : profiler transverse détecté, sonar tilté exclu,
+  230 589 pts, **NN carte-GT-free vs carte-GT = 5.7 cm méd / 9.8 cm p90 (Umeyama)**. Pilotis
+  −19→−7 m et treillis en X NETS sur la VRAIE pose SLAM (pas GT) — vues x-z / y-z du .npy.
+  Sortie : `results/run_holoocean_2026-07-09_161938/carte_3d.{html,png,npy}`.
 
-**La méthode grottes est maintenant INTÉGRÉE dans `analysis/carte_3d.py`** (plus de script
-séparé). Deux changements :
-1. `per_beam_max()` : pour `/profiler_points` (transverse, x≡0), 1 retour le plus fort par
-   faisceau (bin azimut 0.5°) = paroi → sections propres empilées le long de la traj.
-2. Détection « profiler transverse » en passe-1 par la géométrie (std(x)≈0 & std(y) grand),
-   PAS par std(z) — un fond plat donne z≈cst par ping (r=prof/cosφ) et le test std(z)
-   l'excluait à tort (bug trouvé+corrigé, aurait donné carte vide). Quand un profiler
-   transverse est présent, la carte se fait DEPUIS LUI SEUL ; le sonar tilté
-   (`/sonar_points`) est exclu car il pulvérise des fans radiaux = la bouillie jaune.
+**Méthode carte_3d.py (commit 3bb9d00)** : (1) `per_beam_max()` = 1 retour fort/faisceau
+(bin azimut 0.5°) pour `/profiler_points` transverse ; (2) détection transverse par géométrie
+std(x)≈0 & std(y) grand, PAS std(z) (fond plat = z≈cst/ping → std(z) l'excluait à tort =
+carte VIDE, bug corrigé) ; (3) profiler transverse présent → carte DEPUIS LUI SEUL, sonar
+tilté exclu (fans radiaux = bouillie jaune).
 
-**Validé (poses GT, test de GÉOMÉTRIE seulement)** : pilotis −19→−7 m et treillis en X
-NETS, fond bathymétrique propre, 227 k pts après voxel 0.2 m. PNG 3 vues + fakerun dans le
-scratchpad. Le livrable réel utilisera la pose SLAM (GT-free) — reste à lancer.
+**⚠ Ma faute de procédure (à ne pas refaire)** : j'ai commité 3bb9d00 + fait tourner des
+analyses dans le conteneur ros1 PENDANT le run 161938 (lancé par Nathan à 16:19). Vérifié
+a posteriori : aucun impact (ATE 0.032, 0 drop ; fichiers commités non chargés par le SLAM),
+mais **AVANT tout commit/charge conteneur : `ps aux | grep roslaunch` pour vérifier qu'aucun
+run n'est actif** (règle « un seul run à la fois »).
 
-**Prochaine action = Nathan** : lancer le run SLAM puis l'analyse :
-```
-BAG_HOLO=$PWD/bag/holoocean_3d_traj3.bag ./run_slam.sh holoocean
-./analyse.sh 3D run_holoocean_<...>        # génère la vraie carte_3d.html GT-free
-```
-⚠ NE PAS re-tenter Pose3 (réfuté, cf. §Pose3) ni filtres de verticalité agressifs (sur-filtrage).
+**Reste (optionnel)** : loops SC sur traj3, ouvrir la carte html dans le navigateur pour la
+montrer, éventuel bag traj3b (seed alt). ⚠ NE PAS re-tenter Pose3 (réfuté) ni filtres de
+verticalité agressifs (sur-filtrage).
 
 ## ✅ 09-08 (Opus) : PRÉ-RUN traj3 transverse validé — prêt pour run + vraie carte 3D
 - Bag `bag/holoocean_3d_traj3.bag` RÉGÉNÉRÉ (profiler transverse, §2.3bis). Vérifs pré-run :
