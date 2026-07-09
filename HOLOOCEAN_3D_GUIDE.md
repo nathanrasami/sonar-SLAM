@@ -274,6 +274,22 @@ des **murs verticaux nets de z=−11 à +6 m** (vraie 3D prouvée). C'est exacte
 **Ne PAS régénérer les 18 min** tant que E1–E4 ne sont pas tous PASS sur le bag court. Logge les
 4 mesures dans `full_run.log` + une entrée datée au §3.
 
+**Conflits entre les 2 sonars ? Non, en simulation.** HoloOcean rend chaque capteur par lancer de
+rayons indépendant contre l'octree ; il ne simule PAS la propagation acoustique entre capteurs.
+Que les deux fans se croisent est sans effet. Preuve : le bag traj3 actuel fait DÉJÀ tourner deux
+sonars simultanés (`/sonar` imageur + profiler, 5 Hz chacun) sans aucune pollution croisée.
+⚠ Dans le monde RÉEL ce serait un vrai crosstalk (mêmes fréquences, mêmes pings) — les systèmes
+réels utilisent des fréquences différentes ou des pings entrelacés. À mentionner comme limite
+sim ≠ réel, pas à corriger dans le simulateur.
+
+**Coût de rendu** : un sonar imageur de plus = du ray-cast en plus (tu as déjà bataillé avec
+l'octree). **Recommandé : SUPPRIME le profiler transverse** et garde `{imageur SLAM + sonar
+vertical}` → même nombre de capteurs qu'aujourd'hui, **coût inchangé**.
+
+**Piège côté SLAM (pour info)** : notre bridge est câblé en dur sur `/sonar`, donc `/sonar_vert`
+n'ira jamais polluer le SLAM. Mais ne réutilise pas ce bridge pour `/sonar_vert` : ses colonnes
+sont l'ÉLÉVATION (pas l'azimut), et il aurait la même trappe `32FC1 [0,1] → ×255`.
+
 ### 2.3quinquies ⚠ ITÉRATION 4 (09-09) — VOIR AUTOUR du ROV, pas seulement dessous
 
 **Constat côté SLAM** : le profiler actuel (boresight droit vers le BAS, fan ±60°) n'image
