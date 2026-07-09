@@ -44,8 +44,16 @@ a posteriori : aucun impact (ATE 0.032, 0 drop ; fichiers commités non chargés
 mais **AVANT tout commit/charge conteneur : `ps aux | grep roslaunch` pour vérifier qu'aucun
 run n'est actif** (règle « un seul run à la fois »).
 
-**Reste (optionnel)** : loops SC sur traj3, ouvrir la carte html dans le navigateur pour la
-montrer, éventuel bag traj3b (seed alt). ⚠ NE PAS re-tenter Pose3 (réfuté) ni filtres de
+**🏗️ Reste — architecture profiler « voir AUTOUR » (guide §2.3quinquies, côté collègue)** :
+le profiler actuel (boresight-bas ±60°) ne voit qu'un coin vers le bas → trou entre traj et
+structures, objets à hauteur ROV (bateau) invisibles. Plan décidé avec Nathan : **A puis B**.
+A = élargir l'azimut 120°→~180° (CHECK E : structures atteignent la profondeur ROV). B = profiler
+ROTATIF autour de x (360° transverse, CHECK F : section enveloppe la traj + bateau visible). A
+d'abord pour valider la géométrie fan-large en STATIQUE (dérisque le timing de rotation de B).
+Attente = bag collègue avec la nouvelle config.
+
+**Reste (autre)** : fix racine miroir y côté générateur (§2.3quater, CHECK D) → retirer le patch ;
+loops SC sur traj3 ; éventuel traj3b (seed alt). ⚠ NE PAS re-tenter Pose3 (réfuté) ni filtres de
 verticalité agressifs (sur-filtrage).
 
 ## ✅ 09-08 (Opus) : PRÉ-RUN traj3 transverse validé — prêt pour run + vraie carte 3D
