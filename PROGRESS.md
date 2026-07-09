@@ -16,8 +16,10 @@
 `/profiler_points` transverse ; (2) détection transverse par géométrie std(x)≈0 & std(y) grand,
 PAS std(z) (fond plat = z≈cst/ping → std(z) l'excluait à tort = carte VIDE, bug corrigé) ;
 (3) profiler transverse présent → carte DEPUIS LUI SEUL, sonar tilté exclu (fans radiaux) ;
-(4) overlay `pointcloud.csv` (murs de quai orange, sonar horizontal) = encadre la traj comme
-carte_finale (`caves_3d --with-map`) ; (5) **MIROIR y du profiler corrigé** `pts[:,1]=-pts[:,1]`.
+(4) **MIROIR y du profiler corrigé** `pts[:,1]=-pts[:,1]`. Carte = **profiler SEUL** (fond +
+treillis des quais colorés par z, vraie 3D) + traj. PAS d'overlay `pointcloud.csv` : c'était de
+la 2.5D étirée (couleur plate), utile seulement avant le fix miroir, retiré depuis (`caves_3d
+--with-map` non pertinent une fois le profiler bien placé).
 
 **🪞 Bug MIROIR y du profiler (commit 9c4bd6e) — trouvé sur retour Nathan** : les treillis
 apparaissaient ENTRE les quais (or HoloOcean = rien au centre). Diagnostic : structures à
