@@ -1,4 +1,27 @@
-# PROGRESS — 2026-07-08 — carte_3d UNIQUE (vraie 3D only) + traj3 validée
+# PROGRESS — 2026-07-09 — carte 3D par profiler transverse : marche, 2 défauts de couverture
+
+## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-07 soir
+**Où on en est** : la vraie carte 3D se fait par la **méthode caves** (SLAM 2D pointcloud+traj
++ profiler TRANSVERSE, 1 paroi par faisceau = retour le plus fort, projeté le long de la traj).
+Run `run_holoocean_2026-07-09_113928` (bag traj3 transverse) : `carte_3d.html` généré, 316 k
+parois GT-free — **plus de fans radiaux**, reconstruction volumétrique cohérente.
+
+**MAIS 2 défauts mesurés (dans le BAG/capteur, pas le code)** — le vrai blocage actuel :
+- **A** : 58 % des points profiler à z_monde>0 → le fan vise trop HAUT (surreprésente
+  navire/surface en bouillie jaune). Filtre z<0 = 127 k pts, palliatif.
+- **B** : couverture asymétrique — profiler transverse regarde UN côté → gauche capté profond
+  (−35 m), droite seulement z≈0 (« quai jaune »). Navire au-dessus du ROV noyé, quai droit
+  incomplet. Triangles du trestle : sous-résolus (octree 10 cm).
+
+**Prochaine action = collègue** : régénérer le bag selon `HOLOOCEAN_3D_GUIDE.md §2.3ter`
+(fixes A/B/C + checks PASS/FAIL). Dès qu'un bag passe A/B/C → reconstruction propre et
+symétrique, sans nouveau code côté SLAM.
+
+**Méthode de reconstruction (à recréer si besoin)** : adapter `analysis/caves_3d.py` — par ping
+`/profiler_points`, binner φ=atan2(z,y) (repère véhicule, 1 faisceau/deg), garder max intensité
+/bin = paroi, composer avec pose SLAM `world = pose + Rz(yaw)·(0,y_veh,z_veh)`, overlay
+`pointcloud_map` orange + traj rouge. (Le carte_3d.npy du run 113928 est cette sortie.)
+⚠ NE PAS re-tenter Pose3 (réfuté, cf. §Pose3) ni filtres de verticalité agressifs (sur-filtrage).
 
 ## ✅ 09-08 (Opus) : PRÉ-RUN traj3 transverse validé — prêt pour run + vraie carte 3D
 - Bag `bag/holoocean_3d_traj3.bag` RÉGÉNÉRÉ (profiler transverse, §2.3bis). Vérifs pré-run :
