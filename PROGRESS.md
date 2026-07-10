@@ -38,14 +38,36 @@ C2 yaw-sweep 360° / C3 ascenseur ±3 m) + phase B carré 2 tours z −4/−8 m,
 coins, approche bateau ±45° ; checks **E5 synchro / E6 recouvrement / E7 couverture** ; bag court
 `--test 150` (contient la phase A).
 
+**✅ 07-10 soir : `analysis/fusion_plus.py` CODÉ et VÉRIFIÉ sur traj2 (run 105410)** —
+fusion à la StereoFLS adaptée aux topics de POINTS (pas d'images) : appariement des pings par
+stamp (traj2 : |Δt| = 0 ms, appariement parfait), gates de recouvrement ±10°/±10° (défaut
+StereoFLS ; `--ap-hor/--ap-vert` recevront les ouvertures déclarées du collègue), bins de
+range 0.15 m, association gloutonne par |Δintensité| (critère FAIBLE assumé — incidences
+différentes entre les 2 vues ; le bin de range fait l'essentiel). Mesures (déterministe,
+×2 identiques, 9 s le run complet) :
+- 2013 paires de pings (le run 105410 s'arrête à 404 s des 676 s du bag : normal),
+  38 matches/ping, 76 567 pts fusionnés ;
+- **60 % des points HORS des 2 plans centraux** (>2° en az ET en élév) = la vraie 3D de
+  recouvrement que ni /sonar_points ni le fan vertical n'ont séparément ;
+- **M1 (géométrie fusion, GT-composé vs échos bruts) : NN méd 0.138 m PASS** — p90 1.25 m
+  = artefact de la référence (elle ne couvre que les 2 plans centraux ; un point fusionné
+  correct hors plans en est loin par construction) ;
+- **M2 (carte GT-free vs carte GT, Umeyama) : 0.024/0.038 m** ; rendu : pans de murs
+  VERTICAUX nets le long de la spirale.
+- ❌ `--unique` (1↔1 strict) mesuré : 23 pts, M1 0.72 m FAIL — les murs remplissent les
+  bins à plusieurs échos, le strict ne garde que des échos isolés ≈ bruit. Glouton = défaut.
+- Sorties : `results/run_holoocean_2026-07-07_105410/fusion_plus.{html,png,npy}`.
+- Limites : fantômes possibles dans un bin (pas de patchs d'image pour désambiguïser —
+  upgrade possible = images polaires comme StereoFLS) ; ouvertures réelles à caler (§4 guide).
+
 **Reste à faire (ordre)** :
-1. Nathan relit le guide → envoi au collègue.
-2. Coder la fusion « + » (`analysis/fusion_plus.py`, à la StereoFLS : appariement pings par
-   stamp, match par range dans le recouvrement) — **proto possible dès maintenant sur traj2**
-   (/profiler_points = fan vertical avant + /sonar), sans attendre le bag.
-3. NON VÉRIFIÉ précédent toujours ouvert : chemin `/sonar_vert_points` en auv0 de carte_3d.py
-   (diff non commité) — test = bag forgé depuis traj2.
-4. À l'arrivée du bag : revérifier E1–E7 ici, run SLAM, carte + fusion.
+1. ✅ guide relu par Nathan, ENVOYÉ au collègue (07-10).
+2. ✅ fusion codée + vérifiée (bloc ci-dessus).
+3. NON VÉRIFIÉ toujours ouvert : chemin `/sonar_vert_points` en auv0 de carte_3d.py (diff
+   non commité) — test = bag forgé depuis traj2. ⚠ fusion_plus a le même angle mort (testé
+   via /profiler_points en map, pas /sonar_vert_points en auv0) : le bag forgé testera les 2.
+4. À l'arrivée du bag : revérifier E1–E7 ici, run SLAM, carte_3d + fusion_plus
+   (`--ap-hor/--ap-vert` = ouvertures déclarées au §4 du guide).
 
 ## 🔵 (précédent) 2026-07-10 matin : `carte_3d.py` préparé pour `/sonar_vert_points` (NON COMMITÉ)
 
