@@ -1,4 +1,4 @@
-# PROGRESS — 2026-07-10 — DÉCISION « + » + fusion McConnell ; guide v3 (traj4 + calibration) écrit
+# PROGRESS — 2026-07-11 — HoloOcean v1.0.0 INSTALLÉ EN LOCAL et VÉRIFIÉ (collègue indispo → autonomie)
 
 > ⚠ **Dates** : les tags `08-08`, `09-08`, `09-09` de ce fichier valent respectivement 8, 9 et
 > 9 juillet 2026. Le format `JJ-MM` s'est corrompu par recopie (preuve : `git log -S` sur les
@@ -6,7 +6,33 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-10 (soir) : orientation 3D DÉCIDÉE, guide v3 écrit, fusion à coder
+## 🔜 REPRISE ICI — 2026-07-11 (nuit) : HoloOcean local OPÉRATIONNEL — prochaine étape = traj4
+
+**Fait (vérifié par le point d'entrée réel)** : `gen_bag_3d_v4.py --test 60` → PASS, bag
+311 Mo, 8 topics conformes (1201 msg @20 Hz ×4, 300 @5 Hz ×4). Chaîne complète : clone
+`SLAM/holoocean` (tag v1.0.0) + venv `SLAM/holoocean-venv` (py3.10, **numpy 1.26.4 obligatoire**)
++ package Ocean 3,85 Go (workaround `curl -C -` + `install(url=file://…)`, zip conservé dans
+SLAM/) + les 3 fichiers du collègue commités (a5e9cd1). Détail des 6 pièges (proxy ADB, numpy 2,
+timeout 60 s patché à 600 dans le venv, UE refuse root dans podman, SIGTERM ignoré → `kill -9`,
+cache octree par résolution) → note mémoire `holoocean-install-local`.
+
+**Saga crashs (4 morts SIGBUS/silencieuses puis PASS — cause jamais élucidée, NON bloquant)** :
+hypothèses RÉFUTÉES par ablation : config du collègue (le scénario standard crashait aussi),
+driver NVIDIA (crash identique forcé sur RADV), glibc 2.42 (crash identique dans ros1/glibc 2.31),
+OOM kernel/systemd-oomd/THP (journaux vides, RAM stable, pic mesuré 2,8 Go). Les crashs ont cessé
+après purge des caches octree partiels ; le build accumule ses fichiers entre runs → en cas de
+récidive : relancer, ça reprend. Cache v4 = `Octrees/PierHarbor/min10_max640` (1008 fichiers,
+505 Mo) désormais COMPLET → plus de phase à risque. ⚠ Fenêtre « ne répond pas » pendant un build
+octree = NORMAL (thread principal bloqué). ⚠ Ne PAS lancer les scénarios de démo sonar
+(PierHarbor-HoveringImagingSonar) : cache min2_max512 inutile de plusieurs Go.
+
+**Reste à faire** : (1) modifier `gen_bag_3d_v4.py` → traj4 : remplacer tilt+profiler par le
+2ᵉ sonar VERTICAL avant (`/sonar_vert`+`/sonar_vert_points` frame `auv0`, spec §1 du guide,
+checks E1–E4 §2) ; (2) `--test 60` + E1–E4 ; (3) run 18 min complet (bag estimé ~5,6 Go) ;
+(4) `carte_3d.py` : chemin `/sonar_vert_points` jamais exercé + diff 125 lignes NON commité
+(voir mémoire `carte-3d-fan-vertical-prep`).
+
+## (clos) 2026-07-10 (soir) : orientation 3D DÉCIDÉE, guide v3 écrit, fusion à coder
 
 **Brainstorm Nathan** (`3D_BRAINSTORM.md`) : le « + » ne couvre pas les côtés (fan vertical fin en
 azimut) → comment faire « de la 3D en toute circonstance » ? Discussion état de l'art menée.
