@@ -35,8 +35,9 @@ import sensor_msgs.point_cloud2 as pc2
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from traj_eval import umeyama, associer_par_temps
 
-TOPICS = ["/profiler_points", "/sonar_points"]
+TOPICS = ["/profiler_points", "/sonar_points", "/sonar_vert_points"]
 SEUIL_VRAIE_3D = 0.5   # m, std(z) intra-message médian
+SEUIL_PLAN = 0.05      # m, std ≈ 0 : le fan est contenu dans un plan
 N_SONDAGE = 60         # messages par topic pour le verdict vraie/pseudo 3D
 
 
@@ -75,7 +76,26 @@ def per_beam_max(pts):
         return pts[:, :3] if len(pts) else pts
     y, z, i = pts[:, 1], pts[:, 2], pts[:, 3]
     key = np.round(np.degrees(np.arctan2(-y, -z)) * 2).astype(int)  # bin 0.5°
-    order = np.lexsort((i, key))            # tri par faisceau puis intensité croissante
+    return _max_par_faisceau(pts, key)
+
+
+def per_beam_max_xz(pts):
+    """Même réduction pour un fan VERTICAL AVANT (le « + », guide §2.3quinquies).
+
+    pts : Nx4 (x,y,z,intensity) en repère véhicule, plan x-z (y≡0). Le sonar est
+    le sonar SLAM tourné de 90° autour de l'axe d'avance : son fan balaye
+    l'ÉLÉVATION devant le robot. Un faisceau = une élévation φ = atan2(-z, x) ;
+    on garde le retour le plus FORT = la paroi vue de face. Réduit la bavure
+    hors axe (l'ambiguïté de ce montage est en azimut, pas en élévation).
+    """
+    if len(pts) < 3 or pts.shape[1] < 4:
+        return pts[:, :3] if len(pts) else pts
+    key = np.round(np.degrees(np.arctan2(-pts[:, 2], pts[:, 0])) * 2).astype(int)
+    return _max_par_faisceau(pts, key)
+
+
+def _max_par_faisceau(pts, key):
+    order = np.lexsort((pts[:, 3], key))    # tri par faisceau puis intensité croissante
     ks = key[order]
     last = np.ones(len(ks), bool)
     last[:-1] = ks[1:] != ks[:-1]           # dernier de chaque faisceau = intensité max
@@ -100,64 +120,9 @@ def main():
                          delimiter=",", names=True)
     ts, th_slam = traj["time"], np.unwrap(traj["theta"])
     rng = np.random.default_rng(0)
-
-    # ── passe 1 : sondage — quelles sources sont de la VRAIE 3D ? ──────────
-    stds = {t: [] for t in TOPICS}      # std(z) intra-ping (sonar tilté oscillant)
-    stds_x = {t: [] for t in TOPICS}    # std(x) intra-ping (≈0 = fan transverse)
-    stds_y = {t: [] for t in TOPICS}    # std(y) intra-ping
-    frames = {}
-    seen = 0
     bag = rosbag.Bag(bag_path)
-    for topic, m, _ in bag.read_messages(topics=TOPICS):
-        seen += 1
-        if seen > 4 * N_SONDAGE:   # borne dure : un topic absent ne bloque pas
-            break
-        if len(stds[topic]) >= N_SONDAGE:
-            continue
-        pts = np.array(list(pc2.read_points(m, field_names=("x", "y", "z"),
-                                            skip_nans=True)))
-        if len(pts) > 10:
-            stds[topic].append(pts[:, 2].std())
-            stds_x[topic].append(pts[:, 0].std())
-            stds_y[topic].append(pts[:, 1].std())
-            frames[topic] = m.header.frame_id
-    retenus = []
-    for t in TOPICS:
-        if not stds[t]:
-            continue
-        med, p90 = float(np.median(stds[t])), float(np.percentile(stds[t], 90))
-        mx, my = float(np.median(stds_x[t])), float(np.median(stds_y[t]))
-        # Deux géométries de vraie 3D :
-        #  1. sonar tilté oscillant → std(z) intra-ping grand sur les pings inclinés
-        #     (p90 : le tilt alterne pings plats/3D ; le gate par ping en passe 2 trie).
-        #  2. profiler TRANSVERSE (fix §2.3ter) → fan dans le plan y-z : std(x)≈0 et
-        #     std(y) grand. Un fond plat donne std(z)≈0 par ping (r=prof/cosφ) → le
-        #     test std(z) le rejetterait à tort : on le détecte par sa géométrie x≡0.
-        transverse = mx < 0.05 and my > SEUIL_VRAIE_3D
-        ok = p90 > SEUIL_VRAIE_3D or transverse
-        geo = ("profiler transverse (méthode grottes)" if transverse
-               else "vraie 3D (gate par ping en passe 2)" if ok else "pseudo-3D (tranches), EXCLU")
-        print(f"{t} : std(z) méd {med:.2f}/p90 {p90:.2f} | std(x) {mx:.2f} std(y) {my:.2f} m "
-              f"({frames[t]}) → {geo}")
-        if ok:
-            retenus.append((t, transverse))
-    # Priorité au profiler TRANSVERSE : c'est la source STRUCTURELLE propre (1 paroi
-    # /faisceau, sections empilées → pilotis/treillis nets). Le sonar tilté, lui,
-    # « pulvérise » des fans radiaux (la bouillie qu'on veut éviter) → on l'exclut
-    # de la carte quand un profiler transverse est disponible.
-    transverses = [t for t, tr in retenus if tr]
-    if transverses:
-        retenus = transverses
-        print(f"→ carte STRUCTURELLE (méthode grottes) depuis {retenus} ; "
-              f"sonar tilté exclu (fans radiaux).")
-    else:
-        retenus = [t for t, _ in retenus]
-    if not retenus:
-        bag.close()
-        sys.exit("carte_3d : AUCUNE source vraie-3D dans ce bag — pas de carte "
-                 "(refus : une carte 2D-plaquée serait mensongère).")
 
-    # ── GT (dé-projection v3 si besoin + métrique) ──────────────────────────
+    # ── GT : lue AVANT la passe 1 (sert à dé-projeter les bags v3) + métrique ─
     gt_t, gt_x, gt_y, gt_z, gt_th = [], [], [], [], []
     for _, m, _ in bag.read_messages(topics=["/ground_truth"]):
         gt_t.append(m.header.stamp.to_sec())
@@ -169,6 +134,96 @@ def main():
     gt_th = np.unwrap(np.array(gt_th)) if gt_th else np.array([])
     has_gt = len(gt_t) > 0
 
+    def vers_vehicule(xyz, t, frame):
+        """v3 (frame_id=map) : monde → véhicule via la pose GT du même stamp
+        (décodage du format ; aucune info GT ne subsiste dans la carte finale)."""
+        if frame != "map":
+            return xyz
+        return rot_z(xyz - [np.interp(t, gt_t, gt_x), np.interp(t, gt_t, gt_y),
+                            np.interp(t, gt_t, gt_z)], -np.interp(t, gt_t, gt_th))
+
+    def lire(m):
+        """Nx4 (x,y,z,intensity) ; intensity=0 si le nuage n'en porte pas."""
+        has_i = any(f.name == "intensity" for f in m.fields)
+        ch = ("x", "y", "z", "intensity") if has_i else ("x", "y", "z")
+        p = np.array(list(pc2.read_points(m, field_names=ch, skip_nans=True)))
+        if not len(p):
+            return p.reshape(0, 4)
+        return p if has_i else np.c_[p, np.zeros(len(p))]
+
+    # ── passe 1 : sondage — quelles sources sont de la VRAIE 3D ? ──────────
+    # ⚠ Les std sont mesurées EN REPÈRE VÉHICULE (bags v3 dé-projetés d'abord).
+    # Sur les points bruts d'un bag `map`, le plan du fan tourne avec le cap :
+    # le verdict mesurerait le cap du robot pendant le sondage, pas la géométrie
+    # du capteur (traj2, spirale 720° : std(y) va de 0.00 à 8.41 m selon le cap).
+    stds = {t: [] for t in TOPICS}      # std(z) intra-ping (sonar tilté oscillant)
+    stds_x = {t: [] for t in TOPICS}    # std(x) intra-ping (≈0 = fan transverse)
+    stds_y = {t: [] for t in TOPICS}    # std(y) intra-ping (≈0 = fan vertical avant)
+    frames = {}
+    seen = 0
+    for topic, m, _ in bag.read_messages(topics=TOPICS):
+        seen += 1
+        if seen > 6 * N_SONDAGE:   # borne dure : un topic absent ne bloque pas
+            break
+        if len(stds[topic]) >= N_SONDAGE:
+            continue
+        pts = lire(m)[:, :3]
+        if len(pts) <= 10:
+            continue
+        fr = m.header.frame_id
+        if fr == "map":
+            if not has_gt:
+                continue
+            pts = vers_vehicule(pts, m.header.stamp.to_sec(), fr)
+        stds[topic].append(pts[:, 2].std())
+        stds_x[topic].append(pts[:, 0].std())
+        stds_y[topic].append(pts[:, 1].std())
+        frames[topic] = fr
+    LIB = {"vertical": "fan VERTICAL avant, le « + » (1 paroi/faisceau)",
+           "transverse": "profiler transverse (méthode grottes)",
+           "tilte": "vraie 3D (gate par ping en passe 2)"}
+    retenus = []
+    for t in TOPICS:
+        if not stds[t]:
+            continue
+        med, p90 = float(np.median(stds[t])), float(np.percentile(stds[t], 90))
+        mx, my = float(np.median(stds_x[t])), float(np.median(stds_y[t]))
+        # Trois géométries de vraie 3D, discriminées par le plan du fan :
+        #  1. fan VERTICAL AVANT (« + », §2.3quinquies) → plan x-z : std(y)≈0 et
+        #     std(z) grand. Source STRUCTURELLE : ce qu'on voit DEVANT.
+        #  2. profiler TRANSVERSE (fix §2.3ter) → plan y-z : std(x)≈0 et std(y)
+        #     grand. Un fond plat donne std(z)≈0 par ping (r=prof/cosφ) → le test
+        #     std(z) le rejetterait à tort : on le détecte par sa géométrie x≡0.
+        #  3. sonar tilté oscillant → std(z) intra-ping grand sur les pings inclinés
+        #     (p90 : le tilt alterne pings plats/3D ; le gate par ping en passe 2 trie).
+        vertical = my < SEUIL_PLAN and med > SEUIL_VRAIE_3D
+        transverse = mx < SEUIL_PLAN and my > SEUIL_VRAIE_3D
+        g = ("vertical" if vertical else "transverse" if transverse
+             else "tilte" if p90 > SEUIL_VRAIE_3D else None)
+        print(f"{t} : std(z) méd {med:.2f}/p90 {p90:.2f} | std(x) {mx:.2f} std(y) {my:.2f} m "
+              f"({frames[t]}, repère véhicule) → {LIB.get(g, 'pseudo-3D (tranches), EXCLU')}")
+        if g:
+            retenus.append((t, g))
+    # Priorité : fan VERTICAL avant > profiler TRANSVERSE > sonar tilté. Les deux
+    # premiers donnent 1 paroi/faisceau (sections empilées → structures nettes) ;
+    # le sonar tilté « pulvérise » des fans radiaux (la bouillie qu'on veut éviter)
+    # → il est exclu de la carte dès qu'une source structurelle existe.
+    geo_of = dict(retenus)
+    for pref in ("vertical", "transverse"):
+        sel = [t for t, g in retenus if g == pref]
+        if sel:
+            garde = sel
+            print(f"→ carte STRUCTURELLE ({LIB[pref]}) depuis {garde} ; "
+                  f"autres sources exclues.")
+            break
+    else:
+        garde = [t for t, _ in retenus]
+    if not garde:
+        bag.close()
+        sys.exit("carte_3d : AUCUNE source vraie-3D dans ce bag — pas de carte "
+                 "(refus : une carte 2D-plaquée serait mensongère).")
+    retenus = garde
+
     # ── passe 2 : construction PAR SOURCE (SLAM = livrable ; GT = réf métrique) ──
     S_by, G_by = {t: [] for t in retenus}, {t: [] for t in retenus}
     counters = {t: 0 for t in retenus}
@@ -179,39 +234,38 @@ def main():
         t = m.header.stamp.to_sec()
         if t > ts[-1] + 0.5:
             continue
-        prof = topic == "/profiler_points" and frames[topic] == "auv0"
-        if prof:
+        pts = lire(m)
+        if len(pts) < 3:
+            continue
+        if frames[topic] == "map":                 # v3 : monde → véhicule (GT)
+            if not has_gt:
+                continue
+            pts = np.c_[vers_vehicule(pts[:, :3], t, "map"), pts[:, 3]]
+        g = geo_of[topic]
+        if g == "vertical":
+            # fan VERTICAL AVANT (y≡0) : 1 retour fort par ÉLÉVATION = la paroi
+            # vue de face. PAS de gate std(z) par ping : le fan balaye x-z, c'est
+            # de la vraie 3D par construction.
+            pts = per_beam_max_xz(pts)
+        elif g == "transverse":
             # profiler TRANSVERSE (x≡0) : réduction « grottes » 1 retour fort/faisceau.
             # PAS de gate std(z) par ping : un fond plat donne z≈cst (géométrie
             # r=prof/cos φ), c'est de la vraie 3D par construction (le fan balaye y-z).
-            pts = np.array(list(pc2.read_points(
-                m, field_names=("x", "y", "z", "intensity"), skip_nans=True)))
-            if len(pts) < 3:
-                continue
             pts = per_beam_max(pts)
             # ⚠ MIROIR y du profiler traj3 : les points /profiler_points ont l'axe
             # y INVERSÉ vs la convention véhicule (x avant, y GAUCHE) qu'attend
-            # rot_z. Preuve (09-09) : sans flip, les murs de quai imagés par le
+            # rot_z. Preuve (2026-07-09) : sans flip, les murs de quai imagés par le
             # profiler tombent à x≈+2/+38 (au CENTRE) ; avec y négé ils reviennent
             # PILE sur les quais du sonar horizontal (x≈−10/+59). Bug de repère du
             # bag (mount profiler) → à corriger idéalement côté générateur ; en
             # attendant, on le corrige ici pour une carte juste.
             pts[:, 1] = -pts[:, 1]
         else:
-            pts = np.array(list(pc2.read_points(m, field_names=("x", "y", "z"),
-                                                skip_nans=True)))
-            if not len(pts):
-                continue
+            pts = pts[:, :3]
             if pts[:, 2].std() <= SEUIL_VRAIE_3D:   # gate par PING : tranche plate
                 continue                             # (ex. tilt≈0) → exclue
             if len(pts) > 300:
                 pts = pts[rng.choice(len(pts), 300, replace=False)]
-        if frames[topic] == "map":                 # v3 : monde → véhicule (GT)
-            if not has_gt:
-                continue
-            gx = np.interp(t, gt_t, gt_x); gy = np.interp(t, gt_t, gt_y)
-            gz = np.interp(t, gt_t, gt_z); gth = np.interp(t, gt_t, gt_th)
-            pts = rot_z(pts - [gx, gy, gz], -gth)
         # composition pose SLAM (GT-free)
         w = rot_z(pts, np.interp(t, ts, th_slam))
         w += [np.interp(t, ts, traj["x"]), np.interp(t, ts, traj["y"]),
@@ -231,9 +285,13 @@ def main():
     # retire PAS de structure (leçon 08-08 : un filtre de verticalité agressif
     # vidait la carte, cf. SLAM_3D_MIGRATION.md).
     S = voxel_grid(S_full, 0.2)
-    kind = ("structurel — méthode grottes, 1 paroi/faisceau (voxel 0.2 m)"
-            if retenus == ["/profiler_points"]
-            else "nuage 3D complet (voxel 0.2 m)")
+    # étiquette = ce qui a RÉELLEMENT tourné (la géométrie retenue), pas le nom
+    # du topic : un /profiler_points monté à l'avant n'est pas « méthode grottes ».
+    gs = {geo_of[t] for t in retenus}
+    kind = ("structurel — fan vertical avant (« + »), 1 paroi/faisceau (voxel 0.2 m)"
+            if gs == {"vertical"} else
+            "structurel — méthode grottes, 1 paroi/faisceau (voxel 0.2 m)"
+            if gs == {"transverse"} else "nuage 3D complet (voxel 0.2 m)")
     G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.2) \
         if has_gt and any(G_by.values()) else None
     print(f"carte : {len(S_full):,} pts bruts → {len(S):,} pts ({kind})")
