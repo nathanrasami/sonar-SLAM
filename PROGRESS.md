@@ -1,6 +1,100 @@
-# PROGRESS — 2026-07-09 — carte 3D méthode grottes LIVRÉE (run 161938, GT-free NN 5.7 cm)
+# PROGRESS — 2026-07-10 — DÉCISION « + » + fusion McConnell ; guide v3 (traj4 + calibration) écrit
 
-## 🔵 REPRISE ICI (nouvelle discussion possible sans perte) — état 09-09 soir
+> ⚠ **Dates** : les tags `08-08`, `09-08`, `09-09` de ce fichier valent respectivement 8, 9 et
+> 9 juillet 2026. Le format `JJ-MM` s'est corrompu par recopie (preuve : `git log -S` sur les
+> en-têtes). **Écrire les nouvelles sections en ISO `AAAA-MM-JJ`.**
+> ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
+> La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
+
+## 🔜 REPRISE ICI — 2026-07-10 (soir) : orientation 3D DÉCIDÉE, guide v3 écrit, fusion à coder
+
+**Brainstorm Nathan** (`3D_BRAINSTORM.md`) : le « + » ne couvre pas les côtés (fan vertical fin en
+azimut) → comment faire « de la 3D en toute circonstance » ? Discussion état de l'art menée.
+
+**Décision Nathan : « + » + fusion type McConnell.** Pipeline Bruce 2D INTACT (pas de Pose3),
+sonar vertical hors pipeline SLAM, et côté analyse une VRAIE fusion des 2 fans dans leur volume
+de recouvrement (remplace le simple comblage).
+- Craintes du brainstorm réfutées PAR NOS MESURES (pas d'opinion) : « loops rejetées à cause du
+  Δz » — non (196/218 candidates à |Δz|<0.20 m échouent aussi ; verrou = ICP simu ; z=−depth
+  absolu ne dérive jamais → aucune fermeture en z nécessaire) ; « il faut un SLAM 3D pour la
+  carte 3D » — non (test pose GT parfaite : la carte bave pareil, réfuté 08-07).
+- Problème réel identifié = **COUVERTURE volumétrique** (aucun montage fixe de fans 2D ne voit
+  tout instantanément) → résolu par la TRAJECTOIRE (leçon Girona) : yaw-sweeps (le fan vertical
+  balaie comme un phare) + variation z (strates du sonar SLAM sur les côtés).
+
+**État de l'art (vérifié en ligne 07-10)** :
+- ★ McConnell, Martin & Englot IROS 2020 *Fusing Concurrent Orthogonal Wide-aperture Sonar
+  Images* (arXiv 2007.10407) = EXACTEMENT notre « + » ; **code `jake3991/StereoFLS`, MÊME AUTEUR
+  que Bruce-SLAM**. Suite : *Large-Scale Dense 3D Mapping Using Submaps Derived From Orthogonal
+  Imaging Sonars* (arXiv 2412.03760) — à lire AVANT de coder la fusion.
+- Réserve : Predictive 3D Sonar Mapping ICRA 2021 (arXiv 2104.03203), inférence hors recouvrement.
+- À lire par sections avec Nathan : Girona (Palomer/Ridao, sonar+laser, couverture par balayage).
+- Écartés : Compact 3D Sonar (Water Linked 3D-15, arXiv 2510.18991) = autre capteur, pas de
+  modèle HoloOcean ; Sonar-MASt3R ICRA 2026 = exige une caméra optique.
+
+**Guide v3 écrit (07-10 soir)** : header « 2 changements » ; §1.1 réf. McConnell ; §1.2 stamps
+appariés (E5) + ouvertures à déclarer ; **§1.5 traj4** = phase A calibration (C1 statique 10 s /
+C2 yaw-sweep 360° / C3 ascenseur ±3 m) + phase B carré 2 tours z −4/−8 m, yaw-sweep ±90° aux
+coins, approche bateau ±45° ; checks **E5 synchro / E6 recouvrement / E7 couverture** ; bag court
+`--test 150` (contient la phase A).
+
+**Reste à faire (ordre)** :
+1. Nathan relit le guide → envoi au collègue.
+2. Coder la fusion « + » (`analysis/fusion_plus.py`, à la StereoFLS : appariement pings par
+   stamp, match par range dans le recouvrement) — **proto possible dès maintenant sur traj2**
+   (/profiler_points = fan vertical avant + /sonar), sans attendre le bag.
+3. NON VÉRIFIÉ précédent toujours ouvert : chemin `/sonar_vert_points` en auv0 de carte_3d.py
+   (diff non commité) — test = bag forgé depuis traj2.
+4. À l'arrivée du bag : revérifier E1–E7 ici, run SLAM, carte + fusion.
+
+## 🔵 (précédent) 2026-07-10 matin : `carte_3d.py` préparé pour `/sonar_vert_points` (NON COMMITÉ)
+
+**Contexte** : préparer la carte 3D « avant » pour qu'à l'arrivée du bag du collègue elle sorte
+en UNE commande, sans debug. Validation possible dès maintenant car **traj2 a déjà la géométrie
+x-z** (son `/profiler_points` est un fan vertical avant).
+
+**Diff de 125 lignes sur `analysis/carte_3d.py`, sur le disque, NON commité.** Contenu :
+- `/sonar_vert_points` ajouté à `TOPICS` ;
+- détection du fan **x-z** en passe 1 (`std(y) < 0.05` et `std(z) > 0.5`), à côté du transverse ;
+- priorité **vertical > transverse > sonar tilté** (le vertical est la source structurelle) ;
+- `per_beam_max_xz()` : 1 retour fort par **élévation** `atan2(-z, x)`, bin 0.5° ;
+- **GT lue AVANT la passe 1** pour dé-projeter les bags `frame_id=map` — voir le piège ci-dessous ;
+- étiquette de carte fondée sur la géométrie retenue, plus sur le nom du topic (l'ancienne
+  affichait « méthode grottes, 1 paroi/faisceau » alors que `per_beam_max` ne tournait pas,
+  sa branche exigeant `frame_id=auv0`).
+
+**Mesures observées** (sorties d'outil, cartes écrites dans le scratchpad, livrables non touchés) :
+
+| | témoin (avant) | après |
+|---|---|---|
+| traj2 (run 105410) — NN carte-GT-free vs carte-GT | 0.057 / 0.101 m | **0.053 / 0.101 m** |
+| traj2 — pts bruts → voxels | 126 811 → 17 968 | 81 191 → **14 601** |
+| traj2 — colonnes verticales 0.5 m | 505 | **524** |
+| traj2 — épaisseur locale des murs (ACP) | 3.6 cm (p90 6.9) | **3.4 cm (p90 6.3)** |
+| traj3 (run 161938, figé) — NN, voxels | 0.057 / 0.097 m, 197 788 | **identiques** |
+
+Enveloppe x/y/z de traj2 identique à 2 cm : `per_beam_max_xz` supprime les échos redondants **le
+long du faisceau**, pas les murs. Non-régression stricte sur le chemin transverse.
+
+**🚨 Piège de fond découvert (ce qui a coûté le plus)** : tester la géométrie d'un fan EXIGE le
+**repère véhicule**. traj2 est une spirale de **720° de cap** ; sur ses points bruts (`frame_id=map`)
+`std(y)` oscille de **0.00 à 8.41 m** selon le cap, alors qu'en repère véhicule il vaut **0.00
+partout**. Le `std(x)=7.19 std(y)=0.00 std(z)=1.74` cité par le guide §1.1 et par ce fichier a été
+mesuré sur les 60 premiers messages, au cap ≈ 0 : conclusion juste, preuve accidentelle. Le check
+E1 du guide dit bien « en repère véhicule » → le collègue n'est pas induit en erreur.
+
+**NON VÉRIFIÉ — reste à faire** : le chemin `/sonar_vert_points` en `auv0` n'a **jamais** été
+exercé (traj2 fournit la géométrie, mais sous le nom `/profiler_points` et en `frame_id=map`).
+Pour le prouver sans le bag du collègue : forger un bag depuis traj2 en renommant le topic et en
+dé-projetant les points vers `auv0`, puis lancer `python3 analysis/carte_3d.py <run>` et vérifier
+que la source retenue est bien `/sonar_vert_points`, géométrie « vertical », `/sonar_points` exclu.
+Décider ensuite : commiter le diff, ou le remiser.
+
+**Attendu du collègue** : bag avec `/sonar_vert` + `/sonar_vert_points` en **`frame_id=auv0`**
+(le piège fatal est `map`, l'erreur exacte de traj2 : pose GT cuite dans les points → carte non
+GT-free → inutilisable), E1–E4 tous PASS loggés au §4 du guide, bras de levier exact déclaré.
+
+## 🔵 (précédent) — carte 3D structurelle GT-free livrée — état du 2026-07-09 au soir
 **FAIT — carte 3D structurelle GT-free livrée.** Run `run_holoocean_2026-07-09_161938`
 (bag traj3 FINAL corrigé, profiler boresight-bas §2.3ter). Chaîne complète, vérifiée :
 - **Bag** : CHECK A/B/C revérifiés par moi (reproj pose GT) : A=0 % z>0, B=1.09M g/1.26M d,
@@ -52,14 +146,16 @@ ne veut pas cartographier ce qu'on longe ni le fond, mais **ce qu'on voit DEVANT
 **Décision d'architecture 09-09** : ajouter un **2ᵉ sonar à l'avant, identique au sonar SLAM mais
 tourné de 90° autour de l'axe d'avance** (`rotation=[90,0,0]`) → fan dans le plan **x-z** (haut/bas).
 Vu de face : `−` (SLAM) + `|` (nouveau) = `+`. Son ambiguïté est en azimut (échos hors axe rabattus).
-- Spec = **guide §2.3quinquies** : topics `/sonar_vert` + `/sonar_vert_points` (**`auv0` obligatoire**) ;
+- Spec = **guide §1** (ex-§2.3quinquies, renuméroté) : topics `/sonar_vert` + `/sonar_vert_points` (**`auv0` obligatoire**) ;
   checks E1–E4 ; réalisme IRL (porteuses différentes 750 kHz/1.2 MHz → pings simultanés valides sans
   crosstalk ; bras de levier déclaré ~0.15 m ; tilt du sonar SLAM à 0) ; profiler transverse déclassé.
 - **Déjà validé sur données existantes** : `holoocean_3d_traj2.bag` a cette géométrie
-  (`std(x)=7.19 std(y)=0.00 std(z)=1.74`) → **murs verticaux nets z=−11..+6 m**. Rendu :
+  (`std(y)=0.00` **en repère véhicule**, à tous les caps — les chiffres bruts `7.19/0.00/1.74`
+  n'étaient vrais qu'au cap ≈ 0) → **murs verticaux nets z=−11..+6 m**. Rendu :
   `results/traj2_plus_3d.html`. Limite connue/assumée : bavure hors axe (ambiguïté d'azimut).
 - 🚨 traj2 est en `frame_id=map` → **GT cuite dans les points**. Le nouveau bag DOIT être en `auv0`.
-- Blocage : le collègue livre le bag. Rien à coder côté SLAM avant (ce sera un ajout à `carte_3d.py`).
+- Blocage : le collègue livre le bag. ⚠ **Périmé** : « rien à coder côté SLAM avant » — l'ajout à
+  `carte_3d.py` est fait (non commité), voir §REPRISE ICI du 2026-07-10.
 
 ## ✅ 09-09 — hypothèse Δz sur les loops : RÉFUTÉE (mesure, pas opinion)
 
