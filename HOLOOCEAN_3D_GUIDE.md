@@ -210,5 +210,15 @@ sonar SLAM, azimut de `/sonar_vert`), et comment tu as géré la fréquence (par
      surface/plafond du monde → **filtrer z<0** en aval (déjà prévu).
   4. Bateau ciblé par l'approche §1.5 : posé au fond le long du quai EST sud,
      centre (524.0, −680.5), vu à z −8..−11.
-  5. Essai 1 : crash moteur mi-run (NVRM Xid 13, exception GPU thread de rendu, aléa
-     connu) → relance identique = PASS. En cas de récidive : relancer.
+  5. Crashs moteur mi-run (NVRM Xid 13 « Shader Program Header Error », 2× : t=94 s et
+     t=200 s) : le VIEWPORT principal était le déclencheur → **fix `show_viewport=False`**
+     dans holoocean.make (les sonars ont leur propre chaîne de capture, données inchangées —
+     vérifié E1–E7 identiques avant/après).
+
+### 2026-07-11 (après-midi) — **bag COMPLET généré : E1–E7 TOUT PASS**
+
+`BAG_files/holoocean_3d_traj4.bag` : **6486 pings, 1297 s (21.6 min), 10.3 Go**, généré en
+~30 min avec `show_viewport=False` (aucun crash, alors que 2 tentatives avec viewport sont
+mortes à t=94/200 s). Mesures E1–E7 identiques au bag court : E1 std y 0.000 · E2 ±60.0° ·
+E3 100 % (n=180 186) · E4 dérive front 0.03 m · E5 6486/6486 appariés, 0.0 ms · E6 0.02 m ·
+E7 360° (160° sous l'eau). Prochaine étape : run SLAM + carte_3d + fusion_plus.

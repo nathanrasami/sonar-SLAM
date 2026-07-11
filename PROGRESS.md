@@ -29,14 +29,21 @@ moyennées) — seul le ProfilingSonar le voyait → C1 rapproché à 5.2 m, sin
 ③ crash moteur mi-run possible (NVRM Xid 13, aléa GPU, 1×/3 runs) → relancer, ça reprend ;
 ④ python bufferise : toujours `python -u` pour un log en direct.
 
+**✅ Bag COMPLET généré et VÉRIFIÉ (15:45)** : `BAG_files/holoocean_3d_traj4.bag` — 6486
+pings, 1297 s, 10.3 Go, **E1–E7 TOUT PASS** (mesures identiques au bag court). ⚠ 2 crashs
+GPU mi-run avant le fix (`NVRM Xid 13 Shader Program Header Error`, t=94/200 s, moteur
+zombie + python suspendu + bag figé) → **cause = le VIEWPORT principal ; fix
+`show_viewport=False`** dans holoocean.make (données sonar inchangées, E-checks ×2
+identiques). Piège log : `python -u` obligatoire.
+
 **Reste à faire (ordre)** :
-1. Bag COMPLET (~21.6 min sim, ~12 Go estimé) : `~/…/holoocean-venv/bin/python -u
-   gen_bag_3d_v4.py` puis `check_traj4.py BAG_files/holoocean_3d_traj4.bag` (E1–E7 again).
-2. Run SLAM : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj4.bag ./run_slam.sh holoocean`
-   (⚠ /sonar_points redevient plat std(z)≈0 : NORMAL, guide §3).
-3. `./analyse.sh 3D <run>` : carte_3d doit détecter `/sonar_vert_points` (chemin JAMAIS
+1. Run SLAM (Nathan) : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj4.bag ./run_slam.sh holoocean`
+   (⚠ /sonar_points redevient plat std(z)≈0 : NORMAL, guide §3 — la 3D vient du vert).
+2. `./analyse.sh 3D <run>` : carte_3d doit détecter `/sonar_vert_points` (chemin JAMAIS
    exercé + diff 125 lignes non commité — mémoire `carte-3d-fan-vertical-prep`) ;
    puis `fusion_plus.py` avec `--ap-hor 6 --ap-vert 6` (ouvertures déclarées §4).
+3. À regarder dans la carte : l'approche bateau (t sim 1140-1235, cible (524,−680.5)) et
+   les coupes 3D des quais aux yaw-sweeps des coins.
 
 ## (clos) 2026-07-11 (nuit) : HoloOcean local OPÉRATIONNEL — traj4 était l'étape suivante
 

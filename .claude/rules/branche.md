@@ -8,6 +8,7 @@
 - Analyse : `./analyse.sh <run>` = rapport + paper_eval + bilan (unifiés 07-07).
 - Analyse dédiée : holoocean_report.py via ./analyse.sh (étiquettes DR IMU+DVL).
 - 3D « + » (2ᵉ sonar VERTICAL avant, McConnell) : générateur LOCAL `gen_bag_3d_v4.py`
-  (traj4, guide §1) + `check_traj4.py` (E1–E7) — bag court TOUT PASS 2026-07-11, mesures
-  au guide §4. venv HÔTE : `../holoocean-venv/bin/python -u` (jamais le conteneur).
+  (traj4, guide §1) + `check_traj4.py` (E1–E7) — bags court ET complet (10.3 Go) TOUT PASS
+  2026-07-11, mesures au guide §4. venv HÔTE : `../holoocean-venv/bin/python -u` (jamais le
+  conteneur) ; `show_viewport=False` obligatoire (crashs GPU Xid 13 sinon).
   ⚠ /sonar_points traj4 = plat (tilt 0, NORMAL, guide §3) ; la 3D vient de /sonar_vert_points.

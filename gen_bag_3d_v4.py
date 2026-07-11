@@ -230,7 +230,11 @@ def main():
     t, next_sonar, n_pings = 0.0, 0.0, 0
     zero3 = np.zeros(3)
 
-    with Writer(out) as bag, holoocean.make(scenario_cfg=make_cfg()) as env:
+    # show_viewport=False : le viewport principal declenchait des crashs GPU
+    # NVRM Xid 13 « Shader Program Header Error » mi-run (2026-07-11, 2 crashs :
+    # t=94 s et t=200 s) ; les sonars ont leur propre chaine de capture.
+    with Writer(out) as bag, holoocean.make(scenario_cfg=make_cfg(),
+                                            show_viewport=False) as env:
         c_imu = bag.add_connection('/imu', Imu.__msgtype__, typestore=typestore)
         c_dvl = bag.add_connection('/dvl', TwistStamped.__msgtype__, typestore=typestore)
         c_son = bag.add_connection('/sonar', Image.__msgtype__, typestore=typestore)
