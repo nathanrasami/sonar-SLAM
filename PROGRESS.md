@@ -52,6 +52,16 @@ identiques). Piège log : `python -u` obligatoire.
 - Génération autonome pour la suite : **`./gen_traj4.sh [--test 150]`** (crash-retry ×3 +
   E-checks + notification bureau — commit 494de9f).
 
+**🔎 17-19 h : « quais à peine visibles » DIAGNOSTIQUÉ (FABLE.md §9)** — la carte détecte
+TOUT ce qui existe (le blob bleu = mur Γ au mètre près ; tirets = pilotis ; bassin réellement
+vide, fond muet en rasante) mais elle est squelettique (21 pts/KF) : nos images sonar sont
+15× plus faibles que test.bag du collègue (max méd 0.265 vs 0.776) or `filter.threshold: 50`
+a été calibré sur SES images → il coupe la bande 26-50 où vivent les échos de pilotis
+(quai EST 9,5 m : 37 px ≥50 vs 300 px ≥30 ; bruit p99 = 8-9 mono8, marge ×3 à seuil 30).
+**DÉCISION NATHAN attendue** : A) `filter.threshold 50→30` + re-run ×2 (config figée, R3) ·
+B) carte 2D offline depuis /sonar_points (zéro impact SLAM) · C) 3D = couverture (traj5
+sweeps / fusion patchs), pas un seuil.
+
 **Reste à faire (pistes ouvertes, plus rien de bloquant)** :
 1. Regarder les html (carte_3d, fusion_plus) : coupes 3D du bateau (t sim 1140-1235) et des
    quais aux sweeps — juger visuellement si la couverture « phare » suffit ou si traj5 doit

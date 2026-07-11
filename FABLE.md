@@ -276,3 +276,42 @@ Directive : partir des 2 bases (traj `Bruce_Sonar_USBL` + carte `Bruce`) pour un
   la table ISOPoT). MCFAR en réserve.
 - Papier doctorante : **`BRUCE_SLAM.md`** (branche Bruce) — original vs modifications,
   ablation A/B/B′ (+ verdict B″ §6.1 à intégrer après RU5).
+
+## 9. 2026-07-11 — « on ne détecte pas grand-chose » (carte 2D traj4 pauvre) : DIAGNOSTIQUÉ
+
+**Symptôme** (Nathan) : sur la carte 2D du run `160434` (traj4), les quais sont à peine
+visibles ; la 3D, qui s'appuie dessus, paraît pire. 16 105 pts / 758 KF ≈ **21 pts/KF**.
+
+**Ce que la carte montre VRAIMENT (élucidé, rien de faux)** : tout ce qui existe est détecté —
+quai OUEST = ligne fine (x_SLAM≈−63) ; quai EST = tirets (pilotis pleine hauteur + bavure
+radiale) ; **le « blob bleu » (−57..−41, y≈15) = mur Γ** (monde : segment y=−645, x 464→485
++ retour x=485 vers le sud — géométrie de `pierharbor-geometrie-monde` au mètre près).
+Le reste du bassin est RÉELLEMENT vide (fond muet à l'ImagingSonar en incidence rasante).
+
+**Mécanisme (chaîne causale complète, mesures scratchpad `scan_sonar_intensity/thresholds.py`)** :
+1. Nos bags v3/v4 sortent des images FAIBLES : max/ping méd **0.265** brut (p90 0.398,
+   plafond 0.485 ≈ le « ≤0.47 » noté dans le bridge 07-08). Pilotis fins = peu de hits
+   octree/bin. Pas un effet distance (méd stable 0.24–0.28 de 0 à 80 m).
+2. Le TÉMOIN test.bag (collègue, champion 0.13 m) : max méd **0.776, sature à 1.0**,
+   **15 679 px ≥ seuil 50**/ping (méd) contre **100** chez nous (×157) — images speckle
+   pleines, autre monde (« Bruce_slam_nathan »/Charuco), autre dynamique.
+3. `feature_holoocean.yaml filter.threshold: 50` a été calibré (07-03) sur CETTE dynamique-là
+   → sur nos images il coupe la bande 26–50 où vivent la plupart des échos de pilotis :
+   frame quai EST à 9,5 m : 37 px ≥50 vs **300 px ≥30** (×8) ; bateau ×6 ; méd bag ×3.2.
+4. Bruit mesuré (frames quasi vides) : p99 image = 0.031–0.034 ≈ **8–9 mono8** → un seuil 30
+   garde ×3 de marge ; le CFAR (contraste local) ne laissera pas passer le speckle de toute façon.
+
+**Hypothèses rejetées** : « échos trop faibles car quais trop loin » (méd plate vs distance) ;
+« mes modifs traj4 » (même plafond ~0.47 que les bags traj1-3, config sonar = briques v3
+inchangées) ; « c'est le rendu/aval » (le CSV ne contient vraiment que ~21 pts/KF).
+
+**Options (config CHAMPION FIGÉE — accord Nathan requis avant tout édit, R3)** :
+- **A (recommandée)** : `filter.threshold 50→30` (1 variable) + re-run traj4 ×2 → attendu
+  carte ×3 plus dense (quais nets), vérifier ATE (témoin 0.04 m) et NSSM.
+- **B (zéro impact SLAM)** : carte 2D densifiée OFFLINE en projetant `/sonar_points`
+  (seuil génération 0.10≈26, repère véhicule) le long des poses SLAM — livrable rendu only.
+- **C (3D)** : la maigreur 3D est un problème de COUVERTURE (fan vertical étroit, « phare »),
+  pas de seuil (`/sonar_vert_points` déjà à 0.10) → traj5 avec plus de sweeps, ou fusion
+  patchs polaires (StereoFLS) déjà listée.
+- NON recommandé : régénérer les bags avec la dynamique bruitée du collègue (du bruit pour
+  faire plaisir aux seuils = non-sens ; mieux vaut calibrer les seuils sur NOS images propres).
