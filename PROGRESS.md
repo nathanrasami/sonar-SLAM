@@ -19,9 +19,22 @@ aléatoires) puis tout lancer. **FAIT — chaîne complète holoocean→ros→an
   NN 0.064, p90 0.693→0.261** ; fusion **M1 0.122/0.268, M2 0.034/0.112** (le doute M2 p90
   de traj4 s'est résorbé → venait de la géométrie carré, hypothèse non prouvée) ;
   carte_2d_dense_s30 : 25 455 cellules, **2 quais en échelles complètes** (le rendu voulu).
-**Reste** : décision suppression bags `_avant_fix_miroir` (2×11.5 Go) + `traj4`/`traj4_test`
-si traj5 devient LA référence · loops SC sur traj5 (2 tours, même tirage → revisites propres) ·
-fusion patchs polaires (StereoFLS) · option threshold 50→30 pipeline (en réserve).
+**Suite de soirée (directives Nathan, FABLE §10-bis)** : résidus 3D ÉLUCIDÉS et DÉGAGÉS —
+① surface 31 % (robot à z −2.3, miroir acoustique) ; ② « coin » = FANTÔME du mur Γ rabattu
+(ouverture hors-plan réelle du SonarVert ~±20° vs ±3° annoncés, PIEGES #15 ; réfuté comme
+structure par le profiler traj3). Filtre anti-résidus dans `carte_3d.py` (surface + cohérence
+2D + exemption fond, opt-out `--brut`) : carte 222233 = 18 126 pts PROPRE. ⚠ NN honnête
+0.107/0.733 (l'ancien 0.064/0.261 était flatté par les artefacts — ne comparer qu'à contenu
+égal). **traj6 « tout capter » (accord Nathan) : FAISABLE, testé** — ProfilingSonar
+Azimuth=360 rend (512×720) ; cible = 3 capteurs : /sonar + /sonar_vert + profiler TRANSVERSE
+360° ([90,0,90], RangeMax 20, 720 bins).
+
+**Reste (traj6 en tête, NOUVELLE session recommandée)** :
+1. gen v6 = v5 + profiler transverse 360° + /profiler_points (⚠ vérifier le signe latéral,
+   E9 dédié type E8) ; 2. carte_3d : FUSIONNER vert+transverse (aujourd'hui priorité
+   exclusive) + étendre l'anti-résidus au transverse ; 3. chaîne complète gen→run→analyses.
+Puis : décision suppression bags `_avant_fix_miroir` + traj4 (~34 Go) · loops SC traj5 ·
+fusion patchs polaires (StereoFLS) · threshold 50→30 pipeline (en réserve).
 
 ## (clos soir) 2026-07-11 : B′+D EXÉCUTÉS (fix miroir + carte dense), tout PASS
 

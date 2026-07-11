@@ -417,3 +417,33 @@ analyse.sh + fusion_plus + carte_2d_dense.
 **Livrables** : bag `BAG_files/holoocean_3d_traj5.bag` (+ court) · run `222233` complet
 (bilan, carte_3d, fusion_plus, carte_2d_dense_s30) · générateur `gen_bag_3d_v5.py` +
 `gen_traj5.sh` (commit de66a1e).
+
+### §10-bis — résidus 3D traj5 ÉLUCIDÉS + filtre + faisabilité traj6 (directives Nathan)
+
+**Deux artefacts distincts, tous deux mesurés puis dégagés (carte_3d.py, opt-out `--brut`)** :
+1. **Surface** (31 % de la carte, 11 201 pts) : miroir acoustique vu de près quand le robot
+   monte à z −2.3 (traj4 : 8 % seulement, il restait à −4/−9.5). Coupe z > −1.8 (GT-free).
+2. **« Coin » sous la traj à droite du quai OUEST = FANTÔME hors-plan** — chaîne complète :
+   hypothèse « bruit faible gardé par per-beam-max » RÉFUTÉE (I méd 0.229 > quais 0.174) ;
+   hypothèse « vraie structure jamais vue » RÉFUTÉE par capteur indépendant (profiler
+   transverse traj3, 197 788 pts : 0 point dans z [−18,−4] à cet endroit, seulement le fond) ;
+   mécanisme CONFIRMÉ analytiquement : depuis le corridor (485,−642) cap OUEST, la face du
+   mur Γ (portée 13.1 m, élév −38°) est à ~17-20° HORS du plan du fan vertical et entre
+   quand même → rabattue sur le plan → nappe fantôme (z≈−13, y≈−640, 111 pings).
+   **L'ouverture hors-plan réelle du SonarVert est >> ±3° annoncés** (PIEGES #15).
+**Filtre carte_3d** : surface (z>−1.8) + cohérence 2D (point vertical gardé si ≤2 m x-y d'un
+point de pointcloud.csv, translation SLAM→GT gérée) + exemption FOND (z < p03+1.5, invisible
+au fan horizontal). Run 222233 : 90 709 → 49 129 pts (−24 661 surface, −16 919 fantômes) →
+carte 18 126 pts PROPRE (quais/Γ/bateau/fond intacts, vérif visuelle).
+⚠ MÉTRIQUE HONNÊTE : NN carte passe de 0.064/0.261 à **0.107/0.733** — l'ancien chiffre était
+FLATTÉ par les artefacts (grandes nappes cohérentes qui se matchent parfaitement entre les
+versions GT-free et GT). Comparer les NN à CONTENU ÉGAL uniquement.
+
+**traj6 « tout capter » (accord Nathan si couverture complète) — FAISABLE, testé** :
+`ProfilingSonar` accepte **Azimuth=360** (image 512×720 rendue, test 30 ticks à P_A cap nord :
+quai+fond visibles, 3/12 secteurs occupés = normal en port ouvert). Config cible : 3 capteurs =
+/sonar (horizontal, devant G-D) + /sonar_vert (« + », devant H-B) + profiler TRANSVERSE 360°
+rotation [90,0,90], RangeMax 20 m, 720 bins 0.5° (flancs/haut/bas au passage). Reste à coder :
+gen v6 (v5 + capteur + /profiler_points via sonar_to_points3d_msg r_mount transverse — vérifier
+le signe, E-check E9 dédié), carte_3d : FUSIONNER les sources structurelles vert+transverse
+(aujourd'hui priorité exclusive au vert) + étendre le filtre anti-résidus au transverse.

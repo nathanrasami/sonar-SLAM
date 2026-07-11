@@ -106,6 +106,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
     ap.add_argument("--bag", default=None)
+    ap.add_argument("--brut", action="store_true",
+                    help="désactive le filtre anti-résidus (surface + fantômes "
+                         "hors-plan, cf. FABLE §10-bis / PIEGES #15)")
     a = ap.parse_args()
     bag_path = a.bag
     if bag_path is None:
@@ -278,6 +281,53 @@ def main():
             G_by[topic].append(g[g[:, 2] < 0])
     bag.close()
     S_full = np.vstack([p for lst in S_by.values() for p in lst])
+
+    # ── Filtre anti-résidus (2026-07-11, FABLE §10-bis) — désactivable --brut ─
+    # Deux artefacts MESURÉS du fan vertical (validés contre le profiler
+    # transverse indépendant de traj3, qui ne voit RIEN à ces endroits) :
+    #  1. SURFACE : miroir acoustique vu de près quand le robot est haut
+    #     (traj5 z=-2.3 → 31 % de la carte) → coupe z > -1.8 (z = pression,
+    #     GT-free).
+    #  2. FANTÔMES HORS-PLAN : l'ouverture azimut réelle du SonarVert laisse
+    #     entrer des structures fortes à ~20° hors du plan (mesuré : mur Γ
+    #     rabattu en nappe à z≈-13, y≈-640) → un point vertical n'est gardé
+    #     que s'il est CONFIRMÉ par la carte 2D du sonar horizontal (≤ 2 m en
+    #     x-y, pointcloud.csv du run) OU appartient au FOND (z < p03 + 1.5 m,
+    #     invisible au fan horizontal en rasante donc exempté).
+    def _anti_residus(P, tag, off=(0.0, 0.0)):
+        # off : translation repère SLAM -> repère de P (la branche GT est en
+        # monde absolu ; pointcloud.csv est en repère SLAM ancré au départ)
+        if len(P) == 0:
+            return P
+        n0 = len(P)
+        P = P[P[:, 2] < -1.8]
+        n_surf = n0 - len(P)
+        pc_csv = os.path.join(a.run, "pointcloud.csv")
+        n_ghost = 0
+        if os.path.isfile(pc_csv) and len(P):
+            m2d = np.genfromtxt(pc_csv, delimiter=",", names=True)
+            Q = np.stack([m2d["x"] + off[0], m2d["y"] + off[1]], axis=1)
+            cell = {}
+            for q in np.round(Q / 2.0).astype(np.int64):
+                cell[tuple(q)] = True
+            k = np.round(P[:, :2] / 2.0).astype(np.int64)
+            neigh = [(i, j) for i in (-1, 0, 1) for j in (-1, 0, 1)]
+            conf = np.array([any((x + i, y + j) in cell for i, j in neigh)
+                             for x, y in k])
+            z_fond = np.percentile(P[:, 2], 3)
+            keep = conf | (P[:, 2] < z_fond + 1.5)
+            n_ghost = int((~keep).sum())
+            P = P[keep]
+        print(f"filtre anti-résidus [{tag}] : -{n_surf} surface, "
+              f"-{n_ghost} fantômes hors-plan → {len(P):,} pts")
+        return P
+
+    if not a.brut and {geo_of[t] for t in retenus} == {"vertical"}:
+        S_full = _anti_residus(S_full, "SLAM")
+        off_gt = ((float(gt_x[0] - traj["x"][0]), float(gt_y[0] - traj["y"][0]))
+                  if has_gt else (0.0, 0.0))
+        G_by = {t: [_anti_residus(np.vstack(lst), "GT", off_gt)] if lst else []
+                for t, lst in G_by.items()}
 
     # ── CARTE = nuage 3D COMPLET, dédoublonné par voxel léger (densité) ─────
     # On garde TOUT (fond + structures) : c'est la carte honnête. Le voxel ne

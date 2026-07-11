@@ -155,3 +155,15 @@ Tous les `/sonar_points` (horizontaux) des bags traj1→4 sont donc en miroir du
 - Corollaire seuils : toute calibration aval (filter.threshold 50) faite sur test.bag
   du collègue (max méd 0.776, sature à 1.0) est invalide sur NOS bags (max méd 0.265,
   plafond 0.49) — comparer les dynamiques AVANT de calibrer (FABLE §9).
+
+## 15. HoloOcean : l'ouverture HORS-PLAN des sonars est bien plus large qu'annoncée (vécu : traj5, 07-11)
+
+Le SonarVert (« Elevation: 6 » = ±3° supposés hors du plan du fan) rend en réalité des échos
+de structures à **~17-20° hors-plan** (mesuré : mur Γ rabattu en nappe fantôme z≈−13 sur
+111 pings du corridor traj5 ; réfutation croisée par le profiler transverse traj3 = rien de
+réel à cet endroit). Conséquences :
+- Toute carte issue d'un fan fin SANS recoupement contient des fantômes rabattus de
+  structures fortes hors-plan → filtre de cohérence 2D de `carte_3d.py` (opt-out `--brut`).
+- ⚠ Une métrique NN carte-vs-GT est FLATTÉE par ces artefacts (nappes cohérentes qui se
+  matchent entre elles) : 0.064 avec artefacts vs 0.107 sans, sur la MÊME carte traj5.
+  Ne jamais comparer des NN à contenus différents.
