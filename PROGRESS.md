@@ -18,8 +18,20 @@ hypothèse Δz RÉFUTÉE (méd 0.03 m — le z se rejoue au tour 2). ⚠ Piège 
 par INDEX de KF ment (0.35 m d'artefact, stamps décalés) — toujours par temps.
 Défauts inchangés (nssm=false reste le bon réglage courant).
 
-**Reste (ordre suggéré)** : fusion patchs polaires (StereoFLS — lire arXiv 2412.03760
-AVANT de coder) · threshold 50→30 (réserve) · traj7 « au ras des quais » (demande Nathan
+**📓 Journal R3 (2026-07-12, directive Nathan « qu'on voit beaucoup mieux »)** :
+`bruce_slam/config/feature_holoocean.yaml` → `filter.threshold` **50 → 30**. Pourquoi :
+nos images sont 15× plus faibles que le test.bag qui a calibré le 50 (FABLE §9) ; la
+bande 26-50 des pilotis était coupée ; bruit p99 = 8-9 mono8 → 30 garde ×3 de marge.
+Émulation 07-11 : ×3.3 pts, quais lisibles, + de bavure assumée. **NON VALIDÉ pipeline**
+(émulation seulement) → à valider au prochain run traj6 vs témoins seuil 50 = 005329
+(carte) / 013055 (loops). Revert = ce seul champ. ⚠ Levier compagnon repéré, PAS touché
+(1 variable/essai) : `sonar_context.intensity_threshold: 95` calibré P900 alors que nos
+échos plafonnent ~125 mono8 → explique AUSSI les ring_key vides (FABLE §12) ; à abaisser
+(~25 ?) dans un essai loops SÉPARÉ.
+
+**Reste (ordre suggéré)** : valider threshold 30 (run traj6 + carte_2d_dense vs 005329)
+· fusion patchs polaires (StereoFLS — lire arXiv 2412.03760 AVANT de coder) · essai loops
+avec SC intensity_threshold abaissé · traj7 « au ras des quais » (demande Nathan
 2026-07-12) · ménage possible : traj6_test.bag (1.2 Go).
 
 ## (clos) 2026-07-12 : traj6 VALIDÉ bout en bout (run 005329) — passer à la SUITE DU SLAM

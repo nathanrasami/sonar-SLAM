@@ -10,7 +10,12 @@ CFAR:
 filter:
   # 07-03 : 80/10 ne laissait que ~29 pts/KF (murs lointains détectés mais quasi
   # invisibles). Le simu est propre (peu de speckle) → extraction plus généreuse.
-  threshold: 50
+  # 2026-07-12 : 50→30 (directive Nathan). Le 50 avait été calibré sur le test.bag
+  # du collègue, 15× plus intense que nos bags (FABLE §9) : la bande 26-50 des
+  # pilotis était coupée. Bruit p99 = 8-9 mono8 → 30 garde ×3 de marge ; émulation
+  # 07-11 : ×3.3 pts, quais lisibles (+ bavure assumée). Témoins seuil 50 :
+  # runs 005329 (carte) / 013055 (loops). Journal : PROGRESS §REPRISE 2026-07-12.
+  threshold: 30
   resolution: 0.5
   radius: 1.0
   min_points: 5
