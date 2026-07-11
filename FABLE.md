@@ -480,3 +480,18 @@ PASS (valeurs identiques) + E9 SKIP · carte_3d sur run 222233 → IDENTIQUE au 
 **Hypothèses rejetées** : mount = analogie Rz(90)@Rx(−90) (réfuté probe run 1) ·
 « --test 150 trop court pour E9b » (réfuté : z max −2.33 atteint dès la 1re minute
 d'errance). **Reste (runs Nathan)** : gen test → gen complet → run SLAM → analyses.
+
+### §11-bis — bag test traj6 E1–E9 TOUT PASS + préparation handoff Opus (2026-07-12 soir)
+
+**E9 mesuré sur bag réel** (--test 150, gen par Nathan) : latéral 55.8 % <1.5 m des
+structures vs **0.0 %** en miroir (n=4553) · fond 95.4 % dans [−21,−17] vs **0.0 %** en
+flip z (n=2251) → le mount mesuré au probe est confirmé sur bag, marges nettes. E1–E8
+inchangés vs traj5 (mêmes valeurs : E8 36.2/12.5 %). Bag complet en génération (nuit du 12).
+**Handoff Opus (Nathan n'a plus Fable demain)** : `TRAJ6_ANALYSE.md` (mode d'emploi + textes
+d'interprétation + interdits + STOP) et `analysis/compare_traj6.py` (ΔATE, couverture
+réf→run, apport transverse ; sans lecture de bag). Auto-test du script : 222233 vs lui-même
+→ ATE 0.048 m / cap RMS 0.07° / Δ 0.000 / NN 0.00 — cohérent avec les 0.05 m / 0.1° publiés
+(§10) ; l'alerte « apport 0 % » en self-compare est le comportement attendu.
+**Nettoyage bags (décision Nathan)** : −34 Go vérifiés (df 372→339 ; btrfs libère en
+asynchrone, ~20 s). Supprimés : traj1-3 (miroir), traj4 ×2, _avant_fix_miroir ×2,
+traj3_test. Gardés : traj5 ×2, traj6 ×2, test.bag, caves, ARACATI.

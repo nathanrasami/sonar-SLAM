@@ -6,27 +6,27 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 : traj6 « tout capter » CODÉ et vérifié — reste les RUNS (Nathan)
+## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj6 prêt à analyser — HANDOFF OPUS (plus d'accès Fable)
 
-**FAIT (FABLE §11, tout vérifié avant run)** : `gen_bag_3d_v6.py` (traj5 verbatim + profiler
-TRANSVERSE 360° [90,0,90] 20 m 512×720 @2 Hz → /profiler_points) · `gen_traj6.sh` (autonome,
-E1–E9) · `check_traj4.py` +**E9** (signes latéral+vertical du transverse, SKIP si topic
-absent) · `carte_3d.py` **fusion vert+transverse** + anti-résidus étendu + flip y restreint
-aux bags v3 (frame_id=map).
-- ⚠ **PIEGES #16** : mount transverse MESURÉ au probe (×2) = **Rz(90)@Rx(+90)** — le candidat
-  analytique Rz(90)@Rx(−90) mettait le fond au-dessus. Ne jamais déduire un mount HoloOcean
-  sur le papier.
-- Régressions PASS : traj5_test E1–E8 identiques + E9 SKIP · carte_3d 222233 IDENTIQUE
-  (18 126 pts, NN 0.107/0.733).
-**Séquence de runs (Nathan)** :
-1. `./gen_traj6.sh --test 150` (~10 min) → notification « TOUT PASS » attendue ; si E-check
-   FAIL → STOP, m'appeler.
-2. `./gen_traj6.sh` (bag complet ~35-60 min, ~12 Go) → même verdict attendu.
-3. `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj6.bag ./run_slam.sh holoocean` (UN seul run).
-4. `./analyse.sh 3D <run>` → m'appeler avec le nom du run pour l'analyse comparée
-   traj6 vs traj5 (222233) : ATE/cap, carte fusion, NN à contenu égal, fusion M1/M2.
-Puis : décision suppression bags `_avant_fix_miroir` + traj4 (~34 Go) · loops SC traj5 ·
-fusion patchs polaires (StereoFLS) · threshold 50→30 (en réserve).
+**État** : traj6 codé et vérifié (FABLE §11 ; PIEGES #16 : mount transverse MESURÉ
+Rz(90)@Rx(+90), figé). **Bag TEST : E1–E9 TOUT PASS** (E9 : latéral 55.8 % vs 0.0 % miroir,
+n=4553 · fond 95.4 % dans [−21,−17] vs 0.0 % flip z, n=2251 — marges nettes). **Bag COMPLET :
+génération lancée nuit du 12** (gen_traj6.log ; notification « traj6 : TOUT PASS ✅ »
+attendue en fin — sinon STOP).
+**Nettoyage bags (demande Nathan, −34 Go, 372→339 Go)** : SUPPRIMÉS traj1-3 de bag/ (MIROIR
+jamais réécrits, PIEGES #14), traj4 + traj4_test, les 2 `_avant_fix_miroir`, traj3_test.
+GARDÉS : traj5 (réf du run 222233), traj5_test (témoin régression), traj6 + traj6_test,
+test.bag, caves.bag, ARACATI. ⚠ Les runs ≤ 160434 ne sont plus re-analysables (artefacts
+archivés seulement).
+**Pour OPUS — tout est prêt, suivre `TRAJ6_ANALYSE.md`** (étapes exactes §2, références
+chiffrées §3, textes d'interprétation §4, interdits §5, critères STOP §6, consignation §7) :
+0. vérifier le verdict E1–E9 du bag complet ;
+1. `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj6.bag ./run_slam.sh holoocean` ;
+2. `./analyse.sh 3D <run>` ;
+3. `python3 analysis/compare_traj6.py results/<run>` (verdicts [1] ΔATE / [2] couverture /
+   [3] apport transverse — script AUTO-TESTÉ : self-compare 222233 → ATE 0.048 m,
+   cap 0.07°, Δ 0.000, NN 0.00 ✓).
+Puis : loops SC traj5 · fusion patchs polaires (StereoFLS) · threshold 50→30 (en réserve).
 
 ## (clos) 2026-07-11 (nuit) : traj5 ERRANCE VALIDÉE bout en bout — la trajectoire fait la carte
 
