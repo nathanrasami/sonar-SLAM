@@ -175,13 +175,15 @@ def R_from_rpy(r, p, y):
 FLOAT32 = 7
 
 def sonar_to_points3d_msg(img, p, rpy, header, thresh=0.10, r_mount=None,
-                          azimuth_deg=AZIMUTH_DEG):
+                          azimuth_deg=AZIMUTH_DEG,
+                          range_min=RANGE_MIN, range_max=RANGE_MAX):
     """img (RangeBins, AzimuthBins) -> PointCloud2 x,y,z,intensity, points MONDE.
     Pixel (i,j) = (range r_i, azimut a_j) dans le PLAN fin du sonar (elev ~0) :
     point capteur = r[cos a, sin a, 0] (x avant, y gauche) ; monde = p + R_wb @ pt.
-    r_mount : rotation de montage capteur->vehicule (ex. R_MOUNT_PROF vertical)."""
+    r_mount : rotation de montage capteur->vehicule (ex. R_MOUNT_PROF vertical).
+    range_min/max : portee du capteur (le sonar vertical traj4 est en 0.5-20 m)."""
     n_r, n_a = img.shape
-    rr = np.linspace(RANGE_MIN, RANGE_MAX, n_r)
+    rr = np.linspace(range_min, range_max, n_r)
     aa = np.deg2rad(np.linspace(-azimuth_deg / 2, azimuth_deg / 2, n_a))
     ii, jj = np.nonzero(img > thresh)
     if len(ii) == 0:

@@ -7,7 +7,7 @@
   répétables) → **0.13 m ×2**. Parité Bruce testable : `SSM=true ./run_slam.sh holoocean`.
 - Analyse : `./analyse.sh <run>` = rapport + paper_eval + bilan (unifiés 07-07).
 - Analyse dédiée : holoocean_report.py via ./analyse.sh (étiquettes DR IMU+DVL).
-- 3D à venir (bag du collègue) : HOLOOCEAN_3D_GUIDE.md **v2 07-07** (objectifs pour son
-  Fable 5) — robot À PLAT (« grande route », roll=0), départ DANS la structure, fix arcs
-  + fuite mur gauche ; Traj 1 = pseudo-3D (spirale profondeur, intra-msg ~0 NORMAL) ;
-  Traj 2 = vraie 3D par le SONAR (⚠ preuve = std(z) INTRA-message > 0.5 m).
+- 3D « + » (2ᵉ sonar VERTICAL avant, McConnell) : générateur LOCAL `gen_bag_3d_v4.py`
+  (traj4, guide §1) + `check_traj4.py` (E1–E7) — bag court TOUT PASS 2026-07-11, mesures
+  au guide §4. venv HÔTE : `../holoocean-venv/bin/python -u` (jamais le conteneur).
+  ⚠ /sonar_points traj4 = plat (tilt 0, NORMAL, guide §3) ; la 3D vient de /sonar_vert_points.

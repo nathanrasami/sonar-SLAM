@@ -6,7 +6,39 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-11 (nuit) : HoloOcean local OPÉRATIONNEL — prochaine étape = traj4
+## 🔜 REPRISE ICI — 2026-07-11 (midi) : traj4 CODÉE, bag court E1–E7 TOUT PASS — reste bag complet + runs
+
+**Fait (vérifié par la commande nue `check_traj4.py`)** : `gen_bag_3d_v4.py` RÉÉCRIT → traj4
+(guide §1) : 2ᵉ ImagingSonar VERTICAL avant (rotation [90,0,0], R_MOUNT_PROF, bras de levier
+[0,0,+0.15], RangeMax 20 m/512 bins = 3.8 cm, 256 col. élévation), tilt+`/sonar_tilt`+profiler
+SUPPRIMÉS, trajectoire par 60 segments (phase A C1 5.2 m/C2 360°/C3 ±3 m + transit + carré
+2 tours z −4/−8, sweeps ±90° aux coins, approche bateau à 8 m au tour 2), durée 21.6 min.
+Bag court `--test 150` (750 pings, 1.2 Go) : **E1–E7 TOUT PASS** — E1 std y 0.000 · E2 ±60.0° ·
+E3 100 % · E4 dérive front 0.03 m · E5 0.0 ms · E6 Δr 0.02 m · E7 360° (160° sous l'eau).
+Mesures + notes de terrain loggées au **guide §4** (entrée 2026-07-11).
+
+**Découvertes de la reco monde (traj3 reprojeté, AUCUN lancement moteur — note mémoire
+`pierharbor-geometrie-monde`)** : quais x=462/531.5 ; **mur interne « Γ » RÉEL que le ring
+traj3 TRAVERSAIT** (→ carré traj4 rétréci x∈[490,522]) ; **bateau localisé (524,−680.5)**,
+posé au fond le long du quai EST sud ; les blobs denses de /sonar_points dans la zone =
+ARTEFACTS (le profiler voit le fond nu au travers).
+
+**Pièges neufs (mesurés)** : ① le FOND ne renvoie RIEN à l'ImagingSonar (bruit pur, 50 images
+moyennées) — seul le ProfilingSonar le voyait → C1 rapproché à 5.2 m, sinon E2 infaisable ;
+② nappe d'échos surface à z≈+1.1 (bord +60°, ttes directions) → filtrer z<0 en aval ;
+③ crash moteur mi-run possible (NVRM Xid 13, aléa GPU, 1×/3 runs) → relancer, ça reprend ;
+④ python bufferise : toujours `python -u` pour un log en direct.
+
+**Reste à faire (ordre)** :
+1. Bag COMPLET (~21.6 min sim, ~12 Go estimé) : `~/…/holoocean-venv/bin/python -u
+   gen_bag_3d_v4.py` puis `check_traj4.py BAG_files/holoocean_3d_traj4.bag` (E1–E7 again).
+2. Run SLAM : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj4.bag ./run_slam.sh holoocean`
+   (⚠ /sonar_points redevient plat std(z)≈0 : NORMAL, guide §3).
+3. `./analyse.sh 3D <run>` : carte_3d doit détecter `/sonar_vert_points` (chemin JAMAIS
+   exercé + diff 125 lignes non commité — mémoire `carte-3d-fan-vertical-prep`) ;
+   puis `fusion_plus.py` avec `--ap-hor 6 --ap-vert 6` (ouvertures déclarées §4).
+
+## (clos) 2026-07-11 (nuit) : HoloOcean local OPÉRATIONNEL — traj4 était l'étape suivante
 
 **Fait (vérifié par le point d'entrée réel)** : `gen_bag_3d_v4.py --test 60` → PASS, bag
 311 Mo, 8 topics conformes (1201 msg @20 Hz ×4, 300 @5 Hz ×4). Chaîne complète : clone

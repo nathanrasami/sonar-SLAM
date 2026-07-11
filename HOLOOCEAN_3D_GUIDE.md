@@ -95,8 +95,11 @@ du MOUVEMENT (yaw-sweeps), pas d'un capteur en plus. Invariants conservés : rol
 partout, teleport analytique, vitesses et bruits de traj3.
 
 **Phase A — calibration, en DÉBUT de bag (~90 s). Le bag court des checks DOIT la contenir.**
-- **C1 — statique** (10 s) : immobile face à un mur de quai à ~10 m, à mi-profondeur d'eau.
-  Sert aux checks E4 (mur vertical) et E6 (recouvrement des 2 sonars).
+- **C1 — statique** (10 s) : immobile face à un mur de quai à **~5 m** (⚠ pas 10 : mesuré
+  2026-07-11, le FOND ne renvoie rien à l'ImagingSonar — bruit pur sur 50 images moyennées —
+  donc à 10 m les colonnes sous atan(prof/dist)≈47° sont muettes et E2 est infaisable ;
+  à 5.2 m le mur couvre ±62° d'élévation), à mi-profondeur d'eau.
+  Sert aux checks E2 (ouverture), E4 (mur vertical) et E6 (recouvrement des 2 sonars).
 - **C2 — yaw-sweep 360°** (~36 s à 10°/s) au même point : le fan vertical balaie tout l'azimut
   comme un phare. Sert au check E7.
 - **C3 — ascenseur** (±3 m en z, ~20 s) au même point, cap fixe : le sonar SLAM produit des
@@ -125,9 +128,11 @@ Le bag court doit contenir **toute la phase A (§1.5) + ~1 min de carré**.
   tomber à `z_monde < z_robot` ; un écho de la **surface** à `z_monde > z_robot`.
   **PASS si > 95 % des échos du fond sont sous le robot.** Si inversé → transpose la matrice de
   projection.
-- **E4 — structure verticale (pendant C1)** : reprojette le mur en monde.
-  **PASS si le mur apparaît comme une ligne VERTICALE** (étalement horizontal < 1 m sur ≥ 5 m de
-  hauteur), pas comme des rayons radiaux. **C'est le test qui prouve que la 3D avant est réelle.**
+- **E4 — structure verticale (pendant C1)** : reprojette le mur en monde. Le quai n'étant PAS
+  un plan (face + pilotis derrière + fond dans le champ), mesure le **FRONT** (p15 de la
+  coordonnée horizontale) **par bande de z de 1 m sur [−15, −3]**.
+  **PASS si le front dérive de < 1 m sur ≥ 5 bandes** — une projection radiale fausse ferait
+  dériver le front avec l'élévation. **C'est le test qui prouve que la 3D avant est réelle.**
 - **E5 — synchro** : chaque stamp de `/sonar` a son jumeau `/sonar_vert`.
   **PASS si 100 % des pings sont appariés à |Δt| < 20 ms.**
 - **E6 — recouvrement (pendant C1)** : le mur d'en face apparaît dans LES DEUX images polaires,
@@ -181,3 +186,29 @@ sonar SLAM, azimut de `/sonar_vert`), et comment tu as géré la fréquence (par
 émulation par `RangeMax` + cases de distance).
 
 **Blocage ?** Ne pas improviser une variante silencieuse : note-le ici et demande.
+
+### 2026-07-11 — exécution EN LOCAL (collègue indispo), bag court `--test 150` : E1–E7 TOUT PASS
+
+- Générateur : `gen_bag_3d_v4.py` réécrit (traj4) ; checks : `check_traj4.py` ; bag
+  `BAG_files/holoocean_3d_traj4_test.bag` (750 pings, 1.2 Go).
+- **Mesures** : E1 std x/y/z = 3.63/**0.000**/7.29 m · E2 élévation **[−60.0, +60.0]°** ·
+  E3 100 % des échos plongeants sous le robot (n=74 799) · E4 front du mur stable à
+  **0.03 m** sur 12 bandes de z · E5 750/750 pings appariés, |Δt| max **0.0 ms** ·
+  E6 |Δrange| = **0.02 m** (5.06 vs 5.08 m) · E7 **360°** d'azimut (info : 160° sous l'eau,
+  le reste = nappe surface du bord +60°, cf. note 3).
+- **Bras de levier : [0, 0, +0.15] m** (vert 15 cm AU-DESSUS du sonar SLAM, même socket).
+- **Ouvertures : 6°** en élévation pour `/sonar` et **6°** en azimut pour `/sonar_vert`
+  (paramètre `Elevation: 6` du même capteur).
+- **Fréquence 1.2 MHz émulée** : `RangeMax 20 m` + 512 cases → **3.8 cm/case**
+  (SLAM : 7.7 cm) ; 256 colonnes d'élévation (0.47°/col, colonne 0 = +60° HAUT).
+- Notes de terrain (mesurées, à connaître pour l'analyse) :
+  1. **Le fond ne renvoie RIEN à l'ImagingSonar** (contrairement au ProfilingSonar de
+     traj3) → d'où C1 à 5.2 m (§1.5) ; la carte vert ne contiendra pas le fond, voulu.
+  2. **Carré phase B rétréci à x∈[490, 522]** : un mur interne réel (« Γ », y=−645 x 464–485
+     + x=485 y −650..−701, mesuré sur traj3 reprojeté) coupait l'ancien anneau du probe.
+  3. **Nappe d'échos à z≈+1.1 m** (bord +60°, int ~0.32, toutes directions, portée ~12 m) =
+     surface/plafond du monde → **filtrer z<0** en aval (déjà prévu).
+  4. Bateau ciblé par l'approche §1.5 : posé au fond le long du quai EST sud,
+     centre (524.0, −680.5), vu à z −8..−11.
+  5. Essai 1 : crash moteur mi-run (NVRM Xid 13, exception GPU thread de rendu, aléa
+     connu) → relance identique = PASS. En cas de récidive : relancer.
