@@ -6,7 +6,22 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj6 prêt à analyser — HANDOFF OPUS (plus d'accès Fable)
+## 🔜 REPRISE ICI — 2026-07-12 : traj6 VALIDÉ bout en bout (run 005329) — passer à la SUITE DU SLAM
+
+**Run `run_holoocean_2026-07-12_005329` — les 3 verdicts au vert (FABLE §11-ter)** ;
+bag complet **E1–E9 TOUT PASS** (E9 : lat. 34.4 % vs 0.0 % miroir · fond 83.5 % vs 0.3 %) :
+- **[1] ΔATE = 0.000 m** vs traj5 (0.048 m, cap 0.05°) — SLAM insensible au 3ᵉ capteur ✓
+- **[2] couverture NN 0.05/0.16 m** — la fusion contient tout ce que traj5 voyait ✓
+- **[3] apport transverse 59.4 %** — carte 18 126 → **63 265 pts (×3.5)**, fond 24.8→51 % ✓
+Verdict Nathan : « exactement ça que je veux ». TRAJ6_ANALYSE.md reste le mode d'emploi
+pour re-analyser/comparer tout nouveau run.
+**💡 À FAIRE PLUS TARD (demande Nathan 2026-07-12) : se rapprocher BEAUCOUP plus des quais**
+(traj6 serre à 4-6.5 m) — traj7 potentielle, gain attendu : pilotis/échelles détaillés
+(leçon §9-ter : la trajectoire fait la carte).
+**Suite du SLAM (nouvelle discussion recommandée)** : loops SC traj5/traj6 · fusion patchs
+polaires (StereoFLS) · threshold 50→30 (réserve) · ménage possible : traj6_test.bag (1.2 Go).
+
+## (clos) 2026-07-12 (soir) : traj6 prêt à analyser — HANDOFF OPUS (plus d'accès Fable)
 
 **État** : traj6 codé et vérifié (FABLE §11 ; PIEGES #16 : mount transverse MESURÉ
 Rz(90)@Rx(+90), figé). **Bag TEST : E1–E9 TOUT PASS** (E9 : latéral 55.8 % vs 0.0 % miroir,

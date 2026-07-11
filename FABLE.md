@@ -495,3 +495,20 @@ réf→run, apport transverse ; sans lecture de bag). Auto-test du script : 2222
 **Nettoyage bags (décision Nathan)** : −34 Go vérifiés (df 372→339 ; btrfs libère en
 asynchrone, ~20 s). Supprimés : traj1-3 (miroir), traj4 ×2, _avant_fix_miroir ×2,
 traj3_test. Gardés : traj5 ×2, traj6 ×2, test.bag, caves, ARACATI.
+
+### §11-ter — traj6 VALIDÉ bout en bout (run 005329, 2026-07-12) : les 3 verdicts au vert
+
+**Bag complet E1–E9 TOUT PASS** (E9 : latéral 34.4 % vs 0.0 % miroir, n=46 075 · fond
+83.5 % dans [−21,−17] vs 0.3 % flip z, n=42 311) — mount transverse verrouillé ×2
+(bag test §11-bis + bag complet). **Run `run_holoocean_2026-07-12_005329`**, verdicts
+compare_traj6.py :
+- **[1] ΔATE = 0.000 m** (0.048 vs 0.048 traj5, cap RMS 0.05° vs 0.07°, 861 keyframes) —
+  le SLAM est STRICTEMENT insensible au 3ᵉ capteur (attendu : mêmes topics d'entrée).
+- **[2] couverture NN réf→run 0.05 m méd / 0.16 m p90** — la fusion contient tout traj5.
+- **[3] apport transverse 59.4 %** des points à >1 m de la carte traj5 ; carte
+  18 126 → **63 265 pts (×3.5)**, fond 24.8 → 51.0 % (fond continu hors nadir + flancs).
+Verdict Nathan : « c'est exactement ça que je veux ». Le « + » devient un « ⊹ » complet :
+horizontal (SLAM) + vertical avant (structures devant) + transverse 360° (tout au passage).
+**Piste notée (Nathan, plus tard / traj7 potentielle)** : se rapprocher BEAUCOUP plus des
+quais que les 4-6.5 m de traj6 (gain attendu : détails pilotis/échelles, faisceaux encore
+mieux conditionnés — cf. leçon §9-ter « la trajectoire fait la carte »).
