@@ -6,7 +6,29 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-11 (nuit) : traj5 ERRANCE VALIDÉE bout en bout — la trajectoire fait la carte
+## 🔜 REPRISE ICI — 2026-07-12 : traj6 « tout capter » CODÉ et vérifié — reste les RUNS (Nathan)
+
+**FAIT (FABLE §11, tout vérifié avant run)** : `gen_bag_3d_v6.py` (traj5 verbatim + profiler
+TRANSVERSE 360° [90,0,90] 20 m 512×720 @2 Hz → /profiler_points) · `gen_traj6.sh` (autonome,
+E1–E9) · `check_traj4.py` +**E9** (signes latéral+vertical du transverse, SKIP si topic
+absent) · `carte_3d.py` **fusion vert+transverse** + anti-résidus étendu + flip y restreint
+aux bags v3 (frame_id=map).
+- ⚠ **PIEGES #16** : mount transverse MESURÉ au probe (×2) = **Rz(90)@Rx(+90)** — le candidat
+  analytique Rz(90)@Rx(−90) mettait le fond au-dessus. Ne jamais déduire un mount HoloOcean
+  sur le papier.
+- Régressions PASS : traj5_test E1–E8 identiques + E9 SKIP · carte_3d 222233 IDENTIQUE
+  (18 126 pts, NN 0.107/0.733).
+**Séquence de runs (Nathan)** :
+1. `./gen_traj6.sh --test 150` (~10 min) → notification « TOUT PASS » attendue ; si E-check
+   FAIL → STOP, m'appeler.
+2. `./gen_traj6.sh` (bag complet ~35-60 min, ~12 Go) → même verdict attendu.
+3. `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj6.bag ./run_slam.sh holoocean` (UN seul run).
+4. `./analyse.sh 3D <run>` → m'appeler avec le nom du run pour l'analyse comparée
+   traj6 vs traj5 (222233) : ATE/cap, carte fusion, NN à contenu égal, fusion M1/M2.
+Puis : décision suppression bags `_avant_fix_miroir` + traj4 (~34 Go) · loops SC traj5 ·
+fusion patchs polaires (StereoFLS) · threshold 50→30 (en réserve).
+
+## (clos) 2026-07-11 (nuit) : traj5 ERRANCE VALIDÉE bout en bout — la trajectoire fait la carte
 
 **Décision Nathan (nuit)** : errance naturelle façon collègue (près des structures, hauts/bas
 aléatoires) puis tout lancer. **FAIT — chaîne complète holoocean→ros→analyse (FABLE §10)** :

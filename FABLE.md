@@ -447,3 +447,36 @@ rotation [90,0,90], RangeMax 20 m, 720 bins 0.5° (flancs/haut/bas au passage). 
 gen v6 (v5 + capteur + /profiler_points via sonar_to_points3d_msg r_mount transverse — vérifier
 le signe, E-check E9 dédié), carte_3d : FUSIONNER les sources structurelles vert+transverse
 (aujourd'hui priorité exclusive au vert) + étendre le filtre anti-résidus au transverse.
+
+## 11. 2026-07-12 — traj6 « tout capter » CODÉ : mount transverse MESURÉ (pas deviné), E9, fusion carte_3d
+
+**Livrables (tout vérifié ce tour, avant tout run)** : `gen_bag_3d_v6.py` (= traj5 importée
+verbatim + ProfilingSonar TRANSVERSE 360° [90,0,90], RangeMax 20 m, 512×720 @ 2 Hz →
+/profiler_points repère véhicule + /profiler image 0.4 Hz debug) · `gen_traj6.sh` (clone
+autonome de gen_traj5.sh, checks E1–E9) · `check_traj4.py` +E9 · `analysis/carte_3d.py`
+fusion vert+transverse.
+
+**Mount transverse : le candidat analytique était FAUX (PIEGES #16)** — probe statique
+(525,−662,−5) cap sud, quai EST à 6.5 m bâbord, fond ~−18.5/−19.7 :
+- Candidat « analogie du vertical » Rz(90)@Rx(−90) : mur du bon côté mais FOND AU-DESSUS
+  (0 point sous −8 m ; flipZ gagnant avec 76.9 % dans la bande fond).
+- **Mesuré et confirmé ×2 : R_MOUNT_TRANS = Rz(90)@Rx(+90)** (x_capteur→+y bâbord,
+  y_capteur→+z haut) : mur x_med 532.1 (attendu 531.5, 55-75 % à <1.5 m), fond z_med −19.7
+  (80.9 % dans [−21,−17]) ; flipY et flipZ échouent chacun sur leur discriminant.
+**E9 (check_traj4.py)** : verrouille les 2 signes sur bag — (a) latéral : échos de la bande
+z [−17,−2.5] collent aux structures connues vs miroir y (ratio>2, >10 %) ; (b) vertical :
+pings z_rob>−6.5 (géométrie asymétrique — à z≈−9.7 fond/surface symétriques, test dégénéré),
+échos >8 m sous le robot dans [−21,−17] vs flip z (ratio>2, >30 %). SKIP propre si topic
+absent. Fenêtre z_rob>−6.5 vérifiée présente dès le bag --test 150 (24.3 % du temps, calcul
+offline sur le profil PCHIP seed 42).
+**carte_3d.py** : fusion des sources structurelles (vertical + transverse, fin de la
+priorité exclusive) ; flip y du transverse RESTREINT aux bags v3 (frame_id=map, traj1-3
+jamais réécrits) ; anti-résidus étendu à tout set structurel ; libellé FUSION.
+
+**Régressions (rien de cassé par les édits)** : check_traj4 sur traj5_test.bag → E1–E8
+PASS (valeurs identiques) + E9 SKIP · carte_3d sur run 222233 → IDENTIQUE au validé
+(−24 661 surface, −16 919 fantômes, 18 126 pts, NN 0.107/0.733, comblage 10 144).
+
+**Hypothèses rejetées** : mount = analogie Rz(90)@Rx(−90) (réfuté probe run 1) ·
+« --test 150 trop court pour E9b » (réfuté : z max −2.33 atteint dès la 1re minute
+d'errance). **Reste (runs Nathan)** : gen test → gen complet → run SLAM → analyses.

@@ -13,3 +13,7 @@
   complet (10.3 Go) TOUT PASS 2026-07-11, mesures au guide §4. venv HÔTE (jamais le
   conteneur) ; `show_viewport=False` déjà dans le code (crashs GPU Xid 13 sinon).
   ⚠ /sonar_points traj4 = plat (tilt 0, NORMAL, guide §3) ; la 3D vient de /sonar_vert_points.
+- traj6 « tout capter » = traj5 + profiler TRANSVERSE 360° : `./gen_traj6.sh [--test 150]`
+  (gen_bag_3d_v6.py, checks E1–E9). Mount transverse MESURÉ Rz(90)@Rx(+90) (PIEGES #16 —
+  ne pas le « corriger » sans re-probe). Run : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj6.bag
+  ./run_slam.sh holoocean` ; carte_3d fusionne vert+transverse (anti-résidus étendu).

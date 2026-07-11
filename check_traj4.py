@@ -3,9 +3,12 @@
 ou complet). A lancer avec le python du venv holoocean (rosbags + numpy 1.26).
 
 Usage : python check_traj4.py [BAG_files/holoocean_3d_traj4_test.bag]
-Sortie : les 8 mesures + PASS/FAIL, verdict global en code retour (0 = tout PASS).
+Sortie : les mesures + PASS/FAIL, verdict global en code retour (0 = tout PASS).
 E8 (ajoute 07-11, PIEGES #14) : signe LATERAL de /sonar_points (anti-miroir
 horizontal — E3 ne couvre que l'elevation du fan vertical).
+E9 (ajoute 2026-07-12, traj6) : signe du profiler TRANSVERSE 360°
+(/profiler_points) — lateral (mur du bon cote) + vertical (fond en bas).
+SKIP si le bag n'a pas le topic (traj4/traj5 restent verifiables E1-E8).
 """
 import sys
 import numpy as np
@@ -28,6 +31,7 @@ BAG = sys.argv[1] if len(sys.argv) > 1 else "BAG_files/holoocean_3d_traj4_test.b
 gt_t, gt = [], []
 vp, vp_t = [], []                     # /sonar_vert_points (pts, stamp)
 hp, hp_t = [], []                     # /sonar_points (E8, 1 msg sur 5)
+pp, pp_t = [], []                     # /profiler_points (E9, 1 msg sur 5)
 im_h, im_v = {}, {}                   # stamp -> image polaire (C1 seulement)
 st_h, st_v = [], []                   # stamps /sonar et /sonar_vert
 counts = {}
@@ -44,6 +48,14 @@ with Reader(BAG) as reader:
                     pts = pts[np.random.default_rng(8).choice(len(pts), 2000,
                                                               replace=False)]
                 hp.append(pts.copy()); hp_t.append(t_ns)
+        elif conn.topic == "/profiler_points":
+            if counts[conn.topic] % 5 == 1:
+                m = TS.deserialize_ros1(raw, conn.msgtype)
+                pts = np.frombuffer(m.data, dtype=np.float32).reshape(-1, 4)
+                if len(pts) > 2000:
+                    pts = pts[np.random.default_rng(9).choice(len(pts), 2000,
+                                                              replace=False)]
+                pp.append(pts.copy()); pp_t.append(t_ns)
         elif conn.topic == "/ground_truth":
             m = TS.deserialize_ros1(raw, conn.msgtype)
             p, q = m.pose.pose.position, m.pose.pose.orientation
@@ -206,6 +218,52 @@ if hp:
 else:
     res["E8"] = False
     print("E8 lateral hor : FAIL — aucun /sonar_points echantillonne")
+
+# ── E9 : profiler TRANSVERSE 360° (/profiler_points, traj6) ──────────────────
+# Deux signes a verrouiller (mount R_MOUNT_TRANS mesure au probe 2026-07-12) :
+#  a) LATERAL : les echos de la bande z [-17,-2.5] (murs, fond/surface exclus)
+#     collent aux structures connues ; le miroir y les met du mauvais cote.
+#  b) VERTICAL : quand le robot est HAUT (z>-6.5, geometrie asymetrique — a
+#     z~-9.7 fond et surface sont symetriques et le test degenere), les echos
+#     a >8 m sous le robot tombent sur le FOND (z monde [-21,-17], mesure
+#     -18.5/-19.7) ; un flip z les enverrait au-dessus de la surface.
+if "/profiler_points" in counts:
+    def score_e9(sy, sz):
+        n_wall_ok = n_wall = n_fond_ok = n_fond = 0
+        for t_ns, pts in zip(pp_t, pp):
+            q = pts[:, :3].copy()
+            q[:, 1] *= sy; q[:, 2] *= sz
+            w, rob = to_world(q, t_ns)
+            band = (w[:, 2] > -17.0) & (w[:, 2] < -2.5)
+            if band.sum():
+                d = np.min(np.stack([d_seg(w[band, :2], a, b) for a, b in SEGS]), axis=0)
+                n_wall_ok += int((d < 1.5).sum()); n_wall += int(band.sum())
+            if rob[2] > -6.5:
+                deep = q[:, 2] < -8.0
+                if deep.sum():
+                    n_fond_ok += int(((w[deep, 2] > -21.0) & (w[deep, 2] < -17.0)).sum())
+                    n_fond += int(deep.sum())
+        return (n_wall_ok / max(n_wall, 1), n_wall,
+                n_fond_ok / max(n_fond, 1), n_fond)
+
+    wa, nwa, fa, nfa = score_e9(+1.0, +1.0)      # tel quel
+    wm, _, _, _ = score_e9(-1.0, +1.0)           # miroir lateral
+    _, _, fm, nfm = score_e9(+1.0, -1.0)         # miroir vertical
+    ok_lat = (wa > 2.0 * wm) and (wa > 0.10)
+    if nfa + nfm == 0:
+        res["E9"] = ok_lat
+        fond_txt = "fond : aucune fenetre z_rob>-6.5 (bag court) — non teste"
+    else:
+        ok_fond = (fa > 2.0 * fm) and (fa > 0.30)
+        res["E9"] = ok_lat and ok_fond
+        fond_txt = (f"fond : {100*fa:.1f} % dans [-21,-17] vs {100*fm:.1f} % "
+                    f"en flip z (n={nfa}, PASS si ratio>2 et >30 %)")
+    print(f"E9 transverse  : lateral {100*wa:.1f} % <1.5 m des structures vs "
+          f"{100*wm:.1f} % en miroir (n={nwa}, PASS si ratio>2 et >10 %) | "
+          f"{fond_txt} -> {'PASS' if res['E9'] else 'FAIL'}")
+else:
+    print("E9 transverse  : SKIP — pas de /profiler_points (bag sans profiler "
+          "transverse, normal pour traj4/traj5)")
 
 # ── bilan ─────────────────────────────────────────────────────────────────────
 np_all = all(res.values())

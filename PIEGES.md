@@ -167,3 +167,16 @@ réel à cet endroit). Conséquences :
 - ⚠ Une métrique NN carte-vs-GT est FLATTÉE par ces artefacts (nappes cohérentes qui se
   matchent entre elles) : 0.064 avec artefacts vs 0.107 sans, sur la MÊME carte traj5.
   Ne jamais comparer des NN à contenus différents.
+
+## 16. HoloOcean : chaque NOUVELLE orientation de capteur a SA convention de montage (vécu : traj6, 2026-07-12)
+
+Le mount véhicule du profiler TRANSVERSE 360° (`rotation [90,0,90]`) n'est PAS l'extension
+analytique du montage vertical validé : le candidat Rz(90)@Rx(−90) (analogie de
+R_MOUNT_PROF = Rx(−90)) mettait le FOND AU-DESSUS du robot. Mesuré au probe statique
+((525,−662,−5) cap sud, confirmé ×2) : **R_MOUNT_TRANS = Rz(90)@Rx(+90)** — x_capteur→+y
+(bâbord), y_capteur→+z (haut) ; mur quai EST à x_med 532.1 (attendu 531.5) et fond z_med
+−19.7 (80.9 % dans [−21,−17]) ; flipY/flipZ échouent chacun sur leur discriminant.
+- Règle : AUCUNE projection d'un nouveau capteur HoloOcean sans (1) probe statique en
+  géométrie connue qui DÉTERMINE le mount (tester les 4 transformées du plan du fan :
+  identité/flipY/flipZ/180°) puis (2) E-check permanent sur bag (E9 pour le transverse).
+  Ne JAMAIS composer les conventions de rotation HoloOcean sur le papier.

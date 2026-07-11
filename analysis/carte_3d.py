@@ -207,18 +207,18 @@ def main():
               f"({frames[t]}, repère véhicule) → {LIB.get(g, 'pseudo-3D (tranches), EXCLU')}")
         if g:
             retenus.append((t, g))
-    # Priorité : fan VERTICAL avant > profiler TRANSVERSE > sonar tilté. Les deux
-    # premiers donnent 1 paroi/faisceau (sections empilées → structures nettes) ;
-    # le sonar tilté « pulvérise » des fans radiaux (la bouillie qu'on veut éviter)
-    # → il est exclu de la carte dès qu'une source structurelle existe.
+    # Sources STRUCTURELLES (1 paroi/faisceau, sections nettes) : fan VERTICAL
+    # avant ET profiler TRANSVERSE sont FUSIONNÉS (traj6, 2026-07-12 — l'ancienne
+    # priorité exclusive au vertical gâchait les flancs/haut/bas du transverse).
+    # Le sonar tilté « pulvérise » des fans radiaux (la bouillie qu'on veut
+    # éviter) → il reste exclu dès qu'une source structurelle existe.
     geo_of = dict(retenus)
-    for pref in ("vertical", "transverse"):
-        sel = [t for t, g in retenus if g == pref]
-        if sel:
-            garde = sel
-            print(f"→ carte STRUCTURELLE ({LIB[pref]}) depuis {garde} ; "
-                  f"autres sources exclues.")
-            break
+    struct = [t for t, g in retenus if g in ("vertical", "transverse")]
+    if struct:
+        garde = struct
+        lib = " + ".join(sorted({LIB[geo_of[t]] for t in struct}))
+        print(f"→ carte STRUCTURELLE ({lib}) depuis {garde} ; "
+              f"autres sources exclues.")
     else:
         garde = [t for t, _ in retenus]
     if not garde:
@@ -255,14 +255,16 @@ def main():
             # PAS de gate std(z) par ping : un fond plat donne z≈cst (géométrie
             # r=prof/cos φ), c'est de la vraie 3D par construction (le fan balaye y-z).
             pts = per_beam_max(pts)
-            # ⚠ MIROIR y du profiler traj3 : les points /profiler_points ont l'axe
-            # y INVERSÉ vs la convention véhicule (x avant, y GAUCHE) qu'attend
-            # rot_z. Preuve (2026-07-09) : sans flip, les murs de quai imagés par le
-            # profiler tombent à x≈+2/+38 (au CENTRE) ; avec y négé ils reviennent
-            # PILE sur les quais du sonar horizontal (x≈−10/+59). Bug de repère du
-            # bag (mount profiler) → à corriger idéalement côté générateur ; en
-            # attendant, on le corrige ici pour une carte juste.
-            pts[:, 1] = -pts[:, 1]
+            # ⚠ MIROIR y du profiler des bags v3 SEULEMENT (frame_id=map, traj1-3
+            # jamais réécrits post-fix PIEGES #14) : leurs /profiler_points ont
+            # l'axe y INVERSÉ vs la convention véhicule. Preuve (2026-07-09) :
+            # sans flip, les murs de quai du profiler traj3 tombent à x≈+2/+38
+            # (au CENTRE) ; avec y négé ils reviennent PILE sur les quais du
+            # sonar horizontal (x≈−10/+59). Les bags v6+ (frame_id=auv0) portent
+            # le mount transverse MESURÉ (probe 2026-07-12) et verrouillé E9 →
+            # ne PAS les flipper.
+            if frames[topic] == "map":
+                pts[:, 1] = -pts[:, 1]
         else:
             pts = pts[:, :3]
             if pts[:, 2].std() <= SEUIL_VRAIE_3D:   # gate par PING : tranche plate
@@ -322,7 +324,12 @@ def main():
               f"-{n_ghost} fantômes hors-plan → {len(P):,} pts")
         return P
 
-    if not a.brut and {geo_of[t] for t in retenus} == {"vertical"}:
+    # Étendu au profiler transverse (traj6) : même tech de rendu → mêmes
+    # artefacts (surface en miroir + fuite hors-plan, PIEGES #15) ; la coupe
+    # surface, la confirmation 2D (murs vus par le sonar horizontal) et
+    # l'exemption fond s'appliquent à l'identique.
+    gs_struct = {geo_of[t] for t in retenus}
+    if not a.brut and gs_struct and gs_struct <= {"vertical", "transverse"}:
         S_full = _anti_residus(S_full, "SLAM")
         off_gt = ((float(gt_x[0] - traj["x"][0]), float(gt_y[0] - traj["y"][0]))
                   if has_gt else (0.0, 0.0))
@@ -341,7 +348,10 @@ def main():
     kind = ("structurel — fan vertical avant (« + »), 1 paroi/faisceau (voxel 0.2 m)"
             if gs == {"vertical"} else
             "structurel — méthode grottes, 1 paroi/faisceau (voxel 0.2 m)"
-            if gs == {"transverse"} else "nuage 3D complet (voxel 0.2 m)")
+            if gs == {"transverse"} else
+            "structurel — FUSION fan vertical avant + profiler transverse 360° "
+            "(1 paroi/faisceau, voxel 0.2 m)"
+            if gs == {"vertical", "transverse"} else "nuage 3D complet (voxel 0.2 m)")
     G = voxel_grid(np.vstack([p for lst in G_by.values() for p in lst]), 0.2) \
         if has_gt and any(G_by.values()) else None
     print(f"carte : {len(S_full):,} pts bruts → {len(S):,} pts ({kind})")
