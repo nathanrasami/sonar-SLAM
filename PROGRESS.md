@@ -6,7 +6,24 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-11 (soir) : B′+D EXÉCUTÉS (fix miroir + carte dense), tout PASS
+## 🔜 REPRISE ICI — 2026-07-11 (nuit) : traj5 ERRANCE VALIDÉE bout en bout — la trajectoire fait la carte
+
+**Décision Nathan (nuit)** : errance naturelle façon collègue (près des structures, hauts/bas
+aléatoires) puis tout lancer. **FAIT — chaîne complète holoocean→ros→analyse (FABLE §10)** :
+- `gen_bag_3d_v5.py` + `gen_traj5.sh` (commit de66a1e) : errance PCHIP du collègue VERBATIM
+  (±1.2 m lat / z aléatoire [−12,−2] tous les 8 m / padding cyclique) sur circuit médian
+  serrant quai E 6.5 m → bateau 4 m → Γ 5 m → quai O 5.5 m SANS traverser Γ ; phase A
+  calibration conservée (mêmes fenêtres → check_traj4.py tel quel).
+- Bags court + complet (6957 pings/1391 s/11.1 Go) : **E1–E8 TOUT PASS** (E8 47.6 %/10.5 %).
+- **Run `222233`** : ATE 0.05 m (=traj4), cap RMS 0.1° ; **carte 3D 36 704 pts (+43 %),
+  NN 0.064, p90 0.693→0.261** ; fusion **M1 0.122/0.268, M2 0.034/0.112** (le doute M2 p90
+  de traj4 s'est résorbé → venait de la géométrie carré, hypothèse non prouvée) ;
+  carte_2d_dense_s30 : 25 455 cellules, **2 quais en échelles complètes** (le rendu voulu).
+**Reste** : décision suppression bags `_avant_fix_miroir` (2×11.5 Go) + `traj4`/`traj4_test`
+si traj5 devient LA référence · loops SC sur traj5 (2 tours, même tirage → revisites propres) ·
+fusion patchs polaires (StereoFLS) · option threshold 50→30 pipeline (en réserve).
+
+## (clos soir) 2026-07-11 : B′+D EXÉCUTÉS (fix miroir + carte dense), tout PASS
 
 **Décision Nathan (soir)** : B′+D. **FAIT et vérifié (détail FABLE §9-ter)** :
 - **D (fix miroir, racine)** : `gen_bag_3d.py` corrigé (sin + R_MOUNT_PROF flippés ensemble,

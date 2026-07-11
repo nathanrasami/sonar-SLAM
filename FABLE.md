@@ -388,3 +388,32 @@ nettes — son errance passe à ~6 m du quai OUEST (x≈468) vs notre carré à 
 et z variant en continu. **La trajectoire domine la qualité de la carte 2D** ; le seuil est
 le 2ᵉ facteur. → traj5 : reprendre une errance naturelle (rapprochements des 2 quais, z
 continu) + garder les acquis traj4 (sweeps verticaux, approche bateau, phase A calibration).
+
+## 10. 2026-07-11 (nuit) — traj5 « errance naturelle » : TOUTE la chaîne validée, la trajectoire gagne
+
+**Demande Nathan** : passer près des structures comme le collègue + hauts/bas aléatoires naturels,
+pas de carré robotique — puis tout lancer (holoocean → ros → analyse). FAIT de bout en bout :
+
+**Pipeline exécuté** : gen_bag_3d_v5.py (errance PCHIP du collègue VERBATIM sur circuit médian
+évitant Γ, phase A calibration conservée) → bag court E1–E8 TOUT PASS du 1er coup → bag complet
+6957 pings/1391 s/11.1 Go E1–E8 TOUT PASS (E8 47.6 % vs 10.5 % miroir) → run SLAM 222233 →
+analyse.sh + fusion_plus + carte_2d_dense.
+
+**Résultats traj5 (run 222233) vs traj4 (160434, post-fix miroir)** :
+| métrique | traj4 (carré) | traj5 (errance) |
+|---|---|---|
+| ATE Umeyama / cap RMS | 0.04 m / 0.1° | **0.05 m / 0.1°** (équivalent) |
+| carte 3D structurelle | 25 586 pts, NN 0.083, p90 0.693 | **36 704 pts (+43 %), NN 0.064, p90 0.261** |
+| fusion M1 méd/p90 | 0.205 / 0.402 | **0.122 / 0.268** |
+| fusion M2 méd/p90 | 0.052 / 0.709 ⚠ | **0.034 / 0.112** |
+| carte 2D dense s30 | 33 740 cell. (forte bavure) | 25 455 cell. MIEUX placées, 2 quais en échelles |
+
+- Le doute M2 p90 de traj4 (0.709) s'est RÉSORBÉ avec la géométrie errance (0.112) → hypothèse
+  (non prouvée) : le p90 venait des fusions à longue portée du carré, pas d'un bug de code.
+- La bavure d'azimut chute (p90 3D 0.693→0.261) : passages proches = faisceaux mieux conditionnés.
+- CQFD de la leçon §9-ter : **à chaîne identique, la trajectoire fait la carte**. Le SLAM, lui,
+  est insensible (0.04↔0.05 m).
+
+**Livrables** : bag `BAG_files/holoocean_3d_traj5.bag` (+ court) · run `222233` complet
+(bilan, carte_3d, fusion_plus, carte_2d_dense_s30) · générateur `gen_bag_3d_v5.py` +
+`gen_traj5.sh` (commit de66a1e).

@@ -244,3 +244,14 @@ copié verbatim, tailles identiques à l'octet) ; anciens conservés en `_avant_
   (25 586 pts, NN 0.083/p90 0.693) · comblage horizontal 9 632 pts maintenant bien placés ·
   **fusion M1 0.296 → 0.205 m méd (p90 0.402), PASS** · M2 méd 0.066 → 0.052 m
   (⚠ p90 0.286 → 0.709, non investigué — doute ouvert, M1 est le critère).
+
+### 2026-07-11 (nuit) — traj5 « errance naturelle » : E1–E8 TOUT PASS, chaîne complète validée
+
+`gen_bag_3d_v5.py` : phase A INCHANGÉE + phase B = errance PCHIP du collègue (±1.2 m lat,
+z [−12,−2] tous les 8 m, padding cyclique, 2 tours même tirage) sur circuit médian évitant Γ
+(quai E 6.5 m / bateau 4 m / Γ 5 m / quai O 5.5 m). Bag complet : **6957 pings, 1391 s,
+11.1 Go, E1–E8 TOUT PASS** (E1 y 0.000 · E2 ±60.0° · E3 100 % n=759 460 · E4 0.03 m ·
+E5 0.0 ms · E6 0.02 m · E7 360° · **E8 47.6 % vs 10.5 %**). Run SLAM `222233` : ATE 0.05 m,
+carte 3D 36 704 pts NN 0.064/p90 0.261 (traj4 : 0.083/0.693), fusion M1 0.122 PASS,
+M2 0.034/0.112. Leçon : à chaîne identique, la TRAJECTOIRE fait la qualité de la carte ;
+le SLAM y est insensible.
