@@ -36,14 +36,30 @@ zombie + python suspendu + bag figé) → **cause = le VIEWPORT principal ; fix
 `show_viewport=False`** dans holoocean.make (données sonar inchangées, E-checks ×2
 identiques). Piège log : `python -u` obligatoire.
 
-**Reste à faire (ordre)** :
-1. Run SLAM (Nathan) : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj4.bag ./run_slam.sh holoocean`
-   (⚠ /sonar_points redevient plat std(z)≈0 : NORMAL, guide §3 — la 3D vient du vert).
-2. `./analyse.sh 3D <run>` : carte_3d doit détecter `/sonar_vert_points` (chemin JAMAIS
-   exercé + diff 125 lignes non commité — mémoire `carte-3d-fan-vertical-prep`) ;
-   puis `fusion_plus.py` avec `--ap-hor 6 --ap-vert 6` (ouvertures déclarées §4).
-3. À regarder dans la carte : l'approche bateau (t sim 1140-1235, cible (524,−680.5)) et
-   les coupes 3D des quais aux yaw-sweeps des coins.
+**✅ CHAÎNE AVAL COMPLÈTE VALIDÉE (16:04→16:50, run `160434` lancé par Nathan)** :
+- **Run SLAM : ATE 0.04 m** (Umeyama, = DR, cap RMS 0.1°, S1-S3 ≤ 0.03, 758 KF).
+  dt max 29.4 s = pause+C3 ascenseur+pause (z pur, invisible en Pose2) — PAS un drop ;
+  trous 3.8-4.4 s = pauses bateau/coins. Chevauchement UE 16:11-16:19 sans effet.
+- **carte_3d : chemin `/sonar_vert_points` VALIDÉ en réel du 1er coup** (le diff «125 lignes»
+  était en fait déjà commité par Nathan, e2d122b) : /sonar_points plat → EXCLU ✓ ;
+  vert détecté « fan VERTICAL avant, le + » (std z 6.80/y 0.00) ; carte structurelle
+  25 586 pts, **NN méd 0.083 m** (p90 0.693 = bavure d'azimut du fan, limite assumée) ;
+  comblage horizontal 9 632 pts. Couverture « phare » plus éparse que traj3 : assumé.
+- **fusion_plus `--ap-hor 6 --ap-vert 6` : PASS** — 5220 paires, 637 avec fusion (recouvrement
+  ±3° peuplé seulement quand une structure est droit devant : C1/C2/coins/bateau, attendu),
+  14 252 pts fusionnés, **M1 0.296 m PASS**, **M2 0.066/0.286 m**. Hors-plans 11 % (vs 60 %
+  traj2) = gates aux VRAIES ouvertures (6°) au lieu du défaut ±10°.
+- Génération autonome pour la suite : **`./gen_traj4.sh [--test 150]`** (crash-retry ×3 +
+  E-checks + notification bureau — commit 494de9f).
+
+**Reste à faire (pistes ouvertes, plus rien de bloquant)** :
+1. Regarder les html (carte_3d, fusion_plus) : coupes 3D du bateau (t sim 1140-1235) et des
+   quais aux sweeps — juger visuellement si la couverture « phare » suffit ou si traj5 doit
+   ajouter des sweeps.
+2. Options qualité : fusion par images polaires (patchs, StereoFLS complet) pour désambiguïser
+   les fantômes de bin ; densifier les sweeps ; loops SC sur traj4 (2 tours = revisites).
+3. ⚠ pgrep se matche soi-même dans les wrappers bash : 2 guetteurs piégés aujourd'hui —
+   filtrer par `ps -o comm=` (cf. gen_traj4.sh).
 
 ## (clos) 2026-07-11 (nuit) : HoloOcean local OPÉRATIONNEL — traj4 était l'étape suivante
 
