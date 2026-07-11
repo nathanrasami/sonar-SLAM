@@ -315,3 +315,44 @@ inchangées) ; « c'est le rendu/aval » (le CSV ne contient vraiment que ~21 pt
   patchs polaires (StereoFLS) déjà listée.
 - NON recommandé : régénérer les bags avec la dynamique bruitée du collègue (du bruit pour
   faire plaisir aux seuils = non-sens ; mieux vaut calibrer les seuils sur NOS images propres).
+
+### §9-bis — CORRECTION en cours d'investigation (même jour, 2 découvertes de plus)
+
+**① Le miroir latéral de `/sonar_points` (bug générateur RÉEL, confirmé 2×)** : en émulant la
+chaîne CFAR réelle sur le bag, les structures atterrissaient en miroir du cap (crochet Γ à
+y≈53 = réflexion de y=15 par la jambe nord). Vérif analytique frame t=301 s (véhicule
+(500,−626) cap OUEST) : l'arc fort à +37°/31 m = mur Γ qui est à BÂBORD → dans l'image
+HoloOcean les colonnes hautes = GAUCHE, or `sonar_to_points3d_msg` (gen_bag_3d.py) fait
+`y = −r·sin(a)` en croyant colonnes hautes = droite. **Fix = flip latéral, 1 ligne** —
+c'était déjà le « fix racine miroir y » noté au PROGRESS 09-09 (§2.3quater), jamais fait ;
+E1–E7 ne testent QUE le fan vertical (E3 = élévation), aucun check latéral horizontal.
+- **Le fan VERTICAL est net-CORRECT tel quel** (fond à −19.4 dans carte_3d.npy, E3/E4 PASS,
+  NN 0.083 vs carte SLAM mondialement juste) → NE PAS « corriger » l'appel vert sans re-passer
+  E3/E4 : le miroir ne touche que le plan LATÉRAL du sonar horizontal.
+- Impact : comblage horizontal de carte_3d (9 632 pts miroirs → pollue la 3D), fusion_plus
+  (faible : gate ±6° quasi symétrique, y-erreur ≤ 0.1·r), verdict traj3 « blobs = artefacts »
+  (partiellement faux : certains blobs = structures miroir). Le SLAM n'utilise PAS
+  /sonar_points → ATE 0.04 intact. Réécriture des topics points = OFFLINE (images dans le
+  bag, pas besoin d'UE).
+
+**② La carte du run n'accumule que les KEYFRAMES (758/6486 pings)** : la chaîne réelle émulée
+à seuil 50 sur 1 ping/3 donne déjà 50 017 pts (×3 vs 16 105) au même seuil — carte dense
+possible SANS toucher à la config, en rejouant le détecteur sur tous les pings le long des
+poses SLAM (GT-free).
+
+**Émulation chaîne exacte (CFAR SOCA 20/4/0.1/10 + seuil + downsample 0.5 + outlier 1.0/5,
+scripts scratchpad emul_pipeline.py, images `fable_emul_50_vs_30.png` du run 160434)** :
+seuil 50 → 50 017 pts ; seuil 30 → 165 646 pts (×3.3) : quais = bandes évidentes, rangées de
+pilotis lisibles ; contrepartie = bavure tangentielle accrue aux sweeps (le CFAR est
+range-only, la bavure d'azimut ≥30 passe).
+
+**Options RÉVISÉES pour Nathan** :
+- **B′ (recommandée, zéro config)** : script analysis/ « carte 2D dense » = détecteur réel
+  rejoué sur tous les pings × poses SLAM, seuil au choix (50 sobre / 30 dense) → règle
+  « quais à peine visibles » sans toucher au pipeline figé.
+- **A (pipeline)** : filter.threshold 50→30 + re-run ×2 (vérif ATE 0.04 et bavure) — utile
+  si on veut aussi nourrir NSSM/loops, sinon B′ suffit.
+- **D (bug racine)** : fix flip latéral dans sonar_to_points3d_msg pour le sonar HORIZONTAL
+  seulement + réécriture offline des /sonar_points du bag + re-run carte_3d/fusion
+  (le comblage 3D et la fusion en profitent) ; re-passer E1–E7 + ajouter un check E8
+  « anti-miroir latéral horizontal » au guide.

@@ -52,15 +52,23 @@ identiques). Piège log : `python -u` obligatoire.
 - Génération autonome pour la suite : **`./gen_traj4.sh [--test 150]`** (crash-retry ×3 +
   E-checks + notification bureau — commit 494de9f).
 
-**🔎 17-19 h : « quais à peine visibles » DIAGNOSTIQUÉ (FABLE.md §9)** — la carte détecte
-TOUT ce qui existe (le blob bleu = mur Γ au mètre près ; tirets = pilotis ; bassin réellement
-vide, fond muet en rasante) mais elle est squelettique (21 pts/KF) : nos images sonar sont
-15× plus faibles que test.bag du collègue (max méd 0.265 vs 0.776) or `filter.threshold: 50`
-a été calibré sur SES images → il coupe la bande 26-50 où vivent les échos de pilotis
-(quai EST 9,5 m : 37 px ≥50 vs 300 px ≥30 ; bruit p99 = 8-9 mono8, marge ×3 à seuil 30).
-**DÉCISION NATHAN attendue** : A) `filter.threshold 50→30` + re-run ×2 (config figée, R3) ·
-B) carte 2D offline depuis /sonar_points (zéro impact SLAM) · C) 3D = couverture (traj5
-sweeps / fusion patchs), pas un seuil.
+**🔎 17-20 h : « quais à peine visibles » DIAGNOSTIQUÉ (FABLE.md §9 + §9-bis)** — 3 causes
+empilées, la carte ne montre RIEN de faux (blob bleu = mur Γ au mètre près ; tirets = pilotis ;
+bassin réellement vide, fond muet en rasante) :
+1. **Seuil calibré sur le mauvais bag** : nos images sont 15× plus faibles que test.bag du
+   collègue (max méd 0.265 vs 0.776, jamais >0.49) or `filter.threshold: 50` a été calibré
+   (07-03) sur SES images → coupe la bande 26-50 des pilotis (bruit p99 = 8-9 mono8 : seuil
+   30 garde ×3 de marge ; émulation chaîne réelle : ×3.3 pts, quais lisibles, + de bavure).
+2. **La carte du run = keyframes seulement** (758/6486 pings) : détecteur réel rejoué sur
+   1 ping/3 → déjà ×3 plus dense au MÊME seuil 50.
+3. **Bug générateur RÉEL : `/sonar_points` en MIROIR latéral** (sonar_to_points3d_msg,
+   `y=−r·sin(a)` mais colonnes hautes = bâbord — confirmé 2× : émulation + arc Γ analytique).
+   Fan VERTICAL net-correct (fond −19.4, E3/E4) → fix = flip du seul appel horizontal +
+   réécriture offline des topics points. SLAM intact (n'utilise pas /sonar_points).
+**DÉCISION NATHAN attendue (FABLE §9-bis)** : B′) script carte 2D dense offline (zéro
+config, recommandé) · A) threshold 50→30 pipeline + re-run ×2 · D) fix miroir générateur
++ E8 anti-miroir au guide · C) 3D = couverture (traj5 sweeps/fusion), pas un seuil.
+Preuves visuelles copiées dans le run : `fable_frames_polaires.png`, `fable_emul_50_vs_30.png`.
 
 **Reste à faire (pistes ouvertes, plus rien de bloquant)** :
 1. Regarder les html (carte_3d, fusion_plus) : coupes 3D du bateau (t sim 1140-1235) et des

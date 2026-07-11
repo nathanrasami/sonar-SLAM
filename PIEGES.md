@@ -131,3 +131,20 @@ que soient les seuils CFAR (672 pts sur 2 runs caves — aucun paramètre n'y ch
 ce qui est LA signature : si régler un seuil ne change pas la sortie, le goulot est en
 aval du seuil). Règle : sonar à couverture ≥180° → features calculées EN POLAIRE
 (CFAR sur l'image polaire + r·cosθ/r·sinθ), cf. msis_scan_bridge.py branche caves.
+
+## 14. HoloOcean : `/sonar_points` du générateur = MIROIR latéral (vécu : traj3-4, 07-11)
+
+`sonar_to_points3d_msg` (gen_bag_3d.py) fait `y = −r·sin(a)` en supposant colonnes
+hautes = tribord ; MESURÉ (arc Γ à +37°/31 m, bâbord) : colonnes hautes = BÂBORD.
+Tous les `/sonar_points` (horizontaux) des bags traj1→4 sont donc en miroir du cap.
+- Le SLAM n'y touche pas (il CFAR-ise `/sonar` via le bridge, convention correcte) →
+  cartes SLAM et ATE valides.
+- Le fan VERTICAL (`/sonar_vert_points`) est net-CORRECT tel quel (fond −19.4, E3/E4
+  PASS) : le signe erroné y est compensé par le montage → ne PAS « corriger » l'appel
+  vertical sans re-passer E3/E4.
+- Règle : ne JAMAIS conclure une géométrie depuis `/sonar_points` sans check anti-miroir
+  LATÉRAL (E3 ne teste que l'élévation du fan vertical) ; une partie des « blobs
+  artefacts » de traj3 était des structures miroir.
+- Corollaire seuils : toute calibration aval (filter.threshold 50) faite sur test.bag
+  du collègue (max méd 0.776, sature à 1.0) est invalide sur NOS bags (max méd 0.265,
+  plafond 0.49) — comparer les dynamiques AVANT de calibrer (FABLE §9).
