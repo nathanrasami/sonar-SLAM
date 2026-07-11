@@ -180,3 +180,11 @@ R_MOUNT_PROF = Rx(−90)) mettait le FOND AU-DESSUS du robot. Mesuré au probe s
   géométrie connue qui DÉTERMINE le mount (tester les 4 transformées du plan du fan :
   identité/flipY/flipZ/180°) puis (2) E-check permanent sur bag (E9 pour le transverse).
   Ne JAMAIS composer les conventions de rotation HoloOcean sur le papier.
+
+## 17. Comparer 2 runs par INDEX de keyframe ment — toujours par TEMPS (vécu : loops SC traj6, 2026-07-12)
+
+Deux runs du MÊME bag ne créent pas leurs keyframes aux mêmes stamps (jitter rosbag
+temps réel : Δt 1-2 s au même index). Comparer les poses par index de KF a affiché
+0.35 m d'écart entre deux trajectoires en réalité identiques à 2 mm (méd, interpolation
+temporelle, runs 005329 vs 013055). Symptôme type : « les 2 runs divergent » alors que
+l'ATE des deux est identique. Réflexe : `np.interp` sur les stamps avant tout Δ.

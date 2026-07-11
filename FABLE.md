@@ -512,3 +512,46 @@ horizontal (SLAM) + vertical avant (structures devant) + transverse 360° (tout 
 **Piste notée (Nathan, plus tard / traj7 potentielle)** : se rapprocher BEAUCOUP plus des
 quais que les 4-6.5 m de traj6 (gain attendu : détails pilotis/échelles, faisceaux encore
 mieux conditionnés — cf. leçon §9-ter « la trajectoire fait la carte »).
+
+## 12. 2026-07-12 — loops SC sur traj6 (run 013055) : gate SC sûr, ICP reste le verrou, ATE inchangé
+
+**Question (1ʳᵉ étape de la « suite du SLAM », §11-ter)** : que donnent les fermetures de
+boucle par apparence (méthode `bs` : SC dist_threshold 0.98 + porte géométrique + NSSM/PCM)
+sur l'errance à 2 tours de traj6 ?
+
+**Banc d'essai vérifié AVANT le run** : la trajectoire a de vraies revisites en nombre —
+459/836 KF ont un prédécesseur à <10 m (dist. méd 0.1 m) à ≥25 KF de séparation (méd 412 :
+le tour 2 repasse quasi exactement sur le tour 1, padding cyclique oblige).
+
+**Run `run_holoocean_2026-07-12_013055`** = `BAG_HOLO=…traj6.bag ./run_slam.sh holoocean 2D bs`
+(UNE variable vs témoin 005329 : méthode bruce → bruce_sonar). Fin propre, 1386 s, 860 KF.
+- **SC : 128 requêtes loggées, 8 retenues, 0 fausse** — les 8 sont de vraies revisites
+  tour2↔tour1 (sép. 410-413 KF, dxy méd 0.30 m, |Δcap| méd 4.4°, sc_dist 0.878-0.911,
+  t 122-127 s ↔ 766-771 s, même endroit près des structures).
+- **ICP/PCM : 0 acceptée** (`nssm_constraints` = 0 partout) → SLAM = DR (écart 0.0).
+- **ATE Umeyama 0.05 m · cap RMS 0.1° · cloud NN 0.040** = témoin. Δtraj vs 005329 par
+  interpolation TEMPS : méd 2 mm, max 1.7 cm. ⚠ Piège de comparaison : par INDEX de KF
+  on lit 0.35 m — les keyframes ne tombent pas aux mêmes stamps d'un run à l'autre
+  (jitter rosbag temps réel), toujours comparer par temps.
+
+**Verdict** : le résultat test.bag 07-08 (218 candidates SC / 0 acceptée / 0 dégradation)
+se RÉPLIQUE sur traj6 : les gates SC ne laissent rien passer de faux, le verrou reste
+l'ICP aval sur features simulateur, et les loops n'apportent rien ici (la DR est quasi
+parfaite, ATE déjà 0.05 m). La machinerie loops est sûre en l'état pour les données réelles.
+
+**Faible rappel (8 retenues / ~459 revisites) élucidé — 3 hypothèses testées** :
+- ① « Δz entre les tours » : **RÉFUTÉE** — |Δz| méd des revisites géométriques = 0.03 m
+  (le profil z de l'errance se rejoue à l'identique au tour 2) ; tous les bins de |Δz|
+  ont sc_dist méd 1.000 (pas de corrélation exploitable, Pearson 0.33 par les extrêmes).
+- ② « pas de descripteur en eau libre » : **CONFIRMÉE** — une requête SC n'est loggée que
+  si query ET candidats gatés ont un `ring_key` (slam.py, sonar_context_candidate) ;
+  seulement 128 requêtes, TOUTES au tour 2, par plages (427-472, 525-554, 600-660,
+  738-768…) = les segments où le sonar voit des structures.
+- ③ « le fan ±60° exige un cap quasi identique » : **CONFIRMÉE** — retenus |Δcap| méd 4.4°
+  vs 15.2° pour les rejetés ; quand le cap diffère, le « meilleur » candidat par apparence
+  est un KF au bord de la porte (dxy méd 9.67 m) avec sc_dist ≈ 1.0, pas la vraie
+  revisite à 0.1 m. (Ce n'est PAS un Scan Context lidar 360° : pas d'invariance au cap.)
+
+**Limites assumées** : run unique (le verdict qualitatif est identique aux 3 runs SC
+antérieurs et le pipeline est déterministe à la lecture du bag près) ; carte_3d non
+régénérée (trajectoire = témoin à 2 mm → la carte serait celle du 005329, cf. §11-ter).

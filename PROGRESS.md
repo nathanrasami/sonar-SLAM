@@ -6,7 +6,23 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 : traj6 VALIDÉ bout en bout (run 005329) — passer à la SUITE DU SLAM
+## 🔜 REPRISE ICI — 2026-07-12 : loops SC traj6 FAIT (run 013055) — reste StereoFLS / threshold 30 / traj7
+
+**Loops SC (méthode bs) sur traj6 — run `run_holoocean_2026-07-12_013055` (FABLE §12)** :
+SC retient **8 vraies revisites tour2↔tour1, 0 fausse** ; ICP/PCM en accepte **0** →
+SLAM = DR, **ATE 0.05 m = témoin 005329** (Δtraj méd 2 mm par interp. temps). Le verdict
+test.bag 07-08 se réplique sur traj6 : gates SC sûrs, verrou = ICP simu, loops sans apport
+ici (DR quasi parfaite). Faible rappel (8/459 revisites) élucidé : pas de `ring_key` en
+eau libre (128 requêtes, toutes au tour 2) + le fan ±60° exige |Δcap|≈0 (4.4° vs 15.2°) ;
+hypothèse Δz RÉFUTÉE (méd 0.03 m — le z se rejoue au tour 2). ⚠ Piège : comparer 2 runs
+par INDEX de KF ment (0.35 m d'artefact, stamps décalés) — toujours par temps.
+Défauts inchangés (nssm=false reste le bon réglage courant).
+
+**Reste (ordre suggéré)** : fusion patchs polaires (StereoFLS — lire arXiv 2412.03760
+AVANT de coder) · threshold 50→30 (réserve) · traj7 « au ras des quais » (demande Nathan
+2026-07-12) · ménage possible : traj6_test.bag (1.2 Go).
+
+## (clos) 2026-07-12 : traj6 VALIDÉ bout en bout (run 005329) — passer à la SUITE DU SLAM
 
 **Run `run_holoocean_2026-07-12_005329` — les 3 verdicts au vert (FABLE §11-ter)** ;
 bag complet **E1–E9 TOUT PASS** (E9 : lat. 34.4 % vs 0.0 % miroir · fond 83.5 % vs 0.3 %) :
