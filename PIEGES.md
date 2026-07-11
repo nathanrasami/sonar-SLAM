@@ -132,9 +132,16 @@ ce qui est LA signature : si régler un seuil ne change pas la sortie, le goulot
 aval du seuil). Règle : sonar à couverture ≥180° → features calculées EN POLAIRE
 (CFAR sur l'image polaire + r·cosθ/r·sinθ), cf. msis_scan_bridge.py branche caves.
 
-## 14. HoloOcean : `/sonar_points` du générateur = MIROIR latéral (vécu : traj3-4, 07-11)
+## 14. HoloOcean : `/sonar_points` du générateur = MIROIR latéral (vécu : traj3-4, 07-11 — FIXÉ le soir même)
 
-`sonar_to_points3d_msg` (gen_bag_3d.py) fait `y = −r·sin(a)` en supposant colonnes
+**FIX COMMITTÉ 07-11 soir** : `gen_bag_3d.py` corrigé (sin + R_MOUNT_PROF flippés ENSEMBLE,
+projection du fan vertical prouvée identique à 0.0 près), check **E8 anti-miroir** ajouté à
+`check_traj4.py` (validé : FAIL sur bag miroir, PASS sur bag corrigé), bags traj4 réécrits
+offline — E1–E8 TOUT PASS, anciens conservés `*_avant_fix_miroir.bag`. ⚠ Les bags traj1-3
+(`bag/`) ne sont PAS réécrits : toujours miroir. ⚠ Ne JAMAIS flipper le sin sans flipper
+R_MOUNT_PROF (et inversement) : le vert n'est correct que par la compensation des DEUX.
+
+Historique du bug : `sonar_to_points3d_msg` (gen_bag_3d.py) faisait `y = −r·sin(a)` en supposant colonnes
 hautes = tribord ; MESURÉ (arc Γ à +37°/31 m, bâbord) : colonnes hautes = BÂBORD.
 Tous les `/sonar_points` (horizontaux) des bags traj1→4 sont donc en miroir du cap.
 - Le SLAM n'y touche pas (il CFAR-ise `/sonar` via le bridge, convention correcte) →

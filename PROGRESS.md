@@ -6,7 +6,31 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-11 (midi) : traj4 CODÉE, bag court E1–E7 TOUT PASS — reste bag complet + runs
+## 🔜 REPRISE ICI — 2026-07-11 (soir) : B′+D EXÉCUTÉS (fix miroir + carte dense), tout PASS
+
+**Décision Nathan (soir)** : B′+D. **FAIT et vérifié (détail FABLE §9-ter)** :
+- **D (fix miroir, racine)** : `gen_bag_3d.py` corrigé (sin + R_MOUNT_PROF flippés ensemble,
+  vert prouvé identique 0.0) · **E8 anti-miroir** dans `check_traj4.py` (FAIL sur bag miroir
+  10.9/33.9 % ✓ → PASS sur bag corrigé 45.2/13.6 %) · bags traj4 complet+court RÉÉCRITS
+  offline, **E1–E8 TOUT PASS ×2**, anciens en `*_avant_fix_miroir.bag` (suppression = décision
+  Nathan ; traj1-3 de `bag/` NON réécrits, toujours miroir) · aval : carte vert IDENTIQUE
+  (NN 0.083), comblage bien placé, **fusion M1 0.296→0.205 m PASS** (⚠ doute ouvert :
+  M2 p90 0.286→0.709 non investigué, M1 est le critère).
+- **B′ (carte 2D dense, nouveau `analysis/carte_2d_dense.py`)** : détecteur RÉEL sur TOUS les
+  pings × poses SLAM, GT-free, anti-bavure azimut (réponse aux « clouds circulaires » : bavure
+  tangentielle passant le CFAR range-only). Run 160434 : **seuil 30 → 33 740 cellules**
+  (24 725 persist. ≥2) vs carte keyframes 16 105 pts ; seuil 50 → 13 126. Quais/Γ/bateau lisibles.
+  Lancement : voir docstring (podman exec ros1 … analysis/carte_2d_dense.py <run> [--seuil 30]).
+- **Leçon traj5 (remarque Nathan VALIDÉE par le témoin 161938/traj3)** : l'errance du collègue
+  (~6 m du quai OUEST, cap+z continus) sort 74 947 pts/2 quais en échelles avec la MÊME chaîne →
+  **la trajectoire domine la qualité de la carte 2D**, le seuil est 2ᵉ. traj5 = errance naturelle
+  + rapprochements des 2 quais + z continu, en gardant sweeps verticaux/approche bateau/phase A.
+
+**Reste** : traj5 (ci-dessus) · décision suppression des `_avant_fix_miroir.bag` (2×11.5 Go) ·
+doute M2 p90 · option pipeline A (threshold 50→30) si besoin de nourrir NSSM · fusion patchs
+polaires (StereoFLS) · loops SC sur traj4.
+
+## (clos midi) 2026-07-11 : traj4 CODÉE, bag court E1–E7 TOUT PASS — reste bag complet + runs
 
 **Fait (vérifié par la commande nue `check_traj4.py`)** : `gen_bag_3d_v4.py` RÉÉCRIT → traj4
 (guide §1) : 2ᵉ ImagingSonar VERTICAL avant (rotation [90,0,0], R_MOUNT_PROF, bras de levier

@@ -356,3 +356,35 @@ range-only, la bavure d'azimut ≥30 passe).
   seulement + réécriture offline des /sonar_points du bag + re-run carte_3d/fusion
   (le comblage 3D et la fusion en profitent) ; re-passer E1–E7 + ajouter un check E8
   « anti-miroir latéral horizontal » au guide.
+
+### §9-ter — EXÉCUTION B′+D (décision Nathan, 07-11 soir) : FAIT, tout vérifié
+
+**D — fix miroir (racine)** :
+- `gen_bag_3d.py` : `y = +r·sin(a)` + `R_MOUNT_PROF` flippé (+90°→−90°) en même temps →
+  projection nette du fan VERTICAL prouvée IDENTIQUE (diff numérique 0.0). Ne jamais
+  flipper l'un sans l'autre.
+- `check_traj4.py` : **E8 anti-miroir latéral** (reprojection GT vs structures connues,
+  PASS si score(tel quel) > 2×score(miroir) et >15 %). Validé en DÉTECTEUR : bag miroir
+  10.9/33.9 % → FAIL ✓ ; bag corrigé 45.2/13.6 % → PASS.
+- Bags traj4 (complet 10.3 Go + court) RÉÉCRITS offline (/sonar_points recalculés depuis
+  /sonar, reste verbatim, tailles à l'octet) — **E1–E8 TOUT PASS ×2 bags**. Anciens
+  conservés `*_avant_fix_miroir.bag` (suppression = décision Nathan). ⚠ traj1-3 (bag/)
+  PAS réécrits : archives, toujours miroir.
+- Aval re-mesuré (run 160434, commandes d'origine) : carte structurelle vert IDENTIQUE
+  (25 586 pts, NN 0.083/p90 0.693 — preuve de non-régression) ; comblage 9 632 pts bien
+  placés ; **fusion M1 0.296→0.205 m méd PASS (−31 %)** ; M2 méd 0.066→0.052 m,
+  ⚠ p90 0.286→0.709 NON investigué (doute ouvert ; M1 est le critère géométrique).
+
+**B′ — carte 2D dense offline (`analysis/carte_2d_dense.py`, nouveau)** : détecteur RÉEL
+(CFAR SOCA + seuil + downsample + outlier) rejoué sur TOUS les pings × poses SLAM (GT-free),
++ filtre anti-bavure (crête locale en azimut : la bavure passe le CFAR range-only et
+dessine des arcs centrés sonar — la remarque de Nathan sur les « clouds circulaires »).
+Run 160434 : seuil 30 → **33 740 cellules 0.2 m** (24 725 en persistance ≥2 pings) ·
+seuil 50 → 13 126 · carte SLAM keyframes : 16 105 pts. Les deux quais + Γ + bateau lisibles.
+
+**Leçon trajectoire (remarque Nathan, VALIDÉE par le témoin)** : le run traj3 du collègue
+(161938, même monde/seuils/chaîne) sort 74 947 pts NN 0.098 avec les DEUX quais en échelles
+nettes — son errance passe à ~6 m du quai OUEST (x≈468) vs notre carré à 28 m (x=490), cap
+et z variant en continu. **La trajectoire domine la qualité de la carte 2D** ; le seuil est
+le 2ᵉ facteur. → traj5 : reprendre une errance naturelle (rapprochements des 2 quais, z
+continu) + garder les acquis traj4 (sweeps verticaux, approche bateau, phase A calibration).
