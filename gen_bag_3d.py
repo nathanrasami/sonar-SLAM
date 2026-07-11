@@ -98,10 +98,14 @@ def make_cfg(with_profiler):
             "sensors": sensors,
             "control_scheme": 0, "location": [0, 0, Z0]}]}
 
-# Rotation de montage du profiler : roll +90 deg autour de x (fan vertical)
+# Rotation de montage du profiler/sonar vertical : roll -90 deg autour de x.
+# 07-11 (PIEGES #14) : le signe du sin a ete corrige dans sonar_to_points3d_msg
+# (colonnes hautes = babord) ; ce roll est flippe en meme temps (+90 -> -90)
+# pour que la projection NETTE du fan vertical reste IDENTIQUE a celle validee
+# E3/E4 (fond a -19.4 sous le robot). Ne flipper ni l'un ni l'autre isolement.
 R_MOUNT_PROF = np.array([[1, 0, 0],
-                         [0, 0, -1],
-                         [0, 1, 0]], dtype=float)
+                         [0, 0, 1],
+                         [0, -1, 0]], dtype=float)
 
 # ─── Chemin RECTANGLE a coins arrondis, abscisse curviligne ──────────────────
 Lsx = LX - 2 * R_TURN
@@ -191,8 +195,10 @@ def sonar_to_points3d_msg(img, p, rpy, header, thresh=0.10, r_mount=None,
     else:
         r = rr[ii]; a = aa[jj]
         inten = img[ii, jj].astype(np.float32)
-        # y = -r sin(a) : azimut positif a DROITE dans l'image -> y gauche negatif
-        pts_b = np.stack([r * np.cos(a), -r * np.sin(a), np.zeros_like(r)], axis=1)
+        # y = +r sin(a) : colonnes hautes de l'image HoloOcean = BABORD (mesure
+        # 2026-07-11, arc mur GAMMA a +37deg/31 m, PIEGES #14 — l'ancien
+        # y = -r sin(a) mettait tous les /sonar_points en MIROIR lateral).
+        pts_b = np.stack([r * np.cos(a), r * np.sin(a), np.zeros_like(r)], axis=1)
         if r_mount is not None:
             pts_b = pts_b @ r_mount.T
         Rwb = R_from_rpy(*rpy)

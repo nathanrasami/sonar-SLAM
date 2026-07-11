@@ -139,6 +139,12 @@ Le bag court doit contenir **toute la phase A (§1.5) + ~1 min de carré**.
   colonnes centrales. **PASS si |range(/sonar) − range(/sonar_vert)| < 0.3 m.**
 - **E7 — couverture sweep (pendant C2)** : reprojette `/sonar_vert_points` en monde sur les 36 s.
   **PASS si les échos couvrent > 300° d'azimut** autour du point de pivot (le « phare » balaie).
+- **E8 — signe LATÉRAL de `/sonar_points` (anti-miroir horizontal, ajouté 07-11, PIEGES #14)** :
+  E1–E7 ne couvrent que le fan vertical (E3 = élévation) ; le miroir latéral du sonar HORIZONTAL
+  est passé au travers sur traj1→4. Reprojette `/sonar_points` en monde via la GT avec le signe
+  du bag ET avec y inversé ; score = fraction des points à < 1.5 m d'une structure connue
+  (quais x=462.5/531.5, mur Γ, bateau). **PASS si score(tel quel) > 2 × score(miroir) ET > 15 %.**
+  Mesuré traj4 : bag miroir 10.9 % vs 33.9 % (FAIL) → bag corrigé 45.2 % vs 13.6 % (PASS).
 
 ---
 
@@ -222,3 +228,19 @@ sonar SLAM, azimut de `/sonar_vert`), et comment tu as géré la fréquence (par
 mortes à t=94/200 s). Mesures E1–E7 identiques au bag court : E1 std y 0.000 · E2 ±60.0° ·
 E3 100 % (n=180 186) · E4 dérive front 0.03 m · E5 6486/6486 appariés, 0.0 ms · E6 0.02 m ·
 E7 360° (160° sous l'eau). Prochaine étape : run SLAM + carte_3d + fusion_plus.
+
+### 2026-07-11 (soir) — fix MIROIR latéral `/sonar_points` + check E8, bags RÉÉCRITS : E1–E8 TOUT PASS
+
+Bug PIEGES #14 : `sonar_to_points3d_msg` faisait `y=−r·sin(a)` (colonnes hautes supposées
+tribord) ; mesuré (arc mur Γ à +37°/31 m à BÂBORD + émulation CFAR + E8) : colonnes hautes
+= BÂBORD → tous les `/sonar_points` traj1→4 étaient en miroir du cap. Fix commité :
+signe corrigé + `R_MOUNT_PROF` flippé (+90→−90) en même temps → projection nette du fan
+VERTICAL prouvée IDENTIQUE (diff numérique 0.0 ; E1–E7 et carte_3d strictement inchangés).
+Bags traj4 (complet + court) réécrits OFFLINE (points recalculés depuis `/sonar`, reste
+copié verbatim, tailles identiques à l'octet) ; anciens conservés en `_avant_fix_miroir.bag`.
+- **E8 (nouveau)** : bag miroir 10.9 % vs 33.9 % → FAIL ✓ détecte · bag corrigé **45.2 % vs
+  13.6 % → PASS**. E1–E7 inchangés (E3 100 % n=180 186, E4 0.03 m, E5 0.0 ms, E6 0.02 m, E7 360°).
+- **Effet aval (run 160434, mêmes commandes)** : carte structurelle vert IDENTIQUE
+  (25 586 pts, NN 0.083/p90 0.693) · comblage horizontal 9 632 pts maintenant bien placés ·
+  **fusion M1 0.296 → 0.205 m méd (p90 0.402), PASS** · M2 méd 0.066 → 0.052 m
+  (⚠ p90 0.286 → 0.709, non investigué — doute ouvert, M1 est le critère).

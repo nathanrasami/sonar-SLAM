@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Checks E1-E7 du HOLOOCEAN_3D_GUIDE §2 sur un bag traj4 (court --test 150
+"""Checks E1-E8 du HOLOOCEAN_3D_GUIDE §2 sur un bag traj4 (court --test 150
 ou complet). A lancer avec le python du venv holoocean (rosbags + numpy 1.26).
 
 Usage : python check_traj4.py [BAG_files/holoocean_3d_traj4_test.bag]
-Sortie : les 7 mesures + PASS/FAIL, verdict global en code retour (0 = tout PASS).
+Sortie : les 8 mesures + PASS/FAIL, verdict global en code retour (0 = tout PASS).
+E8 (ajoute 07-11, PIEGES #14) : signe LATERAL de /sonar_points (anti-miroir
+horizontal — E3 ne couvre que l'elevation du fan vertical).
 """
 import sys
 import numpy as np
@@ -25,6 +27,7 @@ BAG = sys.argv[1] if len(sys.argv) > 1 else "BAG_files/holoocean_3d_traj4_test.b
 
 gt_t, gt = [], []
 vp, vp_t = [], []                     # /sonar_vert_points (pts, stamp)
+hp, hp_t = [], []                     # /sonar_points (E8, 1 msg sur 5)
 im_h, im_v = {}, {}                   # stamp -> image polaire (C1 seulement)
 st_h, st_v = [], []                   # stamps /sonar et /sonar_vert
 counts = {}
@@ -33,7 +36,15 @@ with Reader(BAG) as reader:
     conns = list(reader.connections)
     for conn, t_ns, raw in reader.messages(connections=conns):
         counts[conn.topic] = counts.get(conn.topic, 0) + 1
-        if conn.topic == "/ground_truth":
+        if conn.topic == "/sonar_points":
+            if counts[conn.topic] % 5 == 1:
+                m = TS.deserialize_ros1(raw, conn.msgtype)
+                pts = np.frombuffer(m.data, dtype=np.float32).reshape(-1, 4)
+                if len(pts) > 2000:
+                    pts = pts[np.random.default_rng(8).choice(len(pts), 2000,
+                                                              replace=False)]
+                hp.append(pts.copy()); hp_t.append(t_ns)
+        elif conn.topic == "/ground_truth":
             m = TS.deserialize_ros1(raw, conn.msgtype)
             p, q = m.pose.pose.position, m.pose.pose.orientation
             yaw = np.arctan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z))
@@ -159,6 +170,42 @@ nsub = np.count_nonzero(np.histogram(azs, bins=36, range=(0, 360))[0])
 print(f"E7 couverture  : echos C2 sur {nbins*10} deg d'azimut "
       f"(n={c2.sum()}, PASS si >300) -> {'PASS' if res['E7'] else 'FAIL'}"
       f" | info : sous l'eau (z<0) {nsub*10} deg")
+
+# ── E8 : signe LATERAL de /sonar_points (anti-miroir horizontal, 07-11) ──────
+# Reprojette /sonar_points en monde via la GT avec le signe du bag (tel quel)
+# et avec le signe OPPOSE (y -> -y en repere vehicule). Le bon signe colle aux
+# structures connues (quais x=462.5/531.5, mur GAMMA, bateau) ; le miroir les
+# disperse. PASS si score(tel quel) > 2 x score(miroir) ET > 0.15.
+SEGS = [((462.5, -705.0), (462.5, -630.0)),   # quai OUEST (face interne)
+        ((531.5, -705.0), (531.5, -630.0)),   # quai EST (face interne)
+        ((464.0, -645.0), (485.0, -645.0)),   # GAMMA horizontal
+        ((485.0, -650.0), (485.0, -701.0)),   # GAMMA vertical
+        ((518.0, -681.5), (530.0, -681.5))]   # bateau (axe long)
+
+def d_seg(P, a, b):
+    a, b = np.array(a), np.array(b)
+    ab = b - a
+    t = np.clip(((P - a) @ ab) / (ab @ ab), 0.0, 1.0)
+    return np.linalg.norm(P - (a + t[:, None] * ab), axis=1)
+
+def score_lateral(sign):
+    ok = tot = 0
+    for t_ns, pts in zip(hp_t, hp):
+        q = pts[:, :3].copy(); q[:, 1] *= sign
+        w, _ = to_world(q, t_ns)
+        d = np.min(np.stack([d_seg(w[:, :2], a, b) for a, b in SEGS]), axis=0)
+        ok += int((d < 1.5).sum()); tot += len(w)
+    return ok / max(tot, 1)
+
+if hp:
+    s_ok, s_mir = score_lateral(+1.0), score_lateral(-1.0)
+    res["E8"] = (s_ok > 2.0 * s_mir) and (s_ok > 0.15)
+    print(f"E8 lateral hor : {100*s_ok:.1f} % des points a <1.5 m d'une structure "
+          f"connue vs {100*s_mir:.1f} % en miroir (n={sum(len(p) for p in hp)}, "
+          f"PASS si ratio>2 et >15 %) -> {'PASS' if res['E8'] else 'FAIL'}")
+else:
+    res["E8"] = False
+    print("E8 lateral hor : FAIL — aucun /sonar_points echantillonne")
 
 # ── bilan ─────────────────────────────────────────────────────────────────────
 np_all = all(res.values())
