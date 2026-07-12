@@ -6,7 +6,40 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 (nuit) : traj7r « nav réaliste » PRÊT À GÉNÉRER — faire enfin travailler le SLAM
+## 🔜 REPRISE ICI — 2026-07-13 : traj7r runs FAITS — bag validé, plus-value SLAM toujours indémontrable (mono-boucle)
+
+**Prédiction gen-v8 CONFIRMÉE sur bag complet** : DR = ATE Umeyama **0.75 m** (prédit 0.73),
+dérive brute finale **2.59 m / 489 m ≈ 0.53 % DT**, cap RMS 1.0°. Le bag porte bien la dérive
+voulue → géométrie + odométrie saines, chaîne end-to-end propre (903 KF, 0 crash).
+
+**MAIS 0 loop fermée → plus-value sonar = 0 (dans le bruit).** 4 runs, tous
+`ssm=false nssm=false sonar_range=20 mode=2d` (prouvé par log roslaunch) :
+- `method:=bruce` : 015122, 024212 *(dossier `_B` mais lancé bruce_sonar — voir piège)*, 044936_B
+- `method:=bruce_sonar` (SC actif) : 032154_BS
+Tous : **nssm=0, SLAM ≡ DR** (bruit float 1e-13 m), cloud ~8118 pts **NN 0.055 m**, 3D intacte
+(piggyback vert+transverse sur keyframe_id Sonar1). **B ≡ BS ≡ DR** : écart méthodes **2.6 mm rms /
+16 mm max** < plancher de non-déterminisme du pipeline **3.1 mm rms / 20 mm max** (2 runs de config
+identique). → méthodes **indiscernables** ici. Mémoire : `pipeline-non-determinisme-2cm`.
+
+**Mécanisme** : traj7r = boucle **UNIQUE** (revisite seulement start≈end, ~3 m, en toute fin) →
+aucune vraie revisite pour le SC → back-end idle → sortie = DR. Front/backend loop **NON testé**.
+Les logs capturés ne disent pas si le SC a *proposé-puis-rejeté* ou *jamais proposé* — seulement
+0 accepté.
+
+**Reste à faire (prochaine génération de bag)** : trajectoire **MULTI-REVISITE** (2+ passages sur
+les mêmes zones, façon test.bag 2 tours) = seule façon de faire mordre les loops SC et de départager
+Bruce vs Bruce_Sonar. Tant qu'on est mono-boucle, tout retombe sur le DR.
+
+⚠ **Pièges vécus** :
+- `run_slam.sh:41` construit `run_<type>_<date>` **sans suffixe de méthode** → `_B`/`_BS` sont
+  ajoutés à la main et ne prouvent pas le `method` lancé (un dossier `_B` avait tourné `bruce_sonar`).
+  Vérifier via `~/.ros/log/<uuid>/*.log` (« roslaunch starting with args »), pas le nom du run.
+- `.claude/rules/branche.md` « NSSM=true + min_st_sep 25 → 0.13 m » = résultat **bag partiel du
+  07-07 matin** (commit 140a8d6), **superseded le soir même** par l'arbitrage sur bag complet :
+  NSSM natif dégrade (0.84 vs 0.03) → défaut figé **NSSM off → 0.03 m** (commit 12cf32d). Le défaut
+  code actuel `nssm:=false` est donc légitime, la ligne branche.md est antérieure/dépassée.
+
+## ✅ FAIT 2026-07-12→13 : traj7r « nav réaliste » généré + runs B/BS (résultats → REPRISE 07-13 ci-dessus)
 
 **Diagnostic « on est trop précis » (Nathan) — chaîne causale prouvée** : SLAM = DR
 bit-à-bit (1e-13, nssm=0, SSM=false → 0 facteur sonar dans le graphe) ; le DR est du
