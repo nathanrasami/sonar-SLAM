@@ -12,6 +12,7 @@ stable là-bas) et enregistre un bag 3 capteurs compatible avec notre chaîne SL
 5. `pierharbor_zone.json`   (requis : v5 le charge à l'import)
 6. `check_traj4.py`
 7. `HOLOOCEAN_3D_GUIDE.md`
+8. `gen_bag_3d_v8.py`   (OPTIONNEL : modèle d'erreurs nav réaliste, voir prompt)
 
 (+ ce document. Ne PAS envoyer de bag ni le venv — dépendances python :
 holoocean 1.0.0, rosbags, numpy, scipy.)
@@ -46,6 +47,14 @@ holoocean 1.0.0, rosbags, numpy, scipy.)
 > statique face au mur EST à ~5.2 m depuis (526.3, −660, −9.5), puis 360° sur
 > place, puis ±3 m vertical — soit la refaire en début de pilotage, soit ignorer
 > ces 3 checks (E1/E3/E4/E5/E8/E9 restent valides).
+>
+> Option « navigation réaliste » (recommandée pour les bags destinés à tester
+> les fermetures de boucle) : reprendre de `gen_bag_3d_v8.py` le modèle
+> d'erreurs nav (`psi_err_series` : biais de cap 2° + marche aléatoire
+> 0.15°/√s appliqués à l'ORIENTATION du message /imu ; `dvl_mismount` :
+> échelle +0.5 % + désalignement 0.5° sur /dvl) — l'appliquer aux valeurs
+> AVANT écriture dans le bag, GT intact. Sans cette option le dead-reckoning
+> simulé est quasi parfait et le SLAM n'a rien à corriger.
 >
 > Pièges durement acquis — NE PAS « corriger » : les rotations capteurs
 > ([0,0,0] / [90,0,0] / [90,0,90]) et les matrices R_MOUNT_* sont MESURÉES au
