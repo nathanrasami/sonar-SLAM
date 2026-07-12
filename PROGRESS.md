@@ -6,7 +6,29 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj7 — bag COMPLET E1–E9 TOUT PASS, prêt pour le SLAM
+## 🔜 REPRISE ICI — 2026-07-12 (nuit) : traj7r « nav réaliste » PRÊT À GÉNÉRER — faire enfin travailler le SLAM
+
+**Diagnostic « on est trop précis » (Nathan) — chaîne causale prouvée** : SLAM = DR
+bit-à-bit (1e-13, nssm=0, SSM=false → 0 facteur sonar dans le graphe) ; le DR est du
+vrai DVL+IMU **GT-free vérifié** (odometry dérive 0.072→0.145 m, ≠ GT ; dr_* = odometry
+à 0.0000) ; MAIS compas simulé PARFAIT (dvl_imu_odom lit l'orientation IMU absolue) +
+DVL sans biais → dérive 0.14 m/24.6 min, ~rien à corriger. L'ATE 0.057 mesure
+l'odométrie simulée, PAS le sonar. La plus-value SLAM est indémontrable sur traj7.
+
+**traj7r = `gen_bag_3d_v8.py` + `./gen_traj7r.sh [--test 150]`** — traj7 identique
+(circuit/sonars/GT/depth intacts, E1–E9 valides) + erreurs nav DANS le bag :
+cap IMU biais 2° + marche aléatoire 0.15°/√s (~5.7° σ fin) · DVL échelle +0.5 % +
+désalignement 0.5° (bottom-lock → pas de courant, justifié). Seed nav dédié (7).
+**Prédiction à sec (verifier_nav_v8, intégration = dvl_imu_odom)** : dérive DR ancrée
+**rms 1.62 m (max 3.22), Umeyama 0.73 m** ≈ 0.3 % de la distance (fourchette réelle
+DVL+AHRS magnétique). Assert bande [1,8] m sur bag complet.
+**Runs à faire (Nathan)** : 1) `./gen_traj7r.sh` (checks auto --rmax-h 20) ·
+2) run DR baseline : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20
+./run_slam.sh holoocean` (ATE attendu ~1-2 m) · 3) run loops :
+même commande + `2D bs` (SC gate) et/ou `NSSM=true` → LA mesure de la plus-value
+sonar (ΔATE vs run DR). threshold reste à 30 (validé).
+
+## (clos) 2026-07-12 (soir) : traj7 — bag COMPLET E1–E9 TOUT PASS, prêt pour le SLAM
 
 **Bag complet `holoocean_3d_traj7.bag` (12.6 Go, 7374 pings, 2949 sections transverses) :
 E1–E9 TOUT PASS** après fix d'un défaut LATENT d'E9 (FABLE §14, PIEGES #20) : la variante
