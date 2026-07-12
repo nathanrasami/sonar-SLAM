@@ -592,3 +592,27 @@ proche du quai »).
 **Bonus incident** : 1er lancement moteur après reboot → SIGBUS
 UCommandCenter::GetCommandBuffer (course shm client 1 Mo / moteur 8 Mo, fenêtre 35 ms),
 python suspendu + Holodeck defunct + log vide. Relance = OK. → PIEGES #19.
+
+## 14. 2026-07-12 (soir) — E9 FAIL sur traj7 complet : défaut latent du CHECK, pas du bag
+
+**Symptôme** : bag complet traj7 E1–E8 PASS, E9-fond FAIL (80.2 % vs **52.1 %** en
+flip z, ratio 1.54 < 2). Sur le témoin traj6 le flip scorait 0.3 %. Un flip-z ne
+devrait jamais retomber dans la bande fond.
+
+**Mécanisme (mesuré, e9_fond_diag)** : `score_e9` appliquait le flip PUIS sélectionnait
+`deep = q[:,2] < −8` → la variante flip testait une AUTRE population : les échos >8 m
+AU-DESSUS du robot = superstructure HORS D'EAU du port (z monde +2.8..+8.3, 100 % au-
+dessus de la surface, présents dans les DEUX bags : n=3399 traj6 / 1385 traj7). Leur
+« retombée » dans [−21,−17] est la coïncidence zw ∈ [2·z0+17, 2·z0+21] : robot vers
+−6.5 → cible [4.2, 8.2] = pile la superstructure. traj6 y échappait (0.3 %) ; traj7
+serre les quais (superstructure proche + tirage z) → 52.1 %. Défaut présent depuis la
+création d'E9, jamais déclenché.
+
+**Preuve que le bag est bon** : les points fond ORIGINAUX de traj7, flippés (même
+population) → **0.0 %** en bande (traj6 idem : 83.5 → 0.0). Mount z correct.
+
+**Fix (check_traj4.py)** : `deep` sélectionné sur le cloud ORIGINAL avant flip — le
+tripwire teste « où iraient les points du fond si le signe était faux ». PLUS strict :
+un vrai bug de signe met l'absolu à ~0 % (<30) ET inverse le ratio. Re-vérifié :
+traj7 complet TOUT PASS (80.2/0.0) ; témoin traj6 complet TOUT PASS (83.5/0.0,
+latéral 34.4/0.0 inchangés). → PIEGES #20.

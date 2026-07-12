@@ -256,7 +256,14 @@ if "/profiler_points" in counts:
                 d = np.min(np.stack([d_seg(w[band, :2], a, b) for a, b in SEGS]), axis=0)
                 n_wall_ok += int((d < 1.5).sum()); n_wall += int(band.sum())
             if rob[2] > -6.5:
-                deep = q[:, 2] < -8.0
+                # deep sur le cloud ORIGINAL (avant flip) : le flip doit deplacer
+                # LA MEME population (« ou iraient les points du fond si le signe
+                # etait faux »). Selectionner apres flip testait les echos >8 m
+                # AU-DESSUS (superstructure hors d'eau du port, z +3..+8) qui
+                # retombent dans la bande par coincidence 2*z0-zw des que la
+                # traj serre les quais -> faux FAIL traj7 (fm 52 % vs 0 % reel,
+                # mesure 2026-07-12 ; temoin traj6 inchange 83.5/0.0).
+                deep = pts[:, 2] < -8.0
                 if deep.sum():
                     n_fond_ok += int(((w[deep, 2] > -21.0) & (w[deep, 2] < -17.0)).sum())
                     n_fond += int(deep.sum())

@@ -6,7 +6,20 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj7 « au ras des quais » — bag TEST TOUT PASS, bag COMPLET lancé
+## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj7 — bag COMPLET E1–E9 TOUT PASS, prêt pour le SLAM
+
+**Bag complet `holoocean_3d_traj7.bag` (12.6 Go, 7374 pings, 2949 sections transverses) :
+E1–E9 TOUT PASS** après fix d'un défaut LATENT d'E9 (FABLE §14, PIEGES #20) : la variante
+flip-z sélectionnait `deep` APRÈS le flip → elle testait la superstructure HORS D'EAU du
+port (jamais déclenché avant ; traj7 serre les quais → faux FAIL 52.1 %). Preuve bag sain :
+points fond flippés (même population) = 0.0 % en bande (mount z correct). Témoin traj6
+complet re-vérifié TOUT PASS chiffres identiques (34.4/0.0 · 83.5/0.0). E8 complet traj7 :
+53.1 % vs 23.0 %.
+**Prochaine étape (run 1, threshold 50 baseline)** :
+`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`
+puis `./analyse.sh 3D <run>` ; ensuite run 2 threshold 30 (ablation 1 variable).
+
+## (clos) 2026-07-12 (soir) : traj7 « au ras des quais » — bag TEST TOUT PASS, bag COMPLET lancé
 
 **Le « bateau (524,−680.5) » N'EXISTE PAS (FABLE §13, PIEGES #18)** : double probe
 (`probe_boat_traj7.py` RangeFinder ray-cast + `probe_boat_sonar.py` fan vertical/octree,

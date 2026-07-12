@@ -217,3 +217,15 @@ après reboot (timing d'init différent). Remède : tuer le python suspendu, `rm
 /dev/shm/HOLODECK_MEM<uuid-du-run>*`, relancer — les gen_traj*.sh relancent déjà ×3 seuls.
 Ne PAS « corriger » les tailles dans le venv : les runs normaux vivent très bien avec ce
 mismatch (le JSON de commandes ne dépasse jamais 1 Mo).
+
+## 20. Un test de SIGNE doit flipper LA MÊME population, jamais sélectionner APRÈS le flip (vécu : E9 traj7, 2026-07-12)
+
+E9-fond appliquait flip-z PUIS `deep = q[:,2]<−8` : la variante « miroir » testait les
+échos >8 m AU-DESSUS du robot (superstructure hors d'eau du port) au lieu de déplacer
+les points du fond. Coïncidence géométrique (zw ∈ [2·z0+17, 2·z0+21]) → faux FAIL dès
+que la trajectoire serre les quais (traj7 : flip 52 % ; réel : 0.0 %). Deux bags sains
+plus tôt (traj6 : 0.3 %) n'avaient jamais déclenché le défaut.
+- Règle : dans un test A-vs-transformé(A), figer la SÉLECTION sur les données
+  originales, appliquer la transformation à cette sélection, comparer. Si la sélection
+  dépend de la transformation, on compare deux populations différentes et le ratio ne
+  mesure plus le signe. (Fix : check_traj4.py E9, re-validé sur traj6 ET traj7 complets.)
