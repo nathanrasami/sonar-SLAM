@@ -21,12 +21,17 @@ ATE Umeyama rms **0.058 m** (méd 0.046, max 0.119 ; ancré-origine 0.135), 901 
 2.92 ≈ serrage quais). Carte SLAM 2D maigre : **2.6 features/KF** (2 328 pts) — attendu :
 threshold 50 coupe la bande faible + RangeMax 20 vide les jambes eau libre (géométrie).
 carte_3d (vert+transverse) : « vraie 3D » validée à l'œil par Nathan.
-**Prochaine étape — run 2 threshold 30 (ablation 1 variable)** : basculer
-`feature_holoocean.yaml filter.threshold` 50→30, relancer la même commande
-`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`,
-comparer features/KF, NN carte, ATE vs 191325. Nathan manipulera le bateau lui-même
-plus tard (⚠ PIEGES #18 : aujourd'hui il n'y a PAS de bateau dans le monde ; s'il en
-ajoute un, re-probe + le segment bateau d'E8/E9 redevient réel).
+**📓 Journal R3 (2026-07-12 soir, suite)** : `filter.threshold` **50→30 BASCULÉ**
+pour le run 2 (ablation 1 variable, baseline = 191325). Nathan lance les runs :
+`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`
+→ comparer feat/KF (2.6 à 50), NN carte, ATE (0.058) vs 191325.
+**Ménage FAIT** : traj5_test + traj6_test + traj7_test supprimés (−3.6 Go, régénérables
+par `./gen_trajN.sh --test 150`) ; restent traj5 (réf 222233, candidat suppression si
+Nathan confirme), traj6 (témoin), traj7 (actif) = 34 Go.
+**Pilotage MANUEL de l'UV (PC du collègue, HoloOcean stable là-bas)** :
+`ENVOI_COLLEGUE.md` créé = liste des 7 fichiers à envoyer + prompt prêt pour l'IA du
+collègue (réutiliser make_cfg/writer v6-v7 tels quels, remplacer seulement la pose
+planifiée par le contrôle clavier, valider avec check_traj4.py ; pièges rappelés).
 
 ## (clos) 2026-07-12 (soir) : traj7 « au ras des quais » — bag TEST TOUT PASS, bag COMPLET lancé
 

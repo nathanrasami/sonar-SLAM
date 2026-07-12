@@ -18,7 +18,10 @@ filter:
   # run 2 à 30 = ablation 1 variable. Argumentaire du 30 (bags 15× plus faibles
   # que test.bag, bruit p99 8-9 → marge ×3 : FABLE §9) reste valable. Témoins
   # seuil 50 : runs 005329 (carte) / 013055 (loops). Journal : PROGRESS 2026-07-12.
-  threshold: 50
+  # Run 2 traj7 (2026-07-12 soir) : 50→30 pour l'ablation 1 variable — baseline
+  # 50 = run 191325 (ATE 0.058, 2.6 feat/KF : bande 26-50 des pilotis coupée,
+  # mesuré). Comparer feat/KF, NN carte, ATE vs 191325.
+  threshold: 30
   resolution: 0.5
   radius: 1.0
   min_points: 5
