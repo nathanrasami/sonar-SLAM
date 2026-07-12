@@ -188,3 +188,32 @@ temps réel : Δt 1-2 s au même index). Comparer les poses par index de KF a af
 0.35 m d'écart entre deux trajectoires en réalité identiques à 2 mm (méd, interpolation
 temporelle, runs 005329 vs 013055). Symptôme type : « les 2 runs divergent » alors que
 l'ATE des deux est identique. Réflexe : `np.interp` sur les stamps avant tout Δ.
+
+## 18. PierHarbor : le « bateau (524,−680.5) » n'existe PAS — structure inférée ≠ structure probée (vécu : traj7, 2026-07-12)
+
+La reco monde (traj3 reprojeté) donnait une épave « posée au fond » (518→530, −684..−679),
+devenue cible de traj4 et détour de traj5/6. Le double probe direct 2026-07-12 la RÉFUTE :
+`probe_boat_traj7.py` (RangeFinderSensor, ray-cast exact — sanity fond 9.42 m ≈ 9.4 attendu,
+quai O 27.5 ✓) ne voit RIEN au-dessus du fond sur toute l'empreinte, et `probe_boat_sonar.py`
+(fan vertical = octree, ce qui fait foi pour le SLAM ; calibration signe sur fond connu)
+mesure un fond PLAT −19.4/−19.8 sur 4 tranches, hauteur max 0.00 m. Rayons ET sonar
+traversent jusqu'au quai EST (19.8 m depuis x=512 → 531.8 ≈ face 531.5). Le « bateau »
+était un fantôme de reprojection (rabattus hors-plan ±20°, cf. piège 15 ; les « features
+z −8..−11 » = z du ROBOT en Pose2, pas de la structure).
+- Règle : une structure DÉDUITE (reprojection, features, blobs) est une HYPOTHÈSE, pas un
+  fait de carte. Avant de concevoir une trajectoire autour/sous/vers elle : probe statique
+  direct (RangeFinder pour la géométrie exacte + sonar pour l'octree). Conséquence traj7 :
+  détour bateau supprimé, jambe quai EST droite x=529. (Le segment « bateau » de E8 dans
+  check_traj4.py est inoffensif — score de prior, jamais discriminant seul.)
+
+## 19. HoloOcean : SIGBUS moteur au premier démarrage après boot — relancer (vécu : probe traj7, 2026-07-12)
+
+Symptôme : python suspendu, log du script VIDE, process `[Holodeck] <defunct>`, et dans
+HolodeckLog.txt `SIGBUS ... UCommandCenter::GetCommandBuffer` 35 ms après l'init du serveur.
+Mécanisme : course d'init sur /dev/shm — le client python crée `command_buffer` à 1 Mo
+(O_TRUNC+ftruncate) pendant que le moteur mappe 8 388 608 octets ; un accès au-delà du
+fichier rétréci → SIGBUS. Vu UNE fois sur ~12 démarrages, au premier lancement moteur
+après reboot (timing d'init différent). Remède : tuer le python suspendu, `rm -f
+/dev/shm/HOLODECK_MEM<uuid-du-run>*`, relancer — les gen_traj*.sh relancent déjà ×3 seuls.
+Ne PAS « corriger » les tailles dans le venv : les runs normaux vivent très bien avec ce
+mismatch (le JSON de commandes ne dépasse jamais 1 Mo).

@@ -555,3 +555,40 @@ parfaite, ATE déjà 0.05 m). La machinerie loops est sûre en l'état pour les 
 **Limites assumées** : run unique (le verdict qualitatif est identique aux 3 runs SC
 antérieurs et le pipeline est déterministe à la lecture du bag près) ; carte_3d non
 régénérée (trajectoire = témoin à 2 mm → la carte serait celle du 005329, cf. §11-ter).
+
+## 13. 2026-07-12 — probe « sous le bateau » (spec traj7) : le bateau N'EXISTE PAS
+
+**Question de Nathan** : le segment bateau de traj7 doit passer PAR-DESSOUS le bateau
+(524,−680.5) « pour rester très proche du quai » — mais la reco monde le donnait POSÉ AU
+FOND → probe obligatoire avant de coder (pas de jour → raser au plus près).
+
+**Probe 1 — `probe_boat_traj7.py` (RangeFinderSensor, ray-cast exact, 3 passes)** :
+sanity de convention OK (laser bas 9.42 m ≈ fond −19.4 attendu ; quai O 27.50 ≈ 27.5).
+Résultat : (passe 1, dessus) fond nu −19.4 sur TOUTE l'empreinte annoncée 518-530 ×
+−684..−679 (seuls échos = pilotis quai EST x≥532) ; (passe 3, latéral depuis x=512)
+les rayons traversent à toutes les hauteurs z −18.8..−8 et frappent le quai à 19.8 m
+(512+19.8 = 531.8 ≈ face 531.5). ⚠ le verdict auto « jour=True clearance=11.4 » du
+script était un FAUX POSITIF de ma logique (rien ne bloque → « traverse ») — les
+données disent « pas de bateau », pas « jour sous la coque ».
+
+**Hypothèses avant conclusion** (R2) : (a) mesh sans collision ray mais présent dans
+l'octree sonar (le sonar HoloOcean n'utilise pas les rayons) ; (b) structure basse
+< 0.6 m cachée par mon seuil d'affichage ; (c) reco fausse (fantôme).
+
+**Probe 2 discriminant — `probe_boat_sonar.py` (fan vertical = octree, ce qui fait
+foi pour le SLAM)** : calibration du signe d'élévation sur le fond connu (sign +1,
+fond médian −19.7, err 0.34 m) ; 4 tranches y ∈ {−683.5, −682, −680.5, −679} →
+fond PLAT −19.4/−19.8 partout sur x[516,531], hauteur max au-dessus du fond = 0.00 m,
+aucun écho de coque flottante non plus (rien au-dessus de −19.4 dans la fenêtre).
+
+**Verdict : (c) — le « bateau » de la reco traj3 est un FANTÔME de reprojection**
+(rabattus hors-plan ±20°, FABLE §9-bis/PIEGES #15 ; les « features z −8..−11 » de la
+reco = z du ROBOT en Pose2, pas de la structure). (a) réfutée : le sonar non plus ne
+voit rien. (b) réfutée : la passe 3 à z fond+0.6 traverse aussi, et le sonar aurait vu
+une bosse. → PIEGES #18. **Conséquence traj7** : « passer par-dessous » sans objet ;
+détour supprimé, la jambe quai EST file droit x=529 (c'est exactement « rester très
+proche du quai »).
+
+**Bonus incident** : 1er lancement moteur après reboot → SIGBUS
+UCommandCenter::GetCommandBuffer (course shm client 1 Mo / moteur 8 Mo, fenêtre 35 ms),
+python suspendu + Holodeck defunct + log vide. Relance = OK. → PIEGES #19.

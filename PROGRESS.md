@@ -6,7 +6,46 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-12 : loops SC traj6 FAIT (run 013055) — reste StereoFLS / threshold 30 / traj7
+## 🔜 REPRISE ICI — 2026-07-12 (soir) : traj7 « au ras des quais » — bag TEST TOUT PASS, bag COMPLET lancé
+
+**Le « bateau (524,−680.5) » N'EXISTE PAS (FABLE §13, PIEGES #18)** : double probe
+(`probe_boat_traj7.py` RangeFinder ray-cast + `probe_boat_sonar.py` fan vertical/octree,
+calibrés sur géométrie connue) → fond PLAT −19.4 sur toute l'empreinte, rayons ET sonar
+traversent jusqu'au quai (531.8 ≈ face 531.5). Fantôme de reprojection traj3 (rabattus
+±20°). → « passer par-dessous » sans objet ; **détour supprimé, jambe quai EST droite
+x=529**. (Incident annexe : SIGBUS moteur au 1er démarrage après boot → PIEGES #19.)
+
+**traj7 = `gen_bag_3d_v7.py` (patch v5 + main v6) + `./gen_traj7.sh [--test 150]`** :
+quais serrés **2.5±0.5 m** (EST x=529, OUEST x=465 ; mesuré : EST 2.14-2.94 m, OUEST
+2.50-3.68 m, GAMMA min 3.96 m) · **RangeMax horizontal 40→20 m** (3.8 cm/bin) · PERIM
+241.7 m, durée 24.6 min · phase A/errance/seed/profiler = traj6.
+**Bag TEST 150 s : E1–E9 TOUT PASS** (E6 : mur C1 5.08 m ≈ 5.2 → échelle 20 m réelle ;
+E8 : 32.7 % vs 12.4 % miroir). **Témoin traj6_test re-vérifié TOUT PASS** après la
+modif E8 (50.9 %/7.3 % ; E9 identique aux chiffres validés).
+
+**📓 Journal R3 (2026-07-12 soir, tous à défaut = zéro régression traj4/5/6)** :
+- `check_traj4.py` : + flag `--rmax-h` (défaut 40 ; traj7 = 20) ; **E8 restreint à
+  t≥73 s** (post phase A) — mesuré au témoin : C1/C3 « face au mur » sont
+  miroir-invariantes par construction (ratio 1.00 dans traj6 ET traj7), elles diluaient
+  le ratio sans discriminer ; un vrai miroir inverse le ratio errance → tripwire intact.
+- `holoocean.launch` : + arg `sonar_range` (défaut 40) → param `~range_m` du bridge.
+- `run_slam.sh` : + env `SONAR_RANGE` (défaut 40).
+- Nouveaux : `gen_bag_3d_v7.py`, `gen_traj7.sh`, `probe_boat_traj7.py` (+.json),
+  `probe_boat_sonar.py` (+.json).
+
+**⚠ Premier run SLAM traj7 — 1 variable/essai** : `filter.threshold` est encore à 30
+(NON VALIDÉ, journal du matin). Lancer traj7 avec 30 = 2 variables vs témoin traj6
+005329. Ordre propre : valider 30 sur traj6 d'abord, SINON revert 50 pour le 1er run
+traj7. Commande : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20
+./run_slam.sh holoocean` ; analyse `./analyse.sh 3D <run>` ; comparaison façon
+TRAJ6_ANALYSE.md (compare_traj6.py réutilisable en self-compare).
+
+**Reste (hérité du matin)** : valider threshold 30 (run traj6 vs 005329/013055) ·
+StereoFLS (lire arXiv 2412.03760 AVANT de coder) · essai loops SC intensity_threshold
+abaissé (~25) · ménage possible : traj6_test.bag (1.2 Go, re-servi aujourd'hui comme
+témoin E8 — garder tant que traj7 pas figée).
+
+## (clos) 2026-07-12 : loops SC traj6 FAIT (run 013055) — reste StereoFLS / threshold 30 / traj7
 
 **Loops SC (méthode bs) sur traj6 — run `run_holoocean_2026-07-12_013055` (FABLE §12)** :
 SC retient **8 vraies revisites tour2↔tour1, 0 fausse** ; ICP/PCM en accepte **0** →

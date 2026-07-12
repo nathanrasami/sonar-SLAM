@@ -25,6 +25,12 @@ LEVER_Z = 0.15
 R_MIN, R_MAX_H, R_MAX_V = 0.5, 40.0, 20.0
 I_MIN = 0.15
 
+# traj7 : sonar horizontal RangeMax 20 m -> `--rmax-h 20` (defaut 40 = traj4/5/6)
+if "--rmax-h" in sys.argv:
+    i = sys.argv.index("--rmax-h")
+    R_MAX_H = float(sys.argv[i + 1])
+    del sys.argv[i:i + 2]
+
 TS = get_typestore(Stores.ROS1_NOETIC)
 BAG = sys.argv[1] if len(sys.argv) > 1 else "BAG_files/holoocean_3d_traj4_test.bag"
 
@@ -200,21 +206,32 @@ def d_seg(P, a, b):
     t = np.clip(((P - a) @ ab) / (ab @ ab), 0.0, 1.0)
     return np.linalg.norm(P - (a + t[:, None] * ab), axis=1)
 
-def score_lateral(sign):
+# E8 sur les fenetres DISCRIMINANTES seulement (t >= 73 s = post phase A).
+# Mesure 2026-07-12 (traj7 vs temoin traj6) : C1/C3 « face au mur » sont
+# miroir-invariantes PAR CONSTRUCTION (bearing~0 -> y~0, ratio 1.00 dans les
+# DEUX bags) — elles diluent le ratio sans jamais discriminer. Un vrai miroir
+# inverse le ratio errance (<1) : tripwire intact, et plus NET qu'avant.
+T0_E8 = 73.0
+
+def score_lateral(sign, t_min=T0_E8):
     ok = tot = 0
     for t_ns, pts in zip(hp_t, hp):
+        if t_ns * 1e-9 < t_min:
+            continue
         q = pts[:, :3].copy(); q[:, 1] *= sign
         w, _ = to_world(q, t_ns)
         d = np.min(np.stack([d_seg(w[:, :2], a, b) for a, b in SEGS]), axis=0)
         ok += int((d < 1.5).sum()); tot += len(w)
-    return ok / max(tot, 1)
+    return ok / max(tot, 1), tot
 
 if hp:
-    s_ok, s_mir = score_lateral(+1.0), score_lateral(-1.0)
+    t_min = T0_E8 if any(t * 1e-9 >= T0_E8 for t in hp_t) else 0.0
+    note = "" if t_min else " ⚠ bag < 73 s : phase A incluse"
+    (s_ok, n8), (s_mir, _) = score_lateral(+1.0, t_min), score_lateral(-1.0, t_min)
     res["E8"] = (s_ok > 2.0 * s_mir) and (s_ok > 0.15)
     print(f"E8 lateral hor : {100*s_ok:.1f} % des points a <1.5 m d'une structure "
-          f"connue vs {100*s_mir:.1f} % en miroir (n={sum(len(p) for p in hp)}, "
-          f"PASS si ratio>2 et >15 %) -> {'PASS' if res['E8'] else 'FAIL'}")
+          f"connue vs {100*s_mir:.1f} % en miroir (n={n8}, t>={t_min:.0f} s,"
+          f"{note} PASS si ratio>2 et >15 %) -> {'PASS' if res['E8'] else 'FAIL'}")
 else:
     res["E8"] = False
     print("E8 lateral hor : FAIL — aucun /sonar_points echantillonne")

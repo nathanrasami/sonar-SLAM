@@ -68,9 +68,11 @@ case "$TYPE" in
     # vs 0.03 sans). Loops sûres : méthode bs (SC gate, 0 fausse acceptée).
     # bag_source.txt : permet à analyse.sh de générer LA carte_3d (vraie 3D) du run.
     echo "${BAG_HOLO:-$HERE/test.bag}" > "$RUN_DIR/bag_source.txt"
+    # SONAR_RANGE : portée du sonar horizontal du bag (traj7 = 20 ; défaut 40).
     roslaunch bruce_slam holoocean.launch bag_file:="${BAG_HOLO:-$HERE/test.bag}" \
                  rate:="${RATE:-1.0}" odom_source:="${ODOM_SOURCE:-dvl}" \
                  ssm:="${SSM:-false}" nssm:="${NSSM:-false}" \
+                 sonar_range:="${SONAR_RANGE:-40}" \
                  mode:="$MODE" method:="$METHOD" ;;
   *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
 esac

@@ -42,6 +42,9 @@
          dupliquer le groupe avec sa config yaml et son if. -->
     <arg name="mode" default="2d"/>
     <arg name="method" default="bruce"/>
+    <!-- Portée du sonar horizontal du BAG (traj7 = 20 m ; traj4/5/6 et test.bag = 40).
+         Doit correspondre au RangeMax du générateur, sinon l'échelle bins→m ment. -->
+    <arg name="sonar_range" default="40"/>
 
     <param name="use_sim_time" value="true"/>
 
@@ -68,10 +71,12 @@
 
             <!-- Sonar polaire HoloOcean → OculusPingUncompressed (pipeline polaire
                  NATIF de Bruce — pas de flip_bearing ici, contrairement à Aracati).
-                 ⚠ RANGE_M / FOV_DEG codés dans holoocean_sonar_bridge.py : à faire
-                 correspondre à la config du simulateur du collègue. -->
+                 Portée : ~range_m ci-dessous (arg sonar_range) ; FOV_DEG reste 120
+                 codé dans holoocean_sonar_bridge.py (identique sur tous nos bags). -->
             <group if="$(eval arg('sonar_source') == 'image')">
-                <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen"/>
+                <node pkg="bruce_slam" name="sonar_bridge" type="holoocean_sonar_bridge.py" output="screen">
+                    <param name="range_m" value="$(arg sonar_range)"/>
+                </node>
                 <!-- Feature extraction (mode polaire) -->
                 <node pkg="bruce_slam" name="feature_extraction" type="feature_extraction_node.py" output="screen">
                     <!-- descripteur SONAR Context publié seulement pour la méthode BSU -->
