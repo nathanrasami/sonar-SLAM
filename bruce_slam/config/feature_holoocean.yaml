@@ -10,12 +10,15 @@ CFAR:
 filter:
   # 07-03 : 80/10 ne laissait que ~29 pts/KF (murs lointains détectés mais quasi
   # invisibles). Le simu est propre (peu de speckle) → extraction plus généreuse.
-  # 2026-07-12 : 50→30 (directive Nathan). Le 50 avait été calibré sur le test.bag
-  # du collègue, 15× plus intense que nos bags (FABLE §9) : la bande 26-50 des
-  # pilotis était coupée. Bruit p99 = 8-9 mono8 → 30 garde ×3 de marge ; émulation
-  # 07-11 : ×3.3 pts, quais lisibles (+ bavure assumée). Témoins seuil 50 :
-  # runs 005329 (carte) / 013055 (loops). Journal : PROGRESS §REPRISE 2026-07-12.
-  threshold: 30
+  # 2026-07-12 : 50→30 (directive Nathan) PUIS revert 30→50 le soir même, AVANT
+  # tout run : le 30 (jamais validé pipeline, émulation seulement) aurait fait 2
+  # variables sur le 1er run traj7 (trajectoire 2-3 m + RangeMax 20). Ordre :
+  # run 1 traj7 à 50 (baseline, valeur validée — à 2-3 m les échos sont plus
+  # forts, la bande 26-50 coupée mesurée sur traj6 est peut-être moindre), puis
+  # run 2 à 30 = ablation 1 variable. Argumentaire du 30 (bags 15× plus faibles
+  # que test.bag, bruit p99 8-9 → marge ×3 : FABLE §9) reste valable. Témoins
+  # seuil 50 : runs 005329 (carte) / 013055 (loops). Journal : PROGRESS 2026-07-12.
+  threshold: 50
   resolution: 0.5
   radius: 1.0
   min_points: 5

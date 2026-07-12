@@ -33,12 +33,13 @@ modif E8 (50.9 %/7.3 % ; E9 identique aux chiffres validés).
 - Nouveaux : `gen_bag_3d_v7.py`, `gen_traj7.sh`, `probe_boat_traj7.py` (+.json),
   `probe_boat_sonar.py` (+.json).
 
-**⚠ Premier run SLAM traj7 — 1 variable/essai** : `filter.threshold` est encore à 30
-(NON VALIDÉ, journal du matin). Lancer traj7 avec 30 = 2 variables vs témoin traj6
-005329. Ordre propre : valider 30 sur traj6 d'abord, SINON revert 50 pour le 1er run
-traj7. Commande : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20
-./run_slam.sh holoocean` ; analyse `./analyse.sh 3D <run>` ; comparaison façon
-TRAJ6_ANALYSE.md (compare_traj6.py réutilisable en self-compare).
+**📓 Journal R3 (2026-07-12 soir, décision Nathan)** : `feature_holoocean.yaml`
+`filter.threshold` **30 → 50 (revert, AVANT tout run au 30)**. Pourquoi : 30 jamais
+validé pipeline ; l'aurait fait 2 variables sur le 1er run traj7. Plan : run 1 traj7
+à 50 (baseline) puis run 2 à 30 (ablation 1 variable — remplace la validation traj6).
+Commande run 1 : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20
+./run_slam.sh holoocean` (⚠ SONAR_RANGE=20 obligatoire, sinon échelle ×2) ; analyse
+`./analyse.sh 3D <run>` ; comparaison façon TRAJ6_ANALYSE.md.
 
 **Reste (hérité du matin)** : valider threshold 30 (run traj6 vs 005329/013055) ·
 StereoFLS (lire arXiv 2412.03760 AVANT de coder) · essai loops SC intensity_threshold
