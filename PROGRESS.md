@@ -22,9 +22,13 @@ ATE Umeyama rms **0.058 m** (méd 0.046, max 0.119 ; ancré-origine 0.135), 901 
 threshold 50 coupe la bande faible + RangeMax 20 vide les jambes eau libre (géométrie).
 carte_3d (vert+transverse) : « vraie 3D » validée à l'œil par Nathan.
 **📓 Journal R3 (2026-07-12 soir, suite)** : `filter.threshold` **50→30 BASCULÉ**
-pour le run 2 (ablation 1 variable, baseline = 191325). Nathan lance les runs :
-`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`
-→ comparer feat/KF (2.6 à 50), NN carte, ATE (0.058) vs 191325.
+pour le run 2 (ablation 1 variable, baseline = 191325).
+**Run 2 FAIT — `run_holoocean_2026-07-12_200450` : threshold 30 VALIDÉ pipeline** :
+feat/KF **2.6→8.9 (×3.4**, prédiction émulation ×3.3 ✓), ATE Umeyama rms 0.058→**0.057**
+(intact), points utiles <1.5 m des structures 1 455→**4 350 (×3.0)**, bavure relative
+30.0→36.4 % (+6.4 pts, assumée), échelle 20 m re-confirmée (range max 19.5), 901 KFs
+identiques. ⚠ Figeage R3 : 1 seul run par config — si 30 devient LE défaut de référence,
+reproduire ×2 (relancer 200450 à l'identique) ; sinon 30 reste « validé, non figé ».
 **Ménage FAIT** : traj5_test + traj6_test + traj7_test supprimés (−3.6 Go, régénérables
 par `./gen_trajN.sh --test 150`) ; restent traj5 (réf 222233, candidat suppression si
 Nathan confirme), traj6 (témoin), traj7 (actif) = 34 Go.
