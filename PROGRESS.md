@@ -32,7 +32,10 @@ bande 26-50 des pilotis était coupée ; bruit p99 = 8-9 mono8 → 30 garde ×3 
 **Reste (ordre suggéré)** : valider threshold 30 (run traj6 + carte_2d_dense vs 005329)
 · fusion patchs polaires (StereoFLS — lire arXiv 2412.03760 AVANT de coder) · essai loops
 avec SC intensity_threshold abaissé · traj7 « au ras des quais » (demande Nathan
-2026-07-12) · ménage possible : traj6_test.bag (1.2 Go).
+2026-07-12 : serrer 2-3 m + RangeMax 40→20 m même génération ; **et le segment bateau
+passe SOUS le bateau** pour rester très proche du quai — ⚠ à PROBE d'abord : la reco
+monde donne le bateau POSÉ AU FOND (524,−680.5), s'il n'y a pas de jour sous la coque
+→ raser au plus près à la place) · ménage possible : traj6_test.bag (1.2 Go).
 
 ## (clos) 2026-07-12 : traj6 VALIDÉ bout en bout (run 005329) — passer à la SUITE DU SLAM
 
