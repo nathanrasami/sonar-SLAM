@@ -15,9 +15,18 @@ port (jamais déclenché avant ; traj7 serre les quais → faux FAIL 52.1 %). Pr
 points fond flippés (même population) = 0.0 % en bande (mount z correct). Témoin traj6
 complet re-vérifié TOUT PASS chiffres identiques (34.4/0.0 · 83.5/0.0). E8 complet traj7 :
 53.1 % vs 23.0 %.
-**Prochaine étape (run 1, threshold 50 baseline)** :
-`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`
-puis `./analyse.sh 3D <run>` ; ensuite run 2 threshold 30 (ablation 1 variable).
+**Run 1 traj7 FAIT (threshold 50 baseline) — `run_holoocean_2026-07-12_191325` SAIN** :
+ATE Umeyama rms **0.058 m** (méd 0.046, max 0.119 ; ancré-origine 0.135), 901 KFs/1472 s.
+Échelle 20 m prouvée au point d'entrée (range max features 19.26 m, 0 % > 20 ; NN min
+2.92 ≈ serrage quais). Carte SLAM 2D maigre : **2.6 features/KF** (2 328 pts) — attendu :
+threshold 50 coupe la bande faible + RangeMax 20 vide les jambes eau libre (géométrie).
+carte_3d (vert+transverse) : « vraie 3D » validée à l'œil par Nathan.
+**Prochaine étape — run 2 threshold 30 (ablation 1 variable)** : basculer
+`feature_holoocean.yaml filter.threshold` 50→30, relancer la même commande
+`BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7.bag SONAR_RANGE=20 ./run_slam.sh holoocean`,
+comparer features/KF, NN carte, ATE vs 191325. Nathan manipulera le bateau lui-même
+plus tard (⚠ PIEGES #18 : aujourd'hui il n'y a PAS de bateau dans le monde ; s'il en
+ajoute un, re-probe + le segment bateau d'E8/E9 redevient réel).
 
 ## (clos) 2026-07-12 (soir) : traj7 « au ras des quais » — bag TEST TOUT PASS, bag COMPLET lancé
 
