@@ -6,7 +6,7 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 : traj7r runs FAITS — bag validé, plus-value SLAM toujours indémontrable (mono-boucle)
+## 🔜 REPRISE ICI — 2026-07-13 : traj7r runs FAITS — bag validé, 0 loop car le descripteur Sonar Context SATURE (PAS la géométrie)
 
 **Prédiction gen-v8 CONFIRMÉE sur bag complet** : DR = ATE Umeyama **0.75 m** (prédit 0.73),
 dérive brute finale **2.59 m / 489 m ≈ 0.53 % DT**, cap RMS 1.0°. Le bag porte bien la dérive
@@ -21,20 +21,27 @@ Tous : **nssm=0, SLAM ≡ DR** (bruit float 1e-13 m), cloud ~8118 pts **NN 0.055
 16 mm max** < plancher de non-déterminisme du pipeline **3.1 mm rms / 20 mm max** (2 runs de config
 identique). → méthodes **indiscernables** ici. Mémoire : `pipeline-non-determinisme-2cm`.
 
-**Mécanisme** : traj7r = boucle **UNIQUE** (revisite seulement start≈end, ~3 m, en toute fin) →
-aucune vraie revisite pour le SC → back-end idle → sortie = DR. Front/backend loop **NON testé**.
-Les logs capturés ne disent pas si le SC a *proposé-puis-rejeté* ou *jamais proposé* — seulement
-0 accepté.
+**Mécanisme (CORRIGÉ — mon « mono-boucle » était FAUX)** : traj7r fait **2 tours** (v7 l.19 « même
+tirage » ; passages <5 m du départ à t=32/767/1458 s ; longueur 489 m ≈ 2×252 m) → **revisite
+complète**, tour 2 retrace tour 1. Le `loops_detected.csv` du run BS le prouve : **100 candidates
+tour2↔tour1 proposées** (`source∈[25,879]`, `target∈[0,430]`, Δkey jusqu'à 479 → gate géométrique OK)
+mais **`sc_dist=1.0` (max) et `retenu=0` pour les 100** → le **descripteur d'apparence Sonar Context
+ne reconnaît aucun lieu**. Verrou = **front-end place-reco (SC)**, en amont de l'ICP/PCM (jamais
+atteint) et sans rapport avec la géométrie. Hypothèse : descripteur dégénéré (sonar faible + ~9
+feat/KF + eau libre sans ring_key). Mémoire : `traj7r-sc-descripteur-sature`.
 
 **Répétabilité re-confirmée (2026-07-13 12h, runs 122749_B / 125244_BS)** : mêmes ATE 0.75 /
 NN 0.055 / cap 1.0° ; méthodes correctement étiquetées cette fois (log roslaunch = `bruce` /
 `bruce_sonar`, piège écarté) ; **B≡BS≡DR une 2ᵉ fois** (répét B 3.4 mm rms, BS 5.8 mm rms /
 19.4 max, écart B↔BS 7.9 mm rms — tous < 2 cm). Cloud 8022≈8021 (−1 % vs matin, NN inchangé =
-non-déterminisme features). ✅ Tout fonctionne → prêt pour la traj multi-revisite.
+non-déterminisme features). ✅ Pipeline + 3D fonctionnent ; reste le verrou descripteur SC
+(voir Mécanisme + Reste à faire ci-dessous).
 
-**Reste à faire (prochaine génération de bag)** : trajectoire **MULTI-REVISITE** (2+ passages sur
-les mêmes zones, façon test.bag 2 tours) = seule façon de faire mordre les loops SC et de départager
-Bruce vs Bruce_Sonar. Tant qu'on est mono-boucle, tout retombe sur le DR.
+**Reste à faire (CORRIGÉ)** : ❌ PAS une nouvelle trajectoire (les 2 tours existent déjà). ✅
+**Investiguer/corriger le descripteur Sonar Context** sur traj7r : pourquoi `sc_dist=1.0` partout ?
+→ inspecter le contenu du descripteur, la densité de features par KF, le `dist_threshold` (0.87
+holoocean), le lien avec le sonar faible ([[sonar-intensites-faibles-seuil-calibre-temoin]]). C'est
+LE déblocage de la plus-value SLAM (une fois le SC discriminant, l'ICP/PCM devient le test suivant).
 
 ⚠ **Pièges vécus** :
 - `run_slam.sh:41` construit `run_<type>_<date>` **sans suffixe de méthode** → `_B`/`_BS` sont
