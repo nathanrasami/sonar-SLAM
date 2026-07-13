@@ -6,7 +6,7 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 (soir, re-vérification Fable) : 0 loop traj7r = descripteur SC **VIDE** (bug de calibration de seuil), PAS « sonar trop épars » — **fix APPLIQUÉ (seuils 95→5, 0.98→0.2), runs de validation à lancer**
+## 🔜 REPRISE ICI — 2026-07-13 (nuit) : fix SC **VALIDÉ au niveau descripteur** (69/102 candidates retenues, dists 0.05–0.56) mais **0 contrainte au graphe** → le verrou actif est maintenant l'aval ICP/PCM ; ensuite traj8 « peigne »
 
 **Re-analyse complète des conclusions d'Opus (demande Nathan). Ses CHIFFRES sont tous exacts
 (re-vérifiés à la source) ; deux MÉCANISMES étaient faux. Détail : mémoire `traj7r-sc-descripteur-sature`.**
@@ -49,12 +49,29 @@ Porte source NSSM (≥50 pts / 5 KF) : 247/903 passages, dont 112 au tour 2 → 
 - Les 2 changements = UN SEUL fix fonctionnel (à 0.98 tout passerait, vraies ET fausses) —
   pas d'ablation interne.
 
-**➡ Runs à lancer (Nathan)** — lire ensuite `loops_detected.csv` (retenus VRAIS ? tour2↔tour1 ?)
-+ `nssm_constraints` + ATE vs témoin 0.75 m :
-1. BS (SC) : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20 ./run_slam.sh holoocean 2D bs`
-2. Répétabilité si concluant : relancer la même commande (figeage R3 = ×2).
-3. Si les retenues SC meurent à l'ICP/PCM (2ᵉ verrou, 61 % KF vides) : densifier
+**✅ Run BS post-fix FAIT (Nathan) — `run_holoocean_2026-07-13_164627` (method:=bruce_sonar
+vérifié au log roslaunch ; pas de suffixe manuel)** — lecture MINIMALE seulement, analyse à la reprise :
+- **Descripteur VIVANT** : 102 candidates, sc_dist **0.047–0.564** (fini le ≡1.0), shifts variés
+  → le fix seuils marche au niveau SC. **69 retenues** (≤ 0.2).
+- **MAIS 0 contrainte au graphe** : nssm_constraints=0 au dernier KF + SLAM≡DR (1e-13)
+  → les 69 retenues meurent TOUTES à l'aval (shgo/ICP+cov/overlap/PCM — étage non loggé).
+  Le 2ᵉ verrou prédit (nuages épars, 61 % KF vides) est maintenant le point actif.
+
+**➡ À la reprise (NOUVELLE discussion)** :
+1. Analyser 164627 : les 69 retenues sont-elles des VRAIES tour2↔tour1 (source/target keys,
+   distance GT) ? ATE vs témoin 0.75 m (attendu ≈ égal, 0 loop au graphe).
+2. Instrumenter ou raisonner l'étage de rejet aval (non loggé, PIEGES §10) PUIS densifier :
    `filter.threshold` 30 → ~10 (bruit p99 ≈ 8) — run SÉPARÉ (1 variable).
+3. **traj8 « peigne » (proposition Nathan, validée comme base — liberté d'améliorer le design)** :
+   tour périmètre puis allers-retours INTÉRIEURS → revisites distribuées + quai vu DE FACE
+   (incidence normale = features denses en bout de jambe). Contraintes chiffrées (session 13-07) :
+   - matches SC seulement à cap similaire (shift max 10/40 bins ≈ ±30°) → les jambes adjacentes
+     (anti-parallèles) ne se matchent PAS entre elles ; prévoir jambes de même sens à ≤ gate 10 m
+     → **espacement du peigne ≤ 5 m** ;
+   - bande centrale ~30 m sans feature (bassin ~70 m, range 20 m) — option : jambes à portée du
+     mur Γ interne (RE-PROBER avant, mémoire pierharbor-geometrie-monde) ;
+   - même modèle bruit nav v8 (seed dédié) pour rester comparable au témoin traj7r ; bruit plus
+     fort possible mais = un changement par génération. Générateur v9 à écrire.
 
 **🧹 Ménage 2026-07-13 (accord Nathan)** : bags `traj7.bag` (superseded, nav trop parfaite) +
 `traj7r_1.bag` (1ʳᵉ génération 01:07, dupliquée par celle de 12:27, jamais référencée) supprimés
