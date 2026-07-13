@@ -6,7 +6,17 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 (nuit) : fix SC **VALIDÉ au niveau descripteur** (69/102 candidates retenues, dists 0.05–0.56) mais **0 contrainte au graphe** → le verrou actif est maintenant l'aval ICP/PCM ; ensuite traj8 « peigne »
+## 🔜 REPRISE ICI — 2026-07-13 (nuit, Fable) : **DESIGN TRAJ8-ZONE13 ÉCRIT → `TRAJ8_DESIGN.md`** (gen v9)
+
+**Design complet consigné dans `TRAJ8_DESIGN.md`** (trajectoire WPTS8 chiffrée sur les probes,
+phase A face falaise est, 2 tours même tirage, octree_min 0.05 à valider par mesure, bruit nav v8
+seed dédié 8, probe E0 obligatoire avant gen, E8/E9 à paramétrer `--zone zone13`, E10 nouveau =
+critère funnel features/KF cible « KF vides ≤ 20 % et méd ≥ 25 »). Question ouverte n°1 TRANCHÉE
+à la source : le DVL du bag est SYNTHÉTISÉ analytiquement (gen_bag_3d_v8.py:185) — aucun lock
+simulé, réalisme géré par altitude ≤ 12 m (tombant ouest évité). **Attend 3 décisions de Nathan
+(fin du doc) : ① GO tracé WPTS8 · ② octree 0.05 en essai · ③ GO probe E0 (~15-20 min moteur).**
+
+## 2026-07-13 (nuit) : fix SC **VALIDÉ au niveau descripteur** (69/102 candidates retenues, dists 0.05–0.56) mais **0 contrainte au graphe** → le verrou actif est maintenant l'aval ICP/PCM ; ensuite traj8
 
 **Re-analyse complète des conclusions d'Opus (demande Nathan). Ses CHIFFRES sont tous exacts
 (re-vérifiés à la source) ; deux MÉCANISMES étaient faux. Détail : mémoire `traj7r-sc-descripteur-sature`.**
