@@ -37,11 +37,21 @@ NN 0.055 / cap 1.0° ; méthodes correctement étiquetées cette fois (log rosla
 non-déterminisme features). ✅ Pipeline + 3D fonctionnent ; reste le verrou descripteur SC
 (voir Mécanisme + Reste à faire ci-dessous).
 
-**Reste à faire (CORRIGÉ)** : ❌ PAS une nouvelle trajectoire (les 2 tours existent déjà). ✅
-**Investiguer/corriger le descripteur Sonar Context** sur traj7r : pourquoi `sc_dist=1.0` partout ?
-→ inspecter le contenu du descripteur, la densité de features par KF, le `dist_threshold` (0.87
-holoocean), le lien avec le sonar faible ([[sonar-intensites-faibles-seuil-calibre-temoin]]). C'est
-LE déblocage de la plus-value SLAM (une fois le SC discriminant, l'ICP/PCM devient le test suivant).
+**Asymétrie des 2 front-ends (slam.py:1184-1243, holoocean.launch)** : Bruce propose ses boucles par
+proximité/gating covariance + ICP+PCM (AUCUN descripteur) ; Sonar Context est un FILTRE d'apparence
+ajouté SUR NSSM (bruce_sonar). Câblage : bruce → `nssm/enable=$(arg nssm)` ; bruce_sonar →
+`sonar_context/enable=true` + `nssm/enable` FORCÉ true. Les runs `_B` du 13/07 ont tourné `nssm=false`
+→ **la loop de Bruce n'a jamais été lancée** (`loops_detected.csv` absent) : Bruce=DR car loop OFF,
+PAS un échec descripteur. Le diagnostic « SC sature » ne vaut donc QUE pour bruce_sonar.
+
+**Reste à faire (CORRIGÉ)** : ❌ PAS une nouvelle trajectoire (les 2 tours existent déjà).
+1. **Run Bruce `NSSM=true`** (manquant) = voir son front-end natif :
+   `NSSM=true BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20 ./run_slam.sh holoocean`.
+   Prédiction (hub l.17) : NSSM propose par proximité → ICP accepte mais DÉGRADE (0.84 vs 0.03).
+2. **Investiguer le descripteur SC** (bruce_sonar) : pourquoi `sc_dist=1.0` (cosinus max = contextes
+   quasi-orthogonaux) ? → densité de features/KF, contenu du context, `dist_threshold` 0.87, lien
+   sonar faible (mémoire `sonar-intensites-faibles-seuil-calibre-temoin`). Outil : `analysis/sc_descriptor_bench.py`.
+   Deux modes d'échec distincts : Bruce = ICP accepte du faux ; BS = SC ne matche jamais.
 
 ⚠ **Pièges vécus** :
 - `run_slam.sh:41` construit `run_<type>_<date>` **sans suffixe de méthode** → `_B`/`_BS` sont
