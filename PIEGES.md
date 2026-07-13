@@ -229,3 +229,19 @@ plus tôt (traj6 : 0.3 %) n'avaient jamais déclenché le défaut.
   originales, appliquer la transformation à cette sélection, comparer. Si la sélection
   dépend de la transformation, on compare deux populations différentes et le ratio ne
   mesure plus le signe. (Fix : check_traj4.py E9, re-validé sur traj6 ET traj7 complets.)
+
+## 21. Un seuil d'INTENSITÉ ne se transfère pas d'un capteur/bag à l'autre — un descripteur peut être VIDE en silence (vécu : traj7r, 2026-07-13)
+
+`sonar_context/intensity_threshold: 95` (calibré P900 Aracati) sur les bags HoloOcean traj7r
+(max GLOBAL mesuré 75.5/255, max médian 16) → descripteur SONAR Context **identiquement nul sur
+100 % des images** → dist cosinus exactement 1.0 partout (convention colonne vide) → **0 loop sur
+toute la campagne**, en silence. Signature d'un descripteur vide : distance CONSTANTE au max
+(1.0) ET shifts CONSTANTS égaux au premier de la boucle de recherche (−10,−5) — des valeurs
+identiques sur toutes les paires = défaut structurel, jamais de la « sparsité ».
+- Règle 1 : tout SEUIL absolu (descripteur, CFAR, carte) doit être re-calibré sur la DYNAMIQUE
+  MESURÉE du bag courant (max/p99 par image), jamais hérité d'un autre capteur (cf. §14 corollaire).
+- Règle 2 : au 1er run d'un descripteur sur un nouveau bag, vérifier qu'il est NON VIDE (le yaml
+  le demandait — jamais fait). Un « échec de matching » doit d'abord exclure « l'entrée est vide ».
+- Règle 3 : changer l'échelle du descripteur ⇒ recalibrer AUSSI son seuil de décision
+  (dist_threshold 0.98, calibré sur descripteurs quasi-vides, retiendrait 100 % des fausses à
+  seuil 5 — mesuré : vraies 0.11 / fausses 0.29, couper vers ~0.2).

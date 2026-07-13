@@ -6,7 +6,50 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 : traj7r — les DEUX front-ends de loop ÉCHOUENT (SC sature + NSSM rejette), cause = sonar trop épars
+## 🔜 REPRISE ICI — 2026-07-13 (soir, re-vérification Fable) : 0 loop traj7r = descripteur SC **VIDE** (bug de calibration de seuil), PAS « sonar trop épars » — fix identifié, à valider par run
+
+**Re-analyse complète des conclusions d'Opus (demande Nathan). Ses CHIFFRES sont tous exacts
+(re-vérifiés à la source) ; deux MÉCANISMES étaient faux. Détail : mémoire `traj7r-sc-descripteur-sature`.**
+
+**★ Cause racine SC prouvée de bout en bout (H2, bug — H1 « sparsité » réfutée pour le SC)** :
+- Mesuré sur le bag traj7r (369 images /sonar) : **max GLOBAL = 75.5/255** (max médian 16.3) →
+  **100 % des images sous `sonar_context/intensity_threshold: 95`** (feature_holoocean.yaml,
+  calibré P900 Aracati). Descripteur **identiquement nul** sur tout le run.
+- Mécanisme exact reproduit sur images réelles : contexte tout-zéro → chaque colonne vaut 1.0
+  (convention colonne vide, sonar_context.py:103) → dist **exactement 1.0** ∀ shift → `<` strict
+  → shift figé au premier de la boucle **(−10,−5)** = la signature exacte des 100 lignes du CSV.
+- Corollaire : les « candidates tour2↔tour1 » n'étaient PAS choisies par apparence — ring_keys
+  tous nuls → kNN à égalité → argsort stable → plus VIEUX KF dans la porte 10 m (méd 9.67 m,
+  max 10.0 = bord de porte). Et le yaml demandait « vérifier que le contexte n'est pas vide au
+  1er run » — jamais fait.
+- **Bench 40 vraies + 40 fausses paires tour1↔tour2** (scratchpad sc_bench_traj7r.py) :
+  seuil 95 → AUC 0.50 (mort) · 30/20 → 0.65 · 10 → 0.56 (falaise) · **5 → AUC 0.85**
+  (méd vrai 0.114 / faux 0.294, ≈ le 0.86 d'Aracati) · 2 → 0.84 (dynamique écrasée).
+  **Le bag porte bien le signal de revisite — c'est le seuil qui le tuait.**
+  ⚠ corrélation pixel-à-pixel même lieu ≈ 0 (speckle) : la structure n'émerge qu'au pooling 40×40.
+
+**Correction n°2 (Bruce nssm=true, 144956)** : « covariance dégénérée → rejet » était faux — après
+MinCovDet il n'y a AUCUN gate sur la covariance (slam.py:421-424 la PLANCHE seulement). Les warnings
+prouvent juste que ≥5 ICP ont convergé sur certains candidats. Le rejet réel = NOT_CONVERGED /
+LARGE_TRANSFORMATION / overlap<50 / PCM(min_pcm 4) — **indéterminable post-hoc** (chemin Bruce ne
+logge rien, PIEGES §10). Le « 0 loop » lui-même est confirmé (log roslaunch `method:=bruce
+nssm:=true` + nssm_constraints=0 + SLAM≡DR 1e-13).
+
+**Sparsité (vraie, mais 2ᵉ verrou, pas la cause SC)** : 61 % KF vides confirmé (553/903) + borne
+amont indépendante : **50.9 % des images du bag n'ont aucun pixel ≥ 30** (seuil CFAR filter).
+Porte source NSSM (≥50 pts / 5 KF) : 247/903 passages, dont 112 au tour 2 → cohérent avec les
+100 tentatives SC loggées.
+
+**➡ PROCHAINE ÉTAPE (accord Nathan requis — R3, aucun yaml modifié)** — ablation 1 variable :
+1. `feature_holoocean.yaml sonar_context/intensity_threshold: 95 → 5` ET
+   `slam_holoocean.yaml sonar_context/dist_threshold: 0.98 → ~0.2` (un seul « fix SC » fonctionnel :
+   à 0.98 tout passerait, vraies ET fausses) → run `BS` traj7r → lire loops_detected.csv.
+2. Si les retenues meurent ensuite à l'ICP/PCM : densifier les features (filter.threshold 30 → ~10,
+   bruit p99 ≈ 8) — run séparé.
+
+---
+
+## 2026-07-13 (après-midi, Opus) : traj7r — verdict AVANT re-vérification (mécanismes corrigés ci-dessus)
 
 **★ VERDICT COMPLET (6 runs B/BS + run Bruce NSSM=true 144956_B_NSSM ; tous traj7r, ssm=false, sonar_range=20) :**
 - **Aucune méthode ne ferme de boucle** malgré 2 tours identiques (revisite parfaite). Tous : ATE
