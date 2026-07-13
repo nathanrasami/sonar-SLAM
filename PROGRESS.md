@@ -6,7 +6,24 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 : traj7r runs FAITS — bag validé, 0 loop car le descripteur Sonar Context SATURE (PAS la géométrie)
+## 🔜 REPRISE ICI — 2026-07-13 : traj7r — les DEUX front-ends de loop ÉCHOUENT (SC sature + NSSM rejette), cause = sonar trop épars
+
+**★ VERDICT COMPLET (6 runs B/BS + run Bruce NSSM=true 144956_B_NSSM ; tous traj7r, ssm=false, sonar_range=20) :**
+- **Aucune méthode ne ferme de boucle** malgré 2 tours identiques (revisite parfaite). Tous : ATE
+  Umeyama **0.75 m**, cloud ~8020-8120 pts NN 0.055 m, cap RMS 1.0°, **nssm_constraints=0, SLAM≡DR**
+  (bruit float 1e-13). Écarts inter-runs < plancher pipeline ~2 cm → indiscernables.
+- **Bruce_Sonar (SC)** : 100 candidates tour2↔tour1 proposées, **sc_dist=1.0 (cosinus max), 0 retenu** =
+  échec au gate d'apparence. Smoking gun : **2 candidates à <2 m (même lieu) donnent QUAND MÊME 1.0**.
+- **Bruce (NSSM=true, 144956)** : nssm_constraints=0 aussi, ATE 0.75 identique. Les warnings
+  `sklearn MinCovDet` en boucle prouvent que NSSM proposait par proximité + tournait ICP+covariance,
+  mais **tout est rejeté en aval** (covariance dégénérée / PCM). Pas de loops_detected.csv côté Bruce.
+- **Cause racine (hypothèse forte)** : **sonar trop épars** — 553/903 KF (61 %) ont 0 feature, le reste
+  médiane 14 (source pointcloud FILTRÉ, à re-vérifier sur la sortie brute). Ni l'apparence (SC) ni la
+  géométrie (ICP) n'a assez de signal, malgré la revisite parfaite. Recoupe `sonar-intensites-faibles-…`.
+- **★ Nathan passe la main à Fable et veut qu'il RE-VÉRIFIE tout (Opus a fait 1 erreur « mono-boucle »)** :
+  état complet + checklist = mémoire `traj7r-handoff-opus-2026-07-13`.
+
+---
 
 **Prédiction gen-v8 CONFIRMÉE sur bag complet** : DR = ATE Umeyama **0.75 m** (prédit 0.73),
 dérive brute finale **2.59 m / 489 m ≈ 0.53 % DT**, cap RMS 1.0°. Le bag porte bien la dérive
@@ -45,9 +62,10 @@ ajouté SUR NSSM (bruce_sonar). Câblage : bruce → `nssm/enable=$(arg nssm)` ;
 PAS un échec descripteur. Le diagnostic « SC sature » ne vaut donc QUE pour bruce_sonar.
 
 **Reste à faire (CORRIGÉ)** : ❌ PAS une nouvelle trajectoire (les 2 tours existent déjà).
-1. **Run Bruce `NSSM=true`** (manquant) = voir son front-end natif :
-   `NSSM=true BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20 ./run_slam.sh holoocean`.
-   Prédiction (hub l.17) : NSSM propose par proximité → ICP accepte mais DÉGRADE (0.84 vs 0.03).
+1. ✅ **FAIT — Run Bruce `NSSM=true` (144956_B_NSSM)** : **0 loop accepté aussi** (nssm_constraints=0,
+   SLAM≡DR, ATE 0.75). Prédiction « ICP dégrade » NON confirmée sur traj7r : ici l'ICP/PCM ne DÉGRADE
+   pas, il **rejette tout** (nuages trop épars → covariance dégénérée, warnings MinCovDet). Les 2
+   front-ends échouent → voir VERDICT en tête.
    ⚠ Lecture : PAS de `loops_detected.csv` avec Bruce (SC-only, `slam_ros.py:671 if self.sc_log`).
    Les loops acceptées = colonne **`nssm_constraints`** de trajectory.csv (`len(kf.constraints)`, à 0
    jusqu'ici) + `|SLAM−DR|` qui décolle du bruit float. Bruce ne journalise QUE les acceptés (pas les
