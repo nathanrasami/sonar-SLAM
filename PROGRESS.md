@@ -48,6 +48,10 @@ PAS un échec descripteur. Le diagnostic « SC sature » ne vaut donc QUE pour b
 1. **Run Bruce `NSSM=true`** (manquant) = voir son front-end natif :
    `NSSM=true BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20 ./run_slam.sh holoocean`.
    Prédiction (hub l.17) : NSSM propose par proximité → ICP accepte mais DÉGRADE (0.84 vs 0.03).
+   ⚠ Lecture : PAS de `loops_detected.csv` avec Bruce (SC-only, `slam_ros.py:671 if self.sc_log`).
+   Les loops acceptées = colonne **`nssm_constraints`** de trajectory.csv (`len(kf.constraints)`, à 0
+   jusqu'ici) + `|SLAM−DR|` qui décolle du bruit float. Bruce ne journalise QUE les acceptés (pas les
+   candidates de proximité rejetées) → si ça dégrade, ATE monte mais sans détail des rejets.
 2. **Investiguer le descripteur SC** (bruce_sonar) : pourquoi `sc_dist=1.0` (cosinus max = contextes
    quasi-orthogonaux) ? → densité de features/KF, contenu du context, `dist_threshold` 0.87, lien
    sonar faible (mémoire `sonar-intensites-faibles-seuil-calibre-temoin`). Outil : `analysis/sc_descriptor_bench.py`.
