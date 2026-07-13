@@ -57,6 +57,73 @@ vérifié au log roslaunch ; pas de suffixe manuel)** — lecture MINIMALE seule
   → les 69 retenues meurent TOUTES à l'aval (shgo/ICP+cov/overlap/PCM — étage non loggé).
   Le 2ᵉ verrou prédit (nuages épars, 61 % KF vides) est maintenant le point actif.
 
+**✅ Étape 1 FAITE (2026-07-13, reprise Fable — scratchpad analyse_164627_loops.py)** :
+les **69 retenues sont TOUTES de vraies revisites tour2↔tour1** (source t∈[796,1435] s,
+target t∈[106,745] s ; dist GT source-target **méd 0.13 m**, 68/69 < 2 m, max 4.98) ;
+shifts azimut ∈ [−3,+1] (cap identique ✓) ; sc_dist retenues méd 0.123 vs rejetées 0.354,
+**corr(sc_dist, dist GT) = 0.65** → le descripteur discrimine réellement le lieu.
+ATE Umeyama **0.750 m = témoin** (SLAM≡DR 1.8e-13, nssm=0) ✓ attendu.
+Rafales denses (476-485, 680-697, 823-837, 859-879 ; max 6 retenues / fenêtre 5 KF)
+→ **PCM (min_pcm 4 / queue 5) satisfiable en principe** : le verrou est en amont du PCM
+ou dans la cohérence pairwise — à trancher par mesure.
+
+**📓 Journal R3 — INSTRUMENTATION funnel NSSM (2026-07-13 reprise, AVANT run)** :
+- `bruce_slam/src/bruce_slam/slam.py` : + `self.nssm_log` ; log de l'étage TERMINAL de
+  chaque tentative (init NOT_ENOUGH_POINTS/« sonar context: no candidate »/
+  INITIALIZATION_FAILURE shgo/NOT_ENOUGH_OVERLAP · ICP NOT_CONVERGED ·
+  LARGE_TRANSFORMATION · overlap<50 · « PCM accepted n / queue m »).
+- `bruce_slam/src/bruce_slam/slam_ros.py` : dump `nssm_attempts.csv` (à côté de
+  loops_detected.csv). **Traçage pur, zéro changement de comportement.**
+- But : identifier l'étage qui tue les 69 vraies retenues (non loggé, PIEGES §10).
+  Run BS traj7r relancé à config IDENTIQUE au 164627 (seuls ajouts = logs).
+
+**★ Étape 2a FAITE — FUNNEL MESURÉ (run instrumenté `212120`, config ≡ 164627 vérifiée
+au log roslaunch ; les 102 candidates SC sont BIT-IDENTIQUES à 164627 → témoin valide)** :
+879 tentatives NSSM loggées (= 903 KF − 24) :
+- **692 : source < 50 pts** (méd 0 — les KF vides, jamais de SC) · **118 : SC sans candidat**
+  (dont les 33 rejetées au seuil) · **69 retenues SC**, qui meurent ainsi :
+- **45/69 NOT_ENOUGH_OVERLAP** : overlap méd **18** pts (max 42) vs gate min_points=50 ;
+- **21/69 LARGE_TRANSFORMATION** : l'ICP atterrit à **méd 11.7 m** de l'init shgo (gate 10 m ;
+  qq rejets rotation jusqu'à 160°) — instabilité ICP sur nuages épars ;
+- **3/69 seulement atteignent le PCM** (src 693/696/702), qui ne peut RIEN accepter :
+  queue max 2 < min_pcm 4 (famine aval, pas un défaut du PCM).
+ATE 0.75 = témoin, SLAM≡DR 1.5e-13, nssm=0 ✓. **Verrou actif CONFIRMÉ par mesure =
+sparsité des nuages** (l'overlap est LE goulot : il faudrait ~×3 de points). Portes
+intactes (PIEGES §12 : ne jamais affaiblir les gates → on densifie l'ENTRÉE).
+
+**📓 Journal R3 — DENSIFICATION (étape 2b, prévue au plan, AVANT run)** :
+- `feature_holoocean.yaml` `filter.threshold` **30 → 10** (bruit p99 ≈ 8-9 mono8 → marge
+  ~1 pt ; 50→30 avait donné ×3.4 feat/KF ; objectif : overlap 18 → ≥50 au gate NSSM).
+- Témoin de l'ablation = run 212120 (seuil 30, funnel loggé). 1 seule variable.
+
+**★★ Étape 2b FAITE — DENSIFICATION seuil 10 (run `215053`) : le funnel se DÉBLOQUE
+mais l'ATE est DÉTRUIT (0.75 → 5.53 m rms, max 17.1) → REVERT seuil 30** :
+- Funnel au seuil 10 : 83 retenues SC (vs 69) · NOT_ENOUGH_OVERLAP 45→27 (méd 18→24) ·
+  LARGE_TRANSFORMATION 21→19 · **37 arrivées PCM (vs 3), 18 appels avec acceptation,
+  28 contraintes insérées** (KF 613-687). La chaîne marche mécaniquement de bout en bout.
+- **MAIS les facteurs insérés sont empoisonnés — mécanisme MESURÉ (croisement
+  loops_detected × nssm_attempts)** : les paires SC finissant en contrainte sont presque
+  toutes PARFAITES (24/28 à dGT 0.13 m) ; c'est le **RE-CIBLAGE max-overlap post-shgo
+  (slam.py:1156-1180) qui REMPLACE le bon target du SC** : src683 SC→248 (0.13 m) inséré
+  →235 (7.15 m) ; src673 SC→225 inséré →184 (25.7 m) ; src674 inséré →620 (25.4 m,
+  tour2↔tour2 !). + 4 fausses niveau SC (dGT 6.6-12.4 m, sc_dist 0.111-0.116
+  INDISCERNABLE des vraies 0.07-0.13 — pilotis périodiques se ressemblent vraiment).
+- Le PCM valide ces clusters (4-6 facteurs faux MUTUELLEMENT COHÉRENTS — glissés du même
+  pas de pilotis, hypothèse mécanisme ICP NON tranchée : transform vs GT pas logué) →
+  graphe tordu (|SLAM−DR| 21.3 m au final ; la déformation remonte rétroactivement aux
+  KF cibles 178-252 dans le CSV lissé). Gate SC 10 m sur poses ESTIMÉES → cascade :
+  une fois le graphe tordu, des paires à 11-12 m GT passent le gate.
+- **📓 Journal R3 : `feature_holoocean.yaml` threshold 10 → 30 (REVERT, référence
+  restaurée)** — l'ablation était diagnostique, verdict : la densité par seuil seul
+  AGGRAVE (plus de points ≈ bruit → ICP/re-ciblage aliasés). ⚠ runs 212120 (témoin
+  funnel seuil 30) et 215053 (seuil 10, ATE 5.53) CONSERVÉS dans results/.
+- **Prochains leviers (ordre proposé)** : ① traj8 peigne + `octree_min` 0.1→0.02-0.05
+  (vraie richesse d'image, pas du bruit re-seuillé — discussion Nathan 13-07 soir :
+  Aracati réel ~100× plus lisible, notre octree 10 cm vs défaut HoloOcean 2 cm) ;
+  ② instrumenter transform-vs-GT des facteurs insérés (trancher l'hypothèse « glissement
+  d'un pas de pilotis ») ; ③ option gates : re-ciblage désactivable (garder le target SC)
+  — c'est un CHANGEMENT d'algo, pas un affaiblissement de porte, à discuter avant.
+
 **➡ À la reprise (NOUVELLE discussion)** :
 1. Analyser 164627 : les 69 retenues sont-elles des VRAIES tour2↔tour1 (source/target keys,
    distance GT) ? ATE vs témoin 0.75 m (attendu ≈ égal, 0 loop au graphe).

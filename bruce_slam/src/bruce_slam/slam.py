@@ -121,6 +121,8 @@ class SLAM(object):
         self.sc_max_azimuth_shift = 10
         self.sc_max_range_shift = 5
         self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
+        self.nssm_log = []  # (source, target, stage, detail) — étage TERMINAL de
+        # chaque tentative NSSM (funnel aval : init/shgo/ICP/gates/PCM)
 
         # USBL — facteurs de POSITION ABSOLUE acoustique (ancrage indépendant de
         # la GT). Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m en
@@ -1259,6 +1261,9 @@ class SLAM(object):
 
         # if the global ICP call did not work, return
         if not ret.status:
+            self.nssm_log.append((self.current_key - 1,
+                                  -1 if ret.target_key is None else ret.target_key,
+                                  ret.status.name, ret.status.description or ""))
             return
 
         # package the global ICP call result
@@ -1326,7 +1331,12 @@ class SLAM(object):
             if overlap < self.nssm_params.min_points:
                 ret2.status = STATUS.NOT_ENOUGH_OVERLAP
             ret2.status.description = str(overlap)
-            
+
+        # journal du funnel : étage terminal de cette tentative (hors PCM)
+        if not ret2.status:
+            self.nssm_log.append((ret2.source_key, ret2.target_key,
+                                  ret2.status.name, ret2.status.description or ""))
+
         # apply geometric verification, in this case PCM
         if ret2.status:
 
@@ -1341,6 +1351,9 @@ class SLAM(object):
             # log the newest loop closure into the pcm queue and check PCM
             self.nssm_queue.append(ret2)
             pcm = self.verify_pcm(self.nssm_queue,self.min_pcm)
+            self.nssm_log.append((ret2.source_key, ret2.target_key, "PCM",
+                                  "accepted {} / queue {}".format(
+                                      len(pcm), len(self.nssm_queue))))
 
             # if the PCM result has no loop closures for us, the list pcm will be empty
             # loop over any results and add them to the graph

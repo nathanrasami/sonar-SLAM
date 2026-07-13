@@ -677,6 +677,16 @@ class SLAMNode(SLAM):
                 writer.writerows(self.sc_log)
             rospy.loginfo("Sonar Context log saved to %s", sc_path)
 
+        # --- Journal funnel NSSM (étage TERMINAL de chaque tentative :
+        # init/shgo/ICP/gates/PCM — diagnostic des rejets aval, PIEGES §10) ---
+        if getattr(self, "nssm_log", None):
+            nssm_path = os.path.join(output_dir, "nssm_attempts.csv")
+            with open(nssm_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["source_key", "target_key", "stage", "detail"])
+                writer.writerows(self.nssm_log)
+            rospy.loginfo("NSSM funnel log saved to %s", nssm_path)
+
         # --- Ground truth CSV ---
         if self.gt_poses:
             gt_path = os.path.join(output_dir, "groundtruth.csv")
