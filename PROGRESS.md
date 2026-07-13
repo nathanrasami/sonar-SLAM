@@ -124,6 +124,33 @@ mais l'ATE est DÉTRUIT (0.75 → 5.53 m rms, max 17.1) → REVERT seuil 30** :
   d'un pas de pilotis ») ; ③ option gates : re-ciblage désactivable (garder le target SC)
   — c'est un CHANGEMENT d'algo, pas un affaiblissement de porte, à discuter avant.
 
+**★ RECO TRAJ8 FAITE (2026-07-13 fin de soirée) — marina ÉLIMINÉE, ZONE 13 VALIDÉE
+(probes ray-cast ×2 + photos aériennes ; scripts `probe_zone13{,_ship,_cam}.py`,
+mesures JSON au repo, photos `probe_zone13_cam_oblique_{ouest,sud}.png` locales/ignorées)** :
+- **Marina 5 (−51.5,−705) : rien à voir au sonar, MESURÉ** — fond −8.2 m, 0 coque sous
+  z=−2, rayons horizontaux z −2/−3/−4/−6 : 1 écho sur 48 sur 60 m. Petits bateaux
+  tirant <2 m + pontons FLOTTANTS (pas de forêt de pieux). Dossier clos.
+- **Zone 13 (crique du remorqueur, ~x 770-835 / y −250..−360) : l'anti-bassin-9↔10** —
+  inventaire photo+ray-cast : **remorqueur « TUG »** (coque rouge/blanche) amarré à un
+  poste sur **pieux rouge/blanc** (cylindres pleine hauteur d'eau = cibles fortes à
+  TOUT z, arrangement irrégulier) + passerelles + portique industriel à cylindres +
+  petit yacht + pontons flottants + **falaises rocheuses des 2 côtés** + plateau
+  −7.5/−9 m et **tombant >80 m côté ouest**. Tout est apériodique.
+- Chiffres utiles au design : sommets de coque/objets mesurés −2.4..−4.7 (tirant TUG
+  ~4-5 m → coque visible à z −2..−4) ; pieux détectés aux rayons (y≈−250s : échos
+  13-20 m à z−4/−8 ; sud y≈−358..−363 : échos à z−12) ; falaise est x≈808 répond
+  z−2..−8 (écho 2.9 m) ; plateau plat −8.9 (x 800-835, y −285..−295).
+- ⚠ artefacts probe à connaître : sondes z=−2 DANS un mesh (navire) → NOHIT/valeurs
+  folles (backface culling) ; passe « sous-coque » du 1er probe invalidée (téléport
+  sous le terrain). Les photos tranchent.
+- **Esquisse traj8-zone13 (à discuter avant gen v9)** : boucles à croisements ancrés
+  sur pieux + coque TUG + falaises (amers uniques), robot z −3..−8 AU-DESSUS DU
+  PLATEAU (fond −9 = DVL lock ; ⚠ vérifier lock au-dessus du tombant >80 m, sinon
+  l'éviter), crique ~60-80 m de large → murs à portée (range 20) sur les bords,
+  2 passages même cap par leg, octree_min 0.1→0.02-0.05, bruit nav v8 seed dédié,
+  E-checks réutilisables (falaise est = mur C1 phase A). Questions ouvertes :
+  portée DVL du simu, position exacte TUG (bag test), pieux dans /sonar (bag test).
+
 **➡ À la reprise (NOUVELLE discussion)** :
 1. Analyser 164627 : les 69 retenues sont-elles des VRAIES tour2↔tour1 (source/target keys,
    distance GT) ? ATE vs témoin 0.75 m (attendu ≈ égal, 0 loop au graphe).
