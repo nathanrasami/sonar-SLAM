@@ -131,3 +131,117 @@ que soient les seuils CFAR (672 pts sur 2 runs caves — aucun paramètre n'y ch
 ce qui est LA signature : si régler un seuil ne change pas la sortie, le goulot est en
 aval du seuil). Règle : sonar à couverture ≥180° → features calculées EN POLAIRE
 (CFAR sur l'image polaire + r·cosθ/r·sinθ), cf. msis_scan_bridge.py branche caves.
+
+## 14. HoloOcean : `/sonar_points` du générateur = MIROIR latéral (vécu : traj3-4, 07-11 — FIXÉ le soir même)
+
+**FIX COMMITTÉ 07-11 soir** : `gen_bag_3d.py` corrigé (sin + R_MOUNT_PROF flippés ENSEMBLE,
+projection du fan vertical prouvée identique à 0.0 près), check **E8 anti-miroir** ajouté à
+`check_traj4.py` (validé : FAIL sur bag miroir, PASS sur bag corrigé), bags traj4 réécrits
+offline — E1–E8 TOUT PASS, anciens conservés `*_avant_fix_miroir.bag`. ⚠ Les bags traj1-3
+(`bag/`) ne sont PAS réécrits : toujours miroir. ⚠ Ne JAMAIS flipper le sin sans flipper
+R_MOUNT_PROF (et inversement) : le vert n'est correct que par la compensation des DEUX.
+
+Historique du bug : `sonar_to_points3d_msg` (gen_bag_3d.py) faisait `y = −r·sin(a)` en supposant colonnes
+hautes = tribord ; MESURÉ (arc Γ à +37°/31 m, bâbord) : colonnes hautes = BÂBORD.
+Tous les `/sonar_points` (horizontaux) des bags traj1→4 sont donc en miroir du cap.
+- Le SLAM n'y touche pas (il CFAR-ise `/sonar` via le bridge, convention correcte) →
+  cartes SLAM et ATE valides.
+- Le fan VERTICAL (`/sonar_vert_points`) est net-CORRECT tel quel (fond −19.4, E3/E4
+  PASS) : le signe erroné y est compensé par le montage → ne PAS « corriger » l'appel
+  vertical sans re-passer E3/E4.
+- Règle : ne JAMAIS conclure une géométrie depuis `/sonar_points` sans check anti-miroir
+  LATÉRAL (E3 ne teste que l'élévation du fan vertical) ; une partie des « blobs
+  artefacts » de traj3 était des structures miroir.
+- Corollaire seuils : toute calibration aval (filter.threshold 50) faite sur test.bag
+  du collègue (max méd 0.776, sature à 1.0) est invalide sur NOS bags (max méd 0.265,
+  plafond 0.49) — comparer les dynamiques AVANT de calibrer (FABLE §9).
+
+## 15. HoloOcean : l'ouverture HORS-PLAN des sonars est bien plus large qu'annoncée (vécu : traj5, 07-11)
+
+Le SonarVert (« Elevation: 6 » = ±3° supposés hors du plan du fan) rend en réalité des échos
+de structures à **~17-20° hors-plan** (mesuré : mur Γ rabattu en nappe fantôme z≈−13 sur
+111 pings du corridor traj5 ; réfutation croisée par le profiler transverse traj3 = rien de
+réel à cet endroit). Conséquences :
+- Toute carte issue d'un fan fin SANS recoupement contient des fantômes rabattus de
+  structures fortes hors-plan → filtre de cohérence 2D de `carte_3d.py` (opt-out `--brut`).
+- ⚠ Une métrique NN carte-vs-GT est FLATTÉE par ces artefacts (nappes cohérentes qui se
+  matchent entre elles) : 0.064 avec artefacts vs 0.107 sans, sur la MÊME carte traj5.
+  Ne jamais comparer des NN à contenus différents.
+
+## 16. HoloOcean : chaque NOUVELLE orientation de capteur a SA convention de montage (vécu : traj6, 2026-07-12)
+
+Le mount véhicule du profiler TRANSVERSE 360° (`rotation [90,0,90]`) n'est PAS l'extension
+analytique du montage vertical validé : le candidat Rz(90)@Rx(−90) (analogie de
+R_MOUNT_PROF = Rx(−90)) mettait le FOND AU-DESSUS du robot. Mesuré au probe statique
+((525,−662,−5) cap sud, confirmé ×2) : **R_MOUNT_TRANS = Rz(90)@Rx(+90)** — x_capteur→+y
+(bâbord), y_capteur→+z (haut) ; mur quai EST à x_med 532.1 (attendu 531.5) et fond z_med
+−19.7 (80.9 % dans [−21,−17]) ; flipY/flipZ échouent chacun sur leur discriminant.
+- Règle : AUCUNE projection d'un nouveau capteur HoloOcean sans (1) probe statique en
+  géométrie connue qui DÉTERMINE le mount (tester les 4 transformées du plan du fan :
+  identité/flipY/flipZ/180°) puis (2) E-check permanent sur bag (E9 pour le transverse).
+  Ne JAMAIS composer les conventions de rotation HoloOcean sur le papier.
+
+## 17. Comparer 2 runs par INDEX de keyframe ment — toujours par TEMPS (vécu : loops SC traj6, 2026-07-12)
+
+Deux runs du MÊME bag ne créent pas leurs keyframes aux mêmes stamps (jitter rosbag
+temps réel : Δt 1-2 s au même index). Comparer les poses par index de KF a affiché
+0.35 m d'écart entre deux trajectoires en réalité identiques à 2 mm (méd, interpolation
+temporelle, runs 005329 vs 013055). Symptôme type : « les 2 runs divergent » alors que
+l'ATE des deux est identique. Réflexe : `np.interp` sur les stamps avant tout Δ.
+
+## 18. PierHarbor : le « bateau (524,−680.5) » n'existe PAS — structure inférée ≠ structure probée (vécu : traj7, 2026-07-12)
+
+La reco monde (traj3 reprojeté) donnait une épave « posée au fond » (518→530, −684..−679),
+devenue cible de traj4 et détour de traj5/6. Le double probe direct 2026-07-12 la RÉFUTE :
+`probe_boat_traj7.py` (RangeFinderSensor, ray-cast exact — sanity fond 9.42 m ≈ 9.4 attendu,
+quai O 27.5 ✓) ne voit RIEN au-dessus du fond sur toute l'empreinte, et `probe_boat_sonar.py`
+(fan vertical = octree, ce qui fait foi pour le SLAM ; calibration signe sur fond connu)
+mesure un fond PLAT −19.4/−19.8 sur 4 tranches, hauteur max 0.00 m. Rayons ET sonar
+traversent jusqu'au quai EST (19.8 m depuis x=512 → 531.8 ≈ face 531.5). Le « bateau »
+était un fantôme de reprojection (rabattus hors-plan ±20°, cf. piège 15 ; les « features
+z −8..−11 » = z du ROBOT en Pose2, pas de la structure).
+- Règle : une structure DÉDUITE (reprojection, features, blobs) est une HYPOTHÈSE, pas un
+  fait de carte. Avant de concevoir une trajectoire autour/sous/vers elle : probe statique
+  direct (RangeFinder pour la géométrie exacte + sonar pour l'octree). Conséquence traj7 :
+  détour bateau supprimé, jambe quai EST droite x=529. (Le segment « bateau » de E8 dans
+  check_traj4.py est inoffensif — score de prior, jamais discriminant seul.)
+
+## 19. HoloOcean : SIGBUS moteur au premier démarrage après boot — relancer (vécu : probe traj7, 2026-07-12)
+
+Symptôme : python suspendu, log du script VIDE, process `[Holodeck] <defunct>`, et dans
+HolodeckLog.txt `SIGBUS ... UCommandCenter::GetCommandBuffer` 35 ms après l'init du serveur.
+Mécanisme : course d'init sur /dev/shm — le client python crée `command_buffer` à 1 Mo
+(O_TRUNC+ftruncate) pendant que le moteur mappe 8 388 608 octets ; un accès au-delà du
+fichier rétréci → SIGBUS. Vu UNE fois sur ~12 démarrages, au premier lancement moteur
+après reboot (timing d'init différent). Remède : tuer le python suspendu, `rm -f
+/dev/shm/HOLODECK_MEM<uuid-du-run>*`, relancer — les gen_traj*.sh relancent déjà ×3 seuls.
+Ne PAS « corriger » les tailles dans le venv : les runs normaux vivent très bien avec ce
+mismatch (le JSON de commandes ne dépasse jamais 1 Mo).
+
+## 20. Un test de SIGNE doit flipper LA MÊME population, jamais sélectionner APRÈS le flip (vécu : E9 traj7, 2026-07-12)
+
+E9-fond appliquait flip-z PUIS `deep = q[:,2]<−8` : la variante « miroir » testait les
+échos >8 m AU-DESSUS du robot (superstructure hors d'eau du port) au lieu de déplacer
+les points du fond. Coïncidence géométrique (zw ∈ [2·z0+17, 2·z0+21]) → faux FAIL dès
+que la trajectoire serre les quais (traj7 : flip 52 % ; réel : 0.0 %). Deux bags sains
+plus tôt (traj6 : 0.3 %) n'avaient jamais déclenché le défaut.
+- Règle : dans un test A-vs-transformé(A), figer la SÉLECTION sur les données
+  originales, appliquer la transformation à cette sélection, comparer. Si la sélection
+  dépend de la transformation, on compare deux populations différentes et le ratio ne
+  mesure plus le signe. (Fix : check_traj4.py E9, re-validé sur traj6 ET traj7 complets.)
+
+## 21. Un seuil d'INTENSITÉ ne se transfère pas d'un capteur/bag à l'autre — un descripteur peut être VIDE en silence (vécu : traj7r, 2026-07-13)
+
+`sonar_context/intensity_threshold: 95` (calibré P900 Aracati) sur les bags HoloOcean traj7r
+(max GLOBAL mesuré 75.5/255, max médian 16) → descripteur SONAR Context **identiquement nul sur
+100 % des images** → dist cosinus exactement 1.0 partout (convention colonne vide) → **0 loop sur
+toute la campagne**, en silence. Signature d'un descripteur vide : distance CONSTANTE au max
+(1.0) ET shifts CONSTANTS égaux au premier de la boucle de recherche (−10,−5) — des valeurs
+identiques sur toutes les paires = défaut structurel, jamais de la « sparsité ».
+- Règle 1 : tout SEUIL absolu (descripteur, CFAR, carte) doit être re-calibré sur la DYNAMIQUE
+  MESURÉE du bag courant (max/p99 par image), jamais hérité d'un autre capteur (cf. §14 corollaire).
+- Règle 2 : au 1er run d'un descripteur sur un nouveau bag, vérifier qu'il est NON VIDE (le yaml
+  le demandait — jamais fait). Un « échec de matching » doit d'abord exclure « l'entrée est vide ».
+- Règle 3 : changer l'échelle du descripteur ⇒ recalibrer AUSSI son seuil de décision
+  (dist_threshold 0.98, calibré sur descripteurs quasi-vides, retiendrait 100 % des fausses à
+  seuil 5 — mesuré : vraies 0.11 / fausses 0.29, couper vers ~0.2).
