@@ -52,9 +52,11 @@ pz_detection_rate: 0.3
 sonar_context:
   enable: False
   knn: 5
-  dist_threshold: 0.98  # recalibré 07-08 sur bags 3D (0.87 rejetait les vraies
-                        # revisites tour2↔tour1 à 0.95-0.99, run 111933) ; 0.87 datait
-                        # de l'ancien bag court (candidates 0.83-0.85). Aracati : 0.70.
+  dist_threshold: 0.2   # recalibré traj7r 2026-07-13 AVEC intensity_threshold 5 :
+                        # bench 40+40 paires → méd vraies 0.114 / fausses 0.294 (AUC
+                        # 0.85), 0.2 sépare les médianes. ⚠ l'ancien 0.98 « recalibré
+                        # 07-08, run 111933 » mesurait le descripteur DÉGÉNÉRÉ
+                        # (contexte vide → dist≡1.0 ∀ paire). Aracati : 0.70.
   max_azimuth_shift: 10
   max_range_shift: 5
   gate_distance: 10.0

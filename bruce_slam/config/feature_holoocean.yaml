@@ -36,10 +36,13 @@ compressed_images: False
 cartesian_mode: False
 
 # Descripteur SONAR Context (publié seulement si enable — surchargé par le launch
-# quand method=bruce_sonar). intensity_threshold calibré P900 (95) : sur les
-# images propres du simulateur, vérifier que le contexte n'est pas vide (log au 1er run).
+# quand method=bruce_sonar). intensity_threshold 5 recalibré traj7r 2026-07-13 :
+# l'ancien 95 (calibré P900 Aracati) dépassait le max GLOBAL du bag (75.5/255)
+# → descripteur identiquement VIDE, 0 loop (mémoire traj7r-sc-descripteur-sature).
+# Bench 40 vraies + 40 fausses paires tour1↔tour2 : 5 → AUC 0.85 (95 → 0.50 ; 2 → 0.84).
+# ⚠ TOUJOURS vérifier au 1er run sur un nouveau bag que le contexte n'est pas vide.
 sonar_context:
   enable: False
   num_azimuth: 40
   num_range: 40
-  intensity_threshold: 95
+  intensity_threshold: 5

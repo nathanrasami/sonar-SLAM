@@ -6,7 +6,7 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 (soir, re-vérification Fable) : 0 loop traj7r = descripteur SC **VIDE** (bug de calibration de seuil), PAS « sonar trop épars » — fix identifié, à valider par run
+## 🔜 REPRISE ICI — 2026-07-13 (soir, re-vérification Fable) : 0 loop traj7r = descripteur SC **VIDE** (bug de calibration de seuil), PAS « sonar trop épars » — **fix APPLIQUÉ (seuils 95→5, 0.98→0.2), runs de validation à lancer**
 
 **Re-analyse complète des conclusions d'Opus (demande Nathan). Ses CHIFFRES sont tous exacts
 (re-vérifiés à la source) ; deux MÉCANISMES étaient faux. Détail : mémoire `traj7r-sc-descripteur-sature`.**
@@ -40,12 +40,29 @@ amont indépendante : **50.9 % des images du bag n'ont aucun pixel ≥ 30** (seu
 Porte source NSSM (≥50 pts / 5 KF) : 247/903 passages, dont 112 au tour 2 → cohérent avec les
 100 tentatives SC loggées.
 
-**➡ PROCHAINE ÉTAPE (accord Nathan requis — R3, aucun yaml modifié)** — ablation 1 variable :
-1. `feature_holoocean.yaml sonar_context/intensity_threshold: 95 → 5` ET
-   `slam_holoocean.yaml sonar_context/dist_threshold: 0.98 → ~0.2` (un seul « fix SC » fonctionnel :
-   à 0.98 tout passerait, vraies ET fausses) → run `BS` traj7r → lire loops_detected.csv.
-2. Si les retenues meurent ensuite à l'ICP/PCM : densifier les features (filter.threshold 30 → ~10,
-   bruit p99 ≈ 8) — run séparé.
+**📓 Journal R3 — FIX SC APPLIQUÉ (2026-07-13 soir, accord Nathan explicite)** :
+- `feature_holoocean.yaml` `sonar_context/intensity_threshold` **95 → 5** (95 calibré P900
+  Aracati > max GLOBAL bag traj7r 75.5 → descripteur identiquement vide ; bench 40+40 :
+  seuil 5 → AUC 0.85, méd vraies 0.114 / fausses 0.294).
+- `slam_holoocean.yaml` `sonar_context/dist_threshold` **0.98 → 0.2** (le « recalibrage 07-08 »
+  à 0.95-0.99 mesurait le descripteur DÉGÉNÉRÉ, dist≡1.0 ; 0.2 sépare les médianes du bench).
+- Les 2 changements = UN SEUL fix fonctionnel (à 0.98 tout passerait, vraies ET fausses) —
+  pas d'ablation interne.
+
+**➡ Runs à lancer (Nathan)** — lire ensuite `loops_detected.csv` (retenus VRAIS ? tour2↔tour1 ?)
++ `nssm_constraints` + ATE vs témoin 0.75 m :
+1. BS (SC) : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj7r.bag SONAR_RANGE=20 ./run_slam.sh holoocean 2D bs`
+2. Répétabilité si concluant : relancer la même commande (figeage R3 = ×2).
+3. Si les retenues SC meurent à l'ICP/PCM (2ᵉ verrou, 61 % KF vides) : densifier
+   `filter.threshold` 30 → ~10 (bruit p99 ≈ 8) — run SÉPARÉ (1 variable).
+
+**🧹 Ménage 2026-07-13 (accord Nathan)** : bags `traj7.bag` (superseded, nav trop parfaite) +
+`traj7r_1.bag` (1ʳᵉ génération 01:07, dupliquée par celle de 12:27, jamais référencée) supprimés
+= **−24 Go** ; reste `traj7r.bag` seul (actif, seed 7 → tout régénérable via `./gen_traj7.sh` /
+`./gen_traj7r.sh`). `results/` : supprimé les 23 runs pré-13/07 (caves 001643 ; 11× 07-07 ;
+101130/143452+copy ; 113928/161938 ; 160434/222233 ; 005329/013055 ; 191325/200450 traj7) —
+verdicts archivés TESTS.md/PROGRESS.md, bags sources déjà absents. **Gardés** : les 6 runs
+traj7r du 13/07 (témoins 0-loop du fix) + suite_*.log + traj2_plus_3d.html.
 
 ---
 
