@@ -26,6 +26,12 @@ aucune vraie revisite pour le SC → back-end idle → sortie = DR. Front/backen
 Les logs capturés ne disent pas si le SC a *proposé-puis-rejeté* ou *jamais proposé* — seulement
 0 accepté.
 
+**Répétabilité re-confirmée (2026-07-13 12h, runs 122749_B / 125244_BS)** : mêmes ATE 0.75 /
+NN 0.055 / cap 1.0° ; méthodes correctement étiquetées cette fois (log roslaunch = `bruce` /
+`bruce_sonar`, piège écarté) ; **B≡BS≡DR une 2ᵉ fois** (répét B 3.4 mm rms, BS 5.8 mm rms /
+19.4 max, écart B↔BS 7.9 mm rms — tous < 2 cm). Cloud 8022≈8021 (−1 % vs matin, NN inchangé =
+non-déterminisme features). ✅ Tout fonctionne → prêt pour la traj multi-revisite.
+
 **Reste à faire (prochaine génération de bag)** : trajectoire **MULTI-REVISITE** (2+ passages sur
 les mêmes zones, façon test.bag 2 tours) = seule façon de faire mordre les loops SC et de départager
 Bruce vs Bruce_Sonar. Tant qu'on est mono-boucle, tout retombe sur le DR.
