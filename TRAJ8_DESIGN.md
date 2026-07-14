@@ -152,5 +152,14 @@ x_ouest 818.5→818.9 après E0 v3 (station s=46 à 2.41 m de la paroi, seuil 2.
 | Semi-périodicité du trestle (paroi + éléments 6-8 m) → re-ciblage aliasé | croisement GT post-run (nssm_attempts.csv) | lever ② (log transform-vs-GT) puis discussion gates |
 | Fausses SC résiduelles | croisement GT post-run | apériodicité pontons/pieux attendue suffisante |
 
-**État 14-07** : GO Nathan reçu (tracé/octree/E0) · E0 v3 en validation · reste : gen `--test 150`
-→ E1-E9 `--zone zone13` + E10 conteneur → bag complet (lancement Nathan) → runs B/BS (§7).
+**État 14-07 (midi) — BAG TEST VALIDÉ DE BOUT EN BOUT** :
+- E0 v4 PASS (min lat 2.77 m, fond 2.10 m) · **E1-E9 TOUT PASS du 1ᵉʳ coup** (E4 : paroi trestle
+  = mur parfait, 8 bandes, dérive 0.02 m ; E8 49.0 % vs 9.3 % miroir ; E9 lat 77.2 %, fond 99.5 %).
+- **E10 PASS avec marge** (détecteur CFAR réel, témoin traj7r par le même code) :
+  vides **6.9 %** vs **55.6 %** (traj7r) · méd **30** feat/ping vs **0** · ≥10 : 87.7 % vs 31.7 % ·
+  SC-aveugles 0 % (seuil 5 valide). Errance seule (`--t-min 90`, phase A exclue) : **méd 36,
+  vides 9.3 %, ≥25 sur 74 %** — le chiffre n'est pas flatté par la phase A.
+- **Coût octree 0.05 MESURÉ** : cache 6.1 → 7.7 Go (+1.6, pas d'explosion — construit autour du
+  bassin) ; écriture ~55 pings/min → **bag complet estimé ~1 h 50** (vs ~40 min à 0.1). Assumé.
+- Reste : **bag complet `./gen_traj8.sh` (lancement Nathan, ~2 h GPU)** → runs B/BS
+  `SONAR_RANGE=20` (§7) → verdict loops.

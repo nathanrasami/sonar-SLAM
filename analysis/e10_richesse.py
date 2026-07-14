@@ -28,7 +28,8 @@ RES_DOWNSAMPLE, OUT_RADIUS, OUT_MINPTS = 0.5, 1.0, 5       # idem
 HALF_FOV = 60.0
 
 
-def stats_bag(bag_path, det, pcl, cv2, rosbag, seuil, every, range_max):
+def stats_bag(bag_path, det, pcl, cv2, rosbag, seuil, every, range_max,
+              t_min=0.0):
     n_feat, n_max = [], []
     t0 = None
     bag = rosbag.Bag(bag_path)
@@ -37,10 +38,12 @@ def stats_bag(bag_path, det, pcl, cv2, rosbag, seuil, every, range_max):
         i += 1
         if every > 1 and i % every != 1:
             continue
-        img32 = np.frombuffer(msg.data, dtype=np.float32).reshape(msg.height, msg.width)
-        img = np.clip(img32 * 255.0, 0, 255).astype(np.float32)   # bridge x255
         if t0 is None:
             t0 = msg.header.stamp.to_sec()
+        if msg.header.stamp.to_sec() - t0 < t_min:
+            continue
+        img32 = np.frombuffer(msg.data, dtype=np.float32).reshape(msg.height, msg.width)
+        img = np.clip(img32 * 255.0, 0, 255).astype(np.float32)   # bridge x255
         n_max.append(float(img.max()))
         peaks = det.detect(img, "SOCA") & (img > seuil)
         rr, cc = np.nonzero(peaks)
@@ -83,6 +86,9 @@ def main():
     ap.add_argument("--ref-every", type=int, default=8)
     ap.add_argument("--range-max", type=float, default=20.0,
                     help="RangeMax du /sonar (traj7r et traj8 : 20)")
+    ap.add_argument("--t-min", type=float, default=0.0,
+                    help="ignorer les pings avant t0+t_min (ex : 90 = errance "
+                         "seule, exclut la phase A face au mur)")
     args = ap.parse_args()
 
     import cv2, rosbag
@@ -95,7 +101,7 @@ def main():
           % (CFAR_NTC, CFAR_NGC, CFAR_PFA, CFAR_RANK, args.seuil,
              RES_DOWNSAMPLE, OUT_RADIUS, OUT_MINPTS))
     s = stats_bag(args.bag, det, pcl, cv2, rosbag, args.seuil, args.every,
-                  args.range_max)
+                  args.range_max, args.t_min)
     line("TEST", s)
     if args.ref:
         sr = stats_bag(args.ref, det, pcl, cv2, rosbag, args.seuil,

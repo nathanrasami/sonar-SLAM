@@ -28,8 +28,18 @@
 `analysis/e10_richesse.py` (E10 = détecteur CFAR RÉEL, conteneur ; PASS si vides ≤20 % et méd ≥25).
 ⚠ Leçons probe → mémoire `probe-raycast-limites-e0` (rayons fins sur pieux = aléatoire ;
 LaserUp aveugle à la surface = détecteur de pontons). Disque : 137 Go libres, cache octree 6.1 Go (à 0.1).
-**En cours : `./gen_traj8.sh --test 150`** → E1-E9 auto puis E10 conteneur vs traj7r.
-**Ensuite** : bag complet (`./gen_traj8.sh`, ~40-70 min) → runs B/BS `SONAR_RANGE=20` → verdict §7 du design.
+**✅ BAG TEST VALIDÉ (14-07 midi) : E1-E9 TOUT PASS du 1ᵉʳ coup + E10 PASS avec marge** :
+- E4 paroi trestle = mur parfait (8 bandes, dérive 0.02 m) · E8 49.0 % vs 9.3 % miroir ·
+  E9 lat 77.2 % / fond 99.5 % · E6 3.90 m identique aux 2 sonars.
+- **E10 (CFAR réel, témoin traj7r même code)** : vides **6.9 % vs 55.6 %**, méd **30 vs 0**
+  feat/ping, ≥10 : 87.7 % vs 31.7 %, SC-aveugles 0 %. Errance seule (--t-min 90) : méd 36,
+  vides 9.3 % → pas flatté par la phase A. **L'objectif « overlap 18 → ≥50 » est crédible**
+  (submap NSSM = 5 KF ≈ 150 pts source vs ~0-70 sur traj7r).
+- Coût octree 0.05 MESURÉ : cache +1.6 Go (6.1→7.7, pas d'explosion), écriture ~55 pings/min.
+**➡ REPRENDRE ICI : bag complet `./gen_traj8.sh` (~1 h 50 GPU, checks auto) puis :
+1) run témoin B : `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj8.bag SONAR_RANGE=20 ./run_slam.sh holoocean`
+2) run BS : même commande + `2D bs` (nssm_attempts.csv déjà instrumenté)
+3) verdict §7 du design : nssm_constraints>0 ? facteurs vrais (dGT<2 m) ? ATE_BS < témoin ? ×2 avant figeage.**
 
 ## 2026-07-13 (nuit) : fix SC **VALIDÉ au niveau descripteur** (69/102 candidates retenues, dists 0.05–0.56) mais **0 contrainte au graphe** → le verrou actif est maintenant l'aval ICP/PCM ; ensuite traj8
 
