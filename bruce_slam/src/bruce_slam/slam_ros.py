@@ -117,6 +117,9 @@ class SLAMNode(SLAM):
         # porte géométrique : distance max (m) entre source et candidat dans
         # l'estimé courant (l'apparence propose, la géométrie vérifie)
         self.sc_gate_distance = rospy.get_param(ns + "sonar_context/gate_distance", 20.0)
+        # gate Δz optionnel (prépa 3D) : |z_source − z_candidat| max en m, z par
+        # /depth (dr_pose3.z). 0 = désactivé — les configs figées sont inchangées.
+        self.sc_dz_gate = rospy.get_param(ns + "sonar_context/dz_gate", 0.0)
         self._descriptor_buffer = {}  # (sec, nsec) -> (context, ring_key)
         if self.sc_enable:
             rospy.Subscriber(SONAR_DESCRIPTOR_TOPIC, Float32MultiArray,
@@ -673,7 +676,7 @@ class SLAMNode(SLAM):
             with open(sc_path, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["source_key", "target_key", "sc_dist",
-                                 "shift_azimuth", "shift_range", "retenu"])
+                                 "shift_azimuth", "shift_range", "retenu", "dz"])
                 writer.writerows(self.sc_log)
             rospy.loginfo("Sonar Context log saved to %s", sc_path)
 

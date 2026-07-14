@@ -60,6 +60,9 @@ sonar_context:
   max_azimuth_shift: 10
   max_range_shift: 5
   gate_distance: 10.0
+  dz_gate: 0.0          # gate Δz optionnel (prépa 3D) : |z_src − z_cand| max en m,
+                        # z par /depth. 0 = OFF (défaut figé). Ne se teste que sur
+                        # des revisites multi-z (traj collègue) — cf PROGRESS 14-07.
   union: False
 # USBL : PAS de capteur USBL dans les bags holoocean → doit rester False
 # (les facteurs d'ancrage absolu de la méthode Aracati n'ont pas de source ici ;

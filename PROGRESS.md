@@ -6,7 +6,38 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-14 (après-midi, Fable) : **SUITE TRAJ8 ANALYSÉE — loop closure ÷2 l'ATE (1.11→0.51) ; BS ≈ B_NSSM (saturation) ; prochaine traj = REPLAY d'un bag poses enregistré chez le collègue**
+## 🔜 REPRISE ICI — 2026-07-14 (fin d'après-midi, Fable) : **Δz INSTRUMENTÉ + BANC : la prémisse « fausses loops à z ÉGAL » est RÉFUTÉE — un gate 0.2 m tuerait 14/16 faux (215053) et 6/6 (traj8) pour ~1 % de vraies perdues**
+
+**① Instrumentation CODÉE + PROUVÉE (défaut = comportement figé inchangé)** :
+- Colonne `dz` dans loops_detected.csv (slam.py `sc_log` + en-tête slam_ros.py) ; z =
+  `dr_pose3.z()` ← /depth (pression, GT-free, jamais retouché par l'optim Pose2).
+- Gate optionnel `sonar_context/dz_gate` (m, **0 = OFF défaut**, slam_holoocean.yaml) : filtre
+  les candidats AVANT le kNN Polar Key, calqué sur la porte x,y `gate_distance`.
+- Preuves : test unitaire conteneur PASS 3/3 (gate OFF → apparence gagne, dz journalisé ;
+  gate 1 m → candidat 2 m plus bas exclu ; tous hors bande → None sans entrée de log) ·
+  smoke run point d'entrée réel `run_2026-07-14_161408` (bag test traj8, bs, défauts) :
+  colonne présente, **vérif croisée runtime↔offline max 0.0005 m PASS** (loops_dz_bench).
+
+**② Banc offline `analysis/loops_dz_bench.py` (nouveau — dz par trajectory.csv, dGT par
+interp temps KF→GT, vraie boucle = dGT_xy < 2 m)** — résultat SURPRENANT :
+| gate | 215053 (16 faux / 67 vrais) | traj8 BS1 (6/353) | BS2 (6/357) |
+|---|---|---|---|
+| 0.2 m | tue 14 faux, perd 1 vrai | tue 6/6, perd 4 | tue 6/6, perd 4 |
+| 0.5 m | tue 9, perd 0 | tue 3, perd 1 | tue 3, perd 1 |
+- **La prémisse « aliasing à z ÉGAL » (REPRISE précédente) est FAUSSE** : |Δz| méd des fausses
+  0.50–0.57 m vs 0.025–0.030 m pour les vraies. Vérifié à la source (KF 73 z −4.233 / KF 201
+  z −3.407 → +0.826 m exact) ET par 2ᵉ source indépendante (dz_GT méd concorde : 0.5 vs 0.01).
+- Mécanisme : la nav v8 fait DÉRIVER z dans le temps → 2 passages éloignés dans le temps
+  (= fausses par aliasing) ont presque toujours des z légèrement ≠, une vraie revisite non.
+  C'est incident (pas une structure multi-z voulue) mais ça rend le gate utile DÈS MAINTENANT.
+- ⚠ Limites : simulation POST-HOC (au runtime le gate filtre avant le kNN → SC peut retomber
+  sur un autre candidat, vrai ou faux) ; chiffrage exact = run réel avec dz_gate>0.
+**➡ RESTE** : ③ test du gate en conditions cibles = revisites multi-z INTENTIONNELLES (traj
+enregistrée chez le collègue, même lieu 2 profondeurs — spécs bag § discussion 14-07) ;
+optionnel avant : run traj8 complet avec `dz_gate: 0.2` pour mesurer l'effet bout-en-bout
+(attendu : les 6 fausses disparaissent, ATE ≈ 0.51 inchangé ou mieux).
+
+## 2026-07-14 (après-midi, Fable) : **SUITE TRAJ8 ANALYSÉE — loop closure ÷2 l'ATE (1.11→0.51) ; BS ≈ B_NSSM (saturation) ; prochaine traj = REPLAY d'un bag poses enregistré chez le collègue**
 
 **Verdict suite nocturne (4 runs rc=0, étiquetage programmatique, KF=745 partout)** :
 | run | ATE um | cap RMS | NN cloud | loops retenues | nssm_constraints |

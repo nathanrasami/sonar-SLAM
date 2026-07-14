@@ -120,7 +120,7 @@ class SLAM(object):
         self.sc_dist_threshold = 0.35  # distance cosinus max pour valider
         self.sc_max_azimuth_shift = 10
         self.sc_max_range_shift = 5
-        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu)
+        self.sc_log = []  # (source, target, dist, shift_az, shift_rg, retenu, dz)
         self.nssm_log = []  # (source, target, stage, detail) — étage TERMINAL de
         # chaque tentative NSSM (funnel aval : init/shgo/ICP/gates/PCM)
 
@@ -1220,6 +1220,20 @@ class SLAM(object):
             if not cands:
                 return None
 
+        # 0bis) Gate Δz OPTIONNEL (prépa 3D) : deux lieux alignés en plan mais à des
+        # profondeurs différentes s'aliasent en 2.5D ; dr_pose3.z vient de /depth
+        # (pression, absolu, GT-free) et n'est jamais retouché par l'optimisation.
+        # 0 = désactivé (défaut : les configs figées sont inchangées).
+        dz_gate = getattr(self, "sc_dz_gate", 0.0)
+        if dz_gate > 0:
+            qz = query.dr_pose3.z()
+            cands = [
+                k for k in cands
+                if abs(self.keyframes[k].dr_pose3.z() - qz) <= dz_gate
+            ]
+            if not cands:
+                return None
+
         # 1) Polar Keys → kNN euclidien
         keys = np.array([self.keyframes[k].ring_key for k in cands])
         d_pk = np.linalg.norm(keys - np.asarray(query.ring_key)[None, :], axis=1)
@@ -1240,8 +1254,9 @@ class SLAM(object):
 
         # 3) seuil de validation + journal (étape 5 : precision/recall offline)
         retenu = best[1] < self.sc_dist_threshold
+        dz = query.dr_pose3.z() - self.keyframes[best[0]].dr_pose3.z()
         self.sc_log.append((self.current_key - 1, best[0], round(best[1], 4),
-                            best[2], best[3], int(retenu)))
+                            best[2], best[3], int(retenu), round(dz, 3)))
         return best if retenu else None
 
     def add_nonsequential_scan_matching(self) -> ICPResult:
