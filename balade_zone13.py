@@ -1,188 +1,211 @@
 #!/usr/bin/env python3
-"""Balade libre dans PierHarbor — 0 capteur, spawn zone 13, pilotage clavier.
+"""Balade libre dans PierHarbor — spawn zone 13, pilotage clavier, SANS viewport.
 
-But : examiner tranquillement la zone (quais a bateaux / crique TUG) avant de
-decider du trace de la prochaine traj. Le vehicule est TELEPORTE (pas de
-physique, pas de collision) : on peut traverser les murs, survoler la scene,
-plonger sous les coques.
+⚠ POURQUOI SANS VIEWPORT : show_viewport=True => crash GPU Xid 13 « Shader
+Program Header 9 Error » MESURÉ (journalctl 2026-07-14 15:03/15:05, 3 essais,
+même avec 0 capteur — le piège branche.md/PIEGES ne vient donc pas du sonar).
+Le moteur tourne ici HEADLESS (comme les générateurs, jamais crashé) et on
+affiche une RGBCamera de chasse dans une fenêtre pygame.
 
-Pilotage : taper dans LE TERMINAL (garder son focus), regarder la fenetre 3D.
-    z / s   avancer / reculer          (fleches haut/bas aussi)
-    q / d   tourner gauche / droite    (fleches gauche/droite aussi)
-    a / e   translation laterale gauche / droite
-    r / f   monter / descendre
-    + / -   vitesse x1.5 / /1.5 (defaut 1.5 m/s)
-    p       imprimer la pose (pour noter un point d'interet)
-    x       quitter proprement
+Le véhicule est TÉLÉPORTÉ (pas de physique, pas de collision) : on traverse
+les murs, on survole la scène (r = monter au-dessus de l'eau), on plonge
+sous les coques.
+
+Pilotage : FOCUS SUR LA FENÊTRE PYGAME (vraies touches simultanées) :
+    z / s        avancer / reculer       (flèches haut/bas aussi)
+    q / d        tourner gauche / droite (flèches gauche/droite aussi)
+    a / e        translation latérale gauche / droite
+    r / f        monter / descendre
+    + / -        vitesse x1.5 / /1.5 (défaut 1.5 m/s)
+    p            imprimer la pose dans le terminal (noter un point d'intérêt)
+    x / Échap    quitter
 
 Usage :
-    ./balade.sh                 balade simple (rien n'est enregistre)
-    ./balade.sh --record [f]    enregistre la pose GT a chaque tick -> CSV
-                                t,x,y,z,yaw_deg (defaut traj_manuelle_<date>.csv)
-    ./balade.sh --smoke         auto-test sans fenetre (boot + teleport), PASS/FAIL
-
-⚠ show_viewport=True : les crashs GPU Xid 13 ont ete vus avec SONAR+viewport ;
-sans capteur la charge est bien moindre — si ca fige, relancer.
+    ./balade.sh                 balade simple (rien n'est enregistré)
+    ./balade.sh --record [f]    enregistre la pose GT à chaque tick -> CSV
+                                t,x,y,z,yaw_deg (défaut traj_manuelle_<date>.csv)
+    ./balade.sh --smoke         auto-test sans fenêtre : boot + caméra rend une
+                                image non noire + teleport, PASS/FAIL
 """
 import argparse
 import datetime
 import os
-import select
+import signal
 import sys
-import termios
 import time
-import tty
 
 import numpy as np
 import holoocean
 
 SPAWN = [800.0, -300.0, 0.0]     # zone 13, en surface, cap ouest (vers les quais)
 SPAWN_YAW = 180.0
-TICKS = 30                       # Hz sim = Hz temps reel (frames_per_sec)
-KEY_HOLD = 0.45                  # s de maintien apres la derniere frappe
-                                 # (comble le delai d'auto-repeat du clavier)
+TICKS = 50                       # Hz sim = Hz temps réel (frames_per_sec)
 YAW_RATE = 45.0                  # deg/s
+W, H = 800, 450                  # résolution caméra = fenêtre
+
+# ⚠ Xid 13 = ALÉA DE BOOT INTERMITTENT (mesuré 14-07 : même cfg PASS 6/6 à
+# 15:21 puis crash à 15:29 ; gen_traj8.sh documente le même aléa) — parade :
+# watchdog SIGALRM sur le boot + exit 3, relance auto par balade.sh (comme
+# la relance x3 des générateurs). cfg aligné sur probe_cam_xid.py par prudence.
+BOOT_WATCHDOG_S = 150
 
 
 def make_cfg():
     return {
         "name": "balade13", "world": "PierHarbor", "package_name": "Ocean",
-        "main_agent": "auv0",
+        "main_agent": "auv0", "octree_min": 0.1, "octree_max": 5.0,
         "ticks_per_sec": TICKS, "frames_per_sec": TICKS,
         "agents": [{
             "agent_name": "auv0", "agent_type": "HoveringAUV",
-            "sensors": [],                       # 0 module charge
+            "sensors": [
+                {"sensor_type": "RGBCamera", "sensor_name": "CamPilote",
+                 "configuration": {"CaptureWidth": W, "CaptureHeight": H},
+                 "location": [0.0, 0.0, 2.5], "rotation": [0.0, -15.0, 0.0]},
+            ],
             "control_scheme": 0,
             "location": list(SPAWN), "rotation": [0.0, 0.0, SPAWN_YAW],
         }],
     }
 
 
-class Clavier:
-    """stdin en mode cbreak, lecture non bloquante, fleches decodees."""
+def boot():
+    """Boot moteur + 1re image, sous watchdog : Xid 13 suspend le moteur
+    sans exception -> SIGALRM force exit 3 et balade.sh relance."""
+    def _tueur(sig, frm):
+        print(f"[balade] boot suspendu >{BOOT_WATCHDOG_S}s (aléa Xid 13) -> relance")
+        os._exit(3)
+    signal.signal(signal.SIGALRM, _tueur)
+    signal.alarm(BOOT_WATCHDOG_S)
+    try:
+        env = holoocean.make(scenario_cfg=make_cfg(), show_viewport=False)
+        attendre_camera(env)
+    except Exception as e:
+        print(f"[balade] boot en échec ({e}) -> relance")
+        os._exit(3)
+    signal.alarm(0)
+    return env
 
-    def __init__(self):
-        self.fd = sys.stdin.fileno()
-        self.saved = termios.tcgetattr(self.fd)
-        tty.setcbreak(self.fd)
 
-    def restore(self):
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
-
-    def touches(self):
-        """Retourne la liste des touches en attente ('z', 'UP', ...)."""
-        out = []
-        buf = b""
-        while select.select([self.fd], [], [], 0)[0]:
-            buf += os.read(self.fd, 32)
-        i = 0
-        fleches = {b"A": "UP", b"B": "DOWN", b"C": "RIGHT", b"D": "LEFT"}
-        while i < len(buf):
-            if buf[i:i + 2] == b"\x1b[" and buf[i + 2:i + 3] in fleches:
-                out.append(fleches[buf[i + 2:i + 3]])
-                i += 3
-            else:
-                out.append(chr(buf[i]).lower())
-                i += 1
-        return out
+def attendre_camera(env, n_max=90):
+    """Tick jusqu'à la 1re image caméra (le rendu met quelques ticks)."""
+    for _ in range(n_max):
+        st = env.tick()
+        if "CamPilote" in st:
+            return st
+    raise RuntimeError(f"pas d'image CamPilote après {n_max} ticks : {list(st)}")
 
 
 def boucle(env, record_path):
+    import pygame
+    pygame.init()
+    ecran = pygame.display.set_mode((W, H))
+    pygame.display.set_caption("balade zone 13 — zsqd/ae/rf, p=pose, x=quitter")
+    police = pygame.font.SysFont(None, 22)
+
     agent = env.agents["auv0"]
     pos = np.array(SPAWN, dtype=float)
     yaw = SPAWN_YAW
     vitesse = 1.5
-    # axe -> instant de derniere frappe ; actif tant que t - frappe < KEY_HOLD
-    axes = {k: -1.0 for k in ("av", "ar", "yg", "yd", "lg", "ld", "up", "dn")}
-    mapping = {"z": "av", "UP": "av", "s": "ar", "DOWN": "ar",
-               "q": "yg", "LEFT": "yg", "d": "yd", "RIGHT": "yd",
-               "a": "lg", "e": "ld", "r": "up", "f": "dn"}
     rec = None
     if record_path:
         rec = open(record_path, "w")
         rec.write("t,x,y,z,yaw_deg\n")
 
-    clav = Clavier()
+    K = pygame.key
     dt = 1.0 / TICKS
     t0 = time.monotonic()
-    dernier_statut = 0.0
-    print("\n[balade] pret — z/s q/d a/e r/f, p=pose, x=quitter\n")
+    n_ticks = 0
+    print("[balade] prêt — focus sur la fenêtre pygame pour piloter")
     try:
         while True:
-            now = time.monotonic()
-            for k in clav.touches():
-                if k == "x":
+            for ev in pygame.event.get():
+                if ev.type == pygame.QUIT:
                     return
-                elif k == "p":
-                    print(f"\n[pose] x={pos[0]:.1f} y={pos[1]:.1f} "
-                          f"z={pos[2]:.1f} yaw={yaw:.0f}")
-                elif k == "+":
-                    vitesse = min(vitesse * 1.5, 15.0)
-                elif k == "-":
-                    vitesse = max(vitesse / 1.5, 0.2)
-                elif k in mapping:
-                    axes[mapping[k]] = now
+                if ev.type == pygame.KEYDOWN:
+                    if ev.key in (pygame.K_x, pygame.K_ESCAPE):
+                        return
+                    elif ev.key == pygame.K_p:
+                        print(f"[pose] x={pos[0]:.1f} y={pos[1]:.1f} "
+                              f"z={pos[2]:.1f} yaw={yaw % 360:.0f}")
+                    elif ev.key in (pygame.K_PLUS, pygame.K_KP_PLUS,
+                                    pygame.K_EQUALS):
+                        vitesse = min(vitesse * 1.5, 15.0)
+                    elif ev.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+                        vitesse = max(vitesse / 1.5, 0.2)
 
-            def actif(a):
-                return now - axes[a] < KEY_HOLD
-
-            if actif("yg"):
+            k = K.get_pressed()
+            if k[pygame.K_q] or k[pygame.K_LEFT]:
                 yaw += YAW_RATE * dt
-            if actif("yd"):
+            if k[pygame.K_d] or k[pygame.K_RIGHT]:
                 yaw -= YAW_RATE * dt
             cy, sy = np.cos(np.radians(yaw)), np.sin(np.radians(yaw))
             v = np.zeros(3)
-            if actif("av"):
+            if k[pygame.K_z] or k[pygame.K_UP]:
                 v += [cy, sy, 0.0]
-            if actif("ar"):
+            if k[pygame.K_s] or k[pygame.K_DOWN]:
                 v -= [cy, sy, 0.0]
-            if actif("lg"):
+            if k[pygame.K_a]:
                 v += [-sy, cy, 0.0]
-            if actif("ld"):
+            if k[pygame.K_e]:
                 v -= [-sy, cy, 0.0]
-            if actif("up"):
+            if k[pygame.K_r]:
                 v[2] += 1.0
-            if actif("dn"):
+            if k[pygame.K_f]:
                 v[2] -= 1.0
             pos += v * vitesse * dt
 
             agent.teleport(location=pos.tolist(), rotation=[0.0, 0.0, yaw])
-            env.tick()
-
+            st = env.tick()
+            n_ticks += 1
             if rec:
-                rec.write(f"{now - t0:.3f},{pos[0]:.3f},{pos[1]:.3f},"
-                          f"{pos[2]:.3f},{yaw:.2f}\n")
-            if now - dernier_statut > 0.2:
-                sys.stdout.write(f"\rx={pos[0]:7.1f} y={pos[1]:7.1f} "
-                                 f"z={pos[2]:6.1f} yaw={yaw:6.0f}  "
-                                 f"v={vitesse:.1f} m/s ")
-                sys.stdout.flush()
-                dernier_statut = now
+                rec.write(f"{time.monotonic() - t0:.3f},{pos[0]:.3f},"
+                          f"{pos[1]:.3f},{pos[2]:.3f},{yaw % 360:.2f}\n")
+                if n_ticks % 100 == 0:   # survit à un crash moteur en vol
+                    rec.flush()
+
+            img = st.get("CamPilote")
+            if img is not None:
+                rgb = np.ascontiguousarray(img[..., :3][..., ::-1])  # BGRA->RGB
+                surf = pygame.image.frombuffer(rgb.tobytes(), (W, H), "RGB")
+                ecran.blit(surf, (0, 0))
+            hud = (f"x={pos[0]:.1f}  y={pos[1]:.1f}  z={pos[2]:.1f}  "
+                   f"yaw={yaw % 360:.0f}  v={vitesse:.1f} m/s"
+                   + ("   REC" if rec else ""))
+            txt = police.render(hud, True, (255, 255, 60))
+            ecran.blit(txt, (8, 6))
+            pygame.display.flip()
     finally:
-        clav.restore()
         if rec:
             rec.close()
-            print(f"\n[balade] trajectoire enregistree -> {record_path}")
+            print(f"[balade] trajectoire enregistrée -> {record_path}")
+        pygame.quit()
 
 
 def smoke():
-    """Auto-test sans fenetre : boot 0 capteur + teleport carre 4 poses."""
-    with holoocean.make(scenario_cfg=make_cfg(), show_viewport=False) as env:
-        env.tick()
-        agent = env.agents["auv0"]
-        for i, (dx, dy) in enumerate([(0, 0), (5, 0), (5, 5), (0, 5)]):
-            agent.teleport(location=[SPAWN[0] + dx, SPAWN[1] + dy, SPAWN[2]],
-                           rotation=[0.0, 0.0, 90.0 * i])
-            for _ in range(5):
-                env.tick()
-    print("SMOKE PASS : boot PierHarbor 0 capteur + teleport x4 OK")
+    """Auto-test headless : boot + caméra rend une image NON NOIRE + teleport."""
+    env = boot()
+    try:
+        st = attendre_camera(env)
+        img = st["CamPilote"]
+        assert img.shape[:2] == (H, W), f"shape inattendue {img.shape}"
+        et = float(np.std(img[..., :3]))
+        assert et > 1.0, f"image plate (std={et:.3f}) : rendu caméra suspect"
+        env.agents["auv0"].teleport(location=[SPAWN[0] + 5, SPAWN[1], -3.0],
+                                    rotation=[0.0, 0.0, 90.0])
+        for _ in range(10):
+            st = env.tick()
+        et2 = float(np.std(st["CamPilote"][..., :3]))
+    finally:
+        env.__exit__(None, None, None)
+    print(f"SMOKE PASS : boot headless + CamPilote {img.shape} "
+          f"std {et:.1f} (surface) / {et2:.1f} (z=-3) + teleport OK")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--record", nargs="?", const="AUTO", default=None,
-                    metavar="CSV", help="enregistre t,x,y,z,yaw_deg a chaque tick")
-    ap.add_argument("--smoke", action="store_true", help="auto-test sans fenetre")
+                    metavar="CSV", help="enregistre t,x,y,z,yaw_deg à chaque tick")
+    ap.add_argument("--smoke", action="store_true", help="auto-test sans fenêtre")
     args = ap.parse_args()
     if args.smoke:
         smoke()
@@ -191,11 +214,13 @@ def main():
     if record_path == "AUTO":
         record_path = datetime.datetime.now().strftime(
             "traj_manuelle_%Y%m%d_%H%M%S.csv")
-    print("[balade] chargement de PierHarbor (~1 min la 1re fois)...")
-    with holoocean.make(scenario_cfg=make_cfg(), show_viewport=True) as env:
-        env.tick()
+    print("[balade] chargement de PierHarbor (headless, ~1 min)...")
+    env = boot()
+    try:
         boucle(env, record_path)
-    print("\n[balade] fini.")
+    finally:
+        env.__exit__(None, None, None)
+    print("[balade] fini.")
 
 
 if __name__ == "__main__":

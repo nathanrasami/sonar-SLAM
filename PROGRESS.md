@@ -24,6 +24,18 @@
 - Limite : analysé sur les CSV dérivés (pas relu les logs roslaunch ; config_lancee.txt du script
   + ATE B≠BS font foi). E0 avait coté le bassin sud, PASS confirmé par les runs.
 
+**➡ PROCHAINE DISCUSSION (accord Nathan 14-07) — préparer la « vraie 3D » en attendant le
+run collègue** : ① instrumenter le Δz des candidats LC (colonne dans loops_detected.csv, z
+par /depth des 2 KF) + gate Δz optionnel ; ② banc d'essai sur bags EXISTANTS :
+`run_holoocean_2026-07-13_215053` (seuil 10, ATE 5.53 — fausses loops par aliasing de 2 coins
+IDENTIQUES, à z ÉGAL : teste le durcissement candidats, PAS le gate Δz) + runs traj8 14-07
+(6 fausses connues 6.6-9.7 m) ; ③ le test du gate Δz exige des revisites à z DIFFÉRENTS →
+à piloter dans la traj enregistrée chez le collègue (même lieu, 2 profondeurs). Cadre décidé :
+Pose3 seulement quand on aura des contraintes 3D (facteur = ICP planaire ⊕ Δz/depth en 4-DoF ;
+registration 3D verticale = voie McConnell, plus tard) ; /depth = pression, insensible à la
+profondeur du fond (c'est le DVL qui décroche, cf tombant). Balade locale ABANDONNÉE (Xid 13
+intermittent au boot, watchdog+relance codés dans balade.sh/balade_zone13.py si besoin un jour).
+
 **⚠ MALENTENDU TRACÉ (Nathan 14-07)** : « zone 13 » pour Nathan = les QUAIS À BATEAUX (bato.png,
 TUG en bas à droite), pas la crique sud ; il veut serpenter ENTRE les quais (bato(1).png), pas un
 stade en eau libre. **Décision : prochaine traj = REPLAY** — Nathan enregistre chez le collègue un
