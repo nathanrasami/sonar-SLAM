@@ -39,6 +39,27 @@
   tutrice regardait ; si 215053 → réponse : fausses loop closures d'une config expérimentale
   revertée, pas un défaut de la méthode.
 
+## 2026-07-15 (nuit, Fable) : **B (traj10) DÉMARRÉ — « la marina du dessin » = ZONE 13 elle-même ; inventaire E0 pass 1 en cours**
+
+- **Localisation tranchée par mesure** (`probe_traj10_marina{,_est}.py`, témoins fond plateau
+  -8.99 + paroi trestle 4.29 m PASS — ⚠ paroi visible depuis l'EST seulement, backface) :
+  la grille OUEST (x 700-810, y -340..-240) est VIDE (305 stations = terre, 346 = eau libre
+  fond -7..-63) sauf un cluster d'obstacles x 784-808 / y -340..-296 (émergés jusqu'à +15,6)
+  = bord OUEST de la marina, qui CONTINUE à l'est (pontons_nord zone13 x 814-828 déjà connus).
+  ➡ le dessin bato (1).png (serpentine rouge+bleue entre ~5 pontons, TUG en bas à droite)
+  = les pontons de la ZONE 13, PAS une autre marina. **Grille EST FAITE** (2ᵉ essai — 1er :
+  BusyError sémaphore, 92 shm orphelins de tous les kills du jour nettoyés /dev/shm/HOLODECK_*) :
+  structure DENSE x 809-848 / y -360..-240 (182 stations, émergés jusqu'à +41 = mâts/portique).
+  **Marina totale ≈ x 784-848 / y -360..-240** (probe_traj10_marina{,_est}.json).
+- **➡ NOUVELLE DISCUSSION pour la suite** (tokens épuisés ici) : ① fusionner les 2 JSON
+  d'inventaire → positions/têtes des pontons ② waypoints serpentine = topologie du dessin
+  (départ NE près du TUG, weave ouest, U autour de chaque tête de ponton, ordre rouge/bleu)
+  ③ E0 pass 2 corridor sur le tracé (pattern traj8/9 : gen REFUSE sans PASS) ④ gen_bag_3d_v11
+  (pattern v10 : hérite v5-v8, z constant à trancher — fond -8/-9 côté crique mais -30..-60
+  au large ouest, ⚠ profondeur hétérogène) ⑤ zone `traj10` dans check_traj4.py (E8).
+  Images : Image/bato (1).png (tracé), bato.png (vue aérienne), face/uv.png (navire treillis
+  = ce TUG-poste ? à vérifier — le navire du corridor traj9 est lui FLOTTANT sans treillis).
+
 ## 2026-07-14 (soir, Fable) : **« Reprise A » = TRAJ9 quais 1 tour + passage SOUS le navire (correction de tir Nathan) ; au passage le gate dz_gate 0.2 est VALIDÉ bout-en-bout sur traj8**
 
 **⚠ Malentendu corrigé** : Fable avait interprété « A » = run dz_gate traj8 ; Nathan : **A = le
