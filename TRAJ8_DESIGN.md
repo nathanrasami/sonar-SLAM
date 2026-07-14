@@ -1,4 +1,14 @@
-# TRAJ8 « zone 13 » — design gen v9 (2026-07-13, Fable — à valider par Nathan avant codage)
+# TRAJ8 « zone 13 » — design gen v9 (2026-07-13, Fable · GO Nathan + E0 exécuté 2026-07-14 → tracé v2 « bassin sud »)
+
+> ⚠ **2026-07-14 — le tracé v1 (§2 initial, circuit 6 sommets pleine crique) est RÉFUTÉ par le
+> probe E0** (mesures, pas hypothèses) : ① la crique est COUPÉE EN DEUX par une ceinture
+> pontons/passerelle **y −296..−308, infranchissable** (grille 1 m : aucun passage N-S à
+> clearance 2.5 m entre x 806 et 832) ; ② une **paroi/trestle N-S à x≈813.5-815** court de
+> y −296 à −345 (l'ex-jambe intérieure la traversait) ; ③ la « falaise est » à y −300 est un
+> ÉBOULIS non plomb (C1 par_z : 0.7→7.9 m) — c'était des poteaux de passerelle, pas une falaise ;
+> ④ la jambe nord y=−272 était dans l'encombrement du poste TUG (shelf −7.4, lat 0.4 m).
+> **Le §2 ci-dessous décrit le tracé v2 (bassin sud), seul corridor mesuré propre ET riche.**
+> Logs : probe_traj8_path_v{1,2}.log · JSON : zone13_structures.json.
 
 > But : produire ENFIN des loops sonar **acceptées ET utiles** (nssm_constraints > 0, ATE_BS < ATE_DR,
 > zéro facteur empoisonné). Le funnel mesuré (212120/215053) dit : le verrou = **overlap méd 18 < 50**
@@ -33,37 +43,43 @@
 - **Incidence frontale** en bout de jambe (leçon peigne « quai vu DE FACE ») : les pieux sud arrivent
   DROIT DEVANT à 8-13 m en fin de jambe est — 2× par bag, même cap ✓.
 
-## 2. Trajectoire (monde PierHarbor, coords mesurées probes 13-07)
+## 2. Trajectoire v2 « bassin sud » (coords mesurées E0 14-07 — corridor 100 % PROPRE au ray-cast)
+
+**Le bassin sud** (x 816-830, y −309..−352, fond plat −8.6..−9.3) est bordé de cibles fortes sur
+3 côtés : **paroi du trestle** à l'ouest (plombe, x≈813.4→815.0, à ~4 m de la jambe ouest),
+**ceinture pontons/hauts-fonds** au nord (y −299..−306.5, DE FACE en fin de jambe nord),
+**pieux sud** (front y≈−357, DE FACE en fin de jambe est). L'est est une pente vers le large
+(faible) — la jambe est voit le trestle à ~12 m dans le bord du fan (12/sin60° = 13.9 < 20 m).
 
 **Phase A calibration (fenêtres temporelles IDENTIQUES à traj4→7 → E1-E7 réutilisables)** :
-- **P_A = (802.8, −300), Z_A = −5.0** : C1 statique 10 s face EST (yaw 0) → **face verticale mesurée
-  x≈808** (cote_13 : écho 2.88 m identique à z −4 ET −8 = mur plomb) à 5.2 m ; fond local −9.0 ✓.
-- C2 tour 360° (36 s) · C3 ascenseur ±2.5 m (20 s, z ∈ [−7.5, −2.5]) — amplitude 3→2.5 m (fond −9).
-- ⚠ E4 n'aura que ~5 bandes de z peuplées ([−8,−3], falaise 5 m) — suffisant (seuil ≥5) mais sans marge ;
-  si <5 au bag test, descendre Z_A à −5.5 avant de conclure à un échec.
+- **P_A = (819.7, −318), Z_A = −4.5, C1 cap OUEST (180°)** : face à la **paroi du trestle** —
+  **MESURÉ E0 v3 : plombe** (par_z 4.48→4.69 m sur z −2..−8, dérive 0.21 m ; yaw ±15° touche
+  4.58/4.64 ; face x=815.1 ; fond P_A −8.88). Standoff ~4.6 m.
+  ⚠ v5 fige le yaw initial à 0 → `_build_segments` dupliqué dans v9 (SEULE différence : yaw0).
+- C2 tour 360° (36 s) · C3 ascenseur ±3 m → z ∈ [−7.5, −1.5] (fond −8.88 vérifié E0).
+- Deux cibles C1 précédentes RÉFUTÉES par mesure : falaise y −300 (éboulis, par_z 0.7→7.9) et
+  « pieu (813.7,−339.4) » (le rayon file sur la pente ouest, gradient 7.3→13.3 m).
 
-**Phase B — circuit médian fermé (machinerie v5 : coins arrondis R=4, errance PCHIP, 2 tours même tirage)** :
+**Phase B — stade 4 sommets (machinerie v5 : coins arrondis R=3, errance PCHIP, 5 tours même tirage)** :
 
 ```
-WPTS8 (ordre de parcours ; s=0 = jambe ouest-médiane, entrée à ~11 m de P_A)
-  [814, −296]  W1  départ jambe médiane, cap OUEST
-  [796, −296]  W2  → remonte NORD (pente ouest à gauche, 12-20 m)
-  [796, −272]  W3  → jambe NORD cap EST (pieux/TUG à 10-19 m à gauche)
-  [826, −272]  W4  → descend SUD le corridor est (falaise est à gauche)
-  [826, −350]  W5  → crochet OUEST devant les pieux sud (8-13 m, DE FACE en arrivée)
-  [814, −350]  W6  → remonte NORD jambe intérieure → ferme sur W1
-PERIM ≈ 210 m · 2 tours = 420 m à 0.35 m/s ≈ 20 min · total bag ≈ 22-23 min (≈ traj7r)
+WPTS9 (ordre de parcours ; s=0 = jambe nord, entrée à ~5 m de P_A)
+  [818.9, −313]  W1  NW — jambe NORD cap EST (pontons à gauche 7-13 m)
+  [826.0, −313]  W2  NE — vire SUD (jambe EST ; pieux sud DE FACE en arrivée)
+  [826.0, −347]  W3  SE — vire OUEST (pieux sud à gauche 9-10 m)
+  [818.9, −347]  W4  SW — vire NORD (jambe OUEST ; paroi trestle à gauche 3.5 m)
+PERIM ≈ 77 m · 5 tours à 0.35 m/s · T_TOTAL ≈ 20 min (≈ traj7r 24.6)
+x_ouest 818.5→818.9 après E0 v3 (station s=46 à 2.41 m de la paroi, seuil 2.5)
 ```
 
-- Jambes est (x=826, cap sud) et intérieure (x=814, cap nord) : 12 m d'écart, ANTI-parallèles →
-  pas de match entre elles (gate cap), chacune matche sa copie du tour 2 ✓.
-- **Errance** : N_MAX **0.8 m** (entre traj6 1.2 et traj7 0.5), L_SEG 8 m, seed 42 inchangés ;
-  **z ∈ [−6.5, −3.0]** (fond plateau −8.3..−9.7 → clearance fond ≥ 1.8 m, altitude DVL 1.8-12 m,
-  surface ≥ 3 m — la nappe z≈+1.1 reste filtrée en aval).
-- **Zone douteuse y ∈ [−295, −318], x ∈ [806, 830]** : blobs shallow isolés dans les 2 probes
-  (−3..−6 épars — hypothèse passerelle sur poteaux visible photos, ou artefacts à travers pieux).
-  Les jambes est/intérieure la traversent → **E0 OBLIGATOIRE avant gen** (§5). Fallback si obstruée :
-  rectangle nord seul (on perd les pieux sud) ou couture décalée mesurée à l'E0.
+- **5 tours** (au lieu de 2) : chaque jambe est re-passée 4× à cap IDENTIQUE → rafales de
+  candidates pour le PCM (min_pcm 4/queue 5) démultipliées ; un tour = ~222 s ≈ 135 KF ≫
+  min_st_sep 25. Jambes ouest/est anti-parallèles à 7.5 m → pas de match entre elles (gate cap).
+- **Errance** : N_MAX **0.8 m**, L_SEG 8 m, seed 42 ; **z ∈ [−6.5, −3.0]** (fond −8.6..−9.3 →
+  clearance ≥ 2.1 m MESURÉE, altitude DVL 2-6 m). Mesures corridor E0 v2 : **min latéral 2.51 m,
+  min fond 2.09 m, zéro obstacle au-dessus** sur 39 stations × 2 z × 4 caps.
+- Dérive nav prédite (seed 8, à sec) : ancrée 1.61 m rms (max 4.62), Umeyama 1.11 m — dans la
+  bande [1,8], et ≪ gate 10 m pour les revisites tour k↔k+1.
 
 ## 3. Capteurs & monde (gen v9)
 
@@ -77,26 +93,29 @@ PERIM ≈ 210 m · 2 tours = 420 m à 0.35 m/s ≈ 20 min · total bag ≈ 22-23
   verifier_nav_v8 : bande [1,8] m conservée. 1 seul « changement d'environnement » par génération :
   ici zone+octree — le bruit nav reste strictement celui du témoin traj7r.
 
-## 4. Implémentation gen_bag_3d_v9.py (patch, pas de duplication)
+## 4. Implémentation gen_bag_3d_v9.py (FAIT 14-07)
 
-- Importer v7 (pose RangeMax 20 + partial /sonar_points) puis RE-patcher v5 : `WPTS`, `P_A`, `Z_A`,
-  `Z_MIN/Z_MAX`, `N_MAX`, amplitude C3 ; remplacer `_GAMMA/_QUAIS` par `_STRUCTS_ZONE13` (issu de l'E0)
-  pour l'auto-vérif de clearance ; `v7.verifier_chemin_v7 = verifier_chemin_v9` (seuils : structures
-  > 6 m, fond > 1.8 m sous z(s), |dyaw/dt| < 25°/s).
-- Réutiliser le main v8 (writer + nav bruitée) : `v8.OUT_BAG = "BAG_files/holoocean_3d_traj8.bag"`,
-  `v8.SEED_NAV = 8`. `./gen_traj8.sh [--test 150]` = clone de gen_traj7r.sh (retry ×3, E-checks, notif).
-- PIEGES à respecter : #19 (SIGBUS 1er démarrage → retry), show_viewport=False, python -u.
+- Patch de v5 : `WPTS`, `R_TURN` 4→3 (petit côté 7.5 m), `N_LAPS` 2→5, `P_A`, `Z_A`, `Z_MIN/Z_MAX`,
+  `N_MAX` ; **`_build_segments` dupliqué** (seule différence : yaw initial 180° — v5 le fige à 0) ;
+  `verifier_chemin_v9` = continuité/lacet/z + **REFUS de générer sans E0 PASS aux paramètres
+  identiques** (WPTS/N_MAX/bande z comparés au JSON — un changement de tracé force un re-probe).
+- v7 importé (RangeMax 20 + partial /sonar_points) ; main v8 réutilisé (`v8.OUT_BAG`,
+  `v8.SEED_NAV=8`, `v6.make_cfg_v6` wrappé pour octree_min 0.05).
+- `./gen_traj8.sh [--test 150]` = clone gen_traj7r.sh (retry ×3, checks `--rmax-h 20 --zone zone13`).
+- PIEGES respectés : #19 (SIGBUS 1er démarrage → retry), show_viewport=False, python -u.
 
-## 5. E0 — probe du chemin AVANT génération (nouveau, obligatoire)
+## 5. E0 — probe du chemin AVANT génération (FAIT 14-07, 3 itérations — c'est lui qui a réfuté v1)
 
 `probe_traj8_path.py` (RangeFinder, motif probe_zone13) → `zone13_structures.json` :
-1. **Corridor** : le long de l'enveloppe errance (pas 2 m, z −3/−5/−6.5), rayons 6 directions →
-   PASS si clearance ≥ 2.5 m partout + fond ≥ 1.8 m sous chaque point.
-2. **Zone douteuse** (§2) : grille fine 1 m — trancher passerelle vs artefacts.
-3. **C1** : depuis P_A, écho frontal 5.2 ± 0.3 m constant sur z −2..−8 et yaw ±15°.
-4. **Inventaire E8/E9** : segments mesurés des lignes de pieux nord (y≈−257) et sud (y≈−360),
-   face falaise est, bords du plateau → alimente check_traj4 `--zone zone13`.
-⚠ probes depuis l'EXTÉRIEUR des meshs uniquement (backface culling : z=−2 dans une coque = NOHIT/folies).
+1. **Témoin** (R2.1) : reproduire cote_13 (805,−300,−4) → 2.88 m ✓ à chaque run.
+2. **Corridor** : stations tous les 2 m sur l'enveloppe errance, z −6.5/−3.0 × 4 caps + down + up →
+   PASS si latéral ≥ 2.5 m, fond ≤ −8.3, up ≥ 2.5 m (⚠ mesuré : LaserUp ne voit PAS la surface →
+   tout écho up < 59 m est un obstacle immergé, détecteur de pontons gratuit).
+3. **Boîte bassin sud** : grille 1 m (x 810-830, y −309..−352) down+up depuis z=−3.5.
+4. **C1** : paroi plombe sur z −2..−8 (dérive < 0.8 m), yaw ±15° touche (mur étendu), fond ≤ −8.4.
+5. **Inventaire E8** : paroi trestle (−x), pieux sud (−y, pas 1 m — rayons fins sur cylindres =
+   hit/miss aléatoire, mesuré v1 vs v2), ceinture pontons (+y, z −2.5/−3.5), pente est (+x).
+⚠ probes depuis l'EXTÉRIEUR des meshs uniquement (backface culling : sonde dans un mesh = NOHIT/folies).
 
 ## 6. Checks du bag (E1-E10)
 
@@ -125,11 +144,13 @@ PERIM ≈ 210 m · 2 tours = 420 m à 0.35 m/s ≈ 20 min · total bag ≈ 22-23
 
 | Risque | Détection | Fallback |
 |---|---|---|
-| Passerelle/obstacle bande y −295..−318 | E0 grille fine | rectangle nord seul, ou couture décalée |
+| ~~Passerelle bande y −295..−318~~ **MESURÉ 14-07 : infranchissable** → tracé v2 bassin sud | E0 grille fine ✓ | fait |
 | Explosion octree 0.05 | taille cache + durée au bag test | 0.07 puis 0.1 |
-| Features encore trop éparses (standoff 8-19 m vs 2.5 m traj7r) | E10 bag test | resserrer standoffs (jambes à 5-6 m des amers) |
-| E4 < 5 bandes (eau 9 m) | bag test | Z_A −5.5, ou C1 à re-placer via E0 |
-| Fausses SC résiduelles | croisement GT post-run | attendu résolu par apériodicité ; sinon lever ② (log transform-vs-GT) |
+| Features trop éparses (jambe EST loin de tout : trestle à 12 m en bord de fan) | E10 bag test (fenêtres par jambe) | resserrer la jambe est (x 826→824) ou élargir le stade |
+| E4 : paroi trestle étroite en azimut → < 30 pts/bande de z | bag test | élargir fenêtre E4 ou rapprocher C1 (5.2→4.5 m) |
+| E8 : inventaire pieux sud incomplet (rayons fins aléatoires, v1 vs v2) | score E8 test | densifier le scan (fait, pas 1 m) ; seuil ratio inchangé |
+| Semi-périodicité du trestle (paroi + éléments 6-8 m) → re-ciblage aliasé | croisement GT post-run (nssm_attempts.csv) | lever ② (log transform-vs-GT) puis discussion gates |
+| Fausses SC résiduelles | croisement GT post-run | apériodicité pontons/pieux attendue suffisante |
 
-**Décisions pour Nathan avant codage** : ① GO tracé §2 (ou amendements) · ② octree 0.05 comme valeur
-d'essai · ③ GO lancement E0 (≈15-20 min moteur). Le reste est figé par les mesures citées.
+**État 14-07** : GO Nathan reçu (tracé/octree/E0) · E0 v3 en validation · reste : gen `--test 150`
+→ E1-E9 `--zone zone13` + E10 conteneur → bag complet (lancement Nathan) → runs B/BS (§7).

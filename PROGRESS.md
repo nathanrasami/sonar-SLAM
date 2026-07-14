@@ -6,15 +6,30 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-13 (nuit, Fable) : **DESIGN TRAJ8-ZONE13 ÉCRIT → `TRAJ8_DESIGN.md`** (gen v9)
+## 🔜 REPRISE ICI — 2026-07-14 (Fable) : **GO Nathan ×3 → E0 exécuté ×4 → TRACÉ v1 RÉFUTÉ, v2 « bassin sud » PASS — gen v9 + checks CODÉS, bag test en cours**
 
-**Design complet consigné dans `TRAJ8_DESIGN.md`** (trajectoire WPTS8 chiffrée sur les probes,
-phase A face falaise est, 2 tours même tirage, octree_min 0.05 à valider par mesure, bruit nav v8
-seed dédié 8, probe E0 obligatoire avant gen, E8/E9 à paramétrer `--zone zone13`, E10 nouveau =
-critère funnel features/KF cible « KF vides ≤ 20 % et méd ≥ 25 »). Question ouverte n°1 TRANCHÉE
-à la source : le DVL du bag est SYNTHÉTISÉ analytiquement (gen_bag_3d_v8.py:185) — aucun lock
-simulé, réalisme géré par altitude ≤ 12 m (tombant ouest évité). **Attend 3 décisions de Nathan
-(fin du doc) : ① GO tracé WPTS8 · ② octree 0.05 en essai · ③ GO probe E0 (~15-20 min moteur).**
+**L'E0 (probe corridor, nouveau) a réfuté le tracé v1 en 3 itérations de ~3 min de moteur chacune
+— AVANT toute génération** (mesures dans `zone13_structures.json`, logs `probe_traj8_path_v*.log`) :
+- **La crique est COUPÉE EN DEUX** : ceinture pontons/passerelle y −296..−308 infranchissable
+  (grille 1 m : aucun passage N-S à 2.5 m de clearance entre x 806 et 832).
+- **Paroi/trestle N-S continue x≈815.1-815.4** (y −312..−350, plombe — mesurée 4×) sous
+  l'ex-jambe intérieure ; « falaise est » y −300 = ÉBOULIS non plomb (2 cibles C1 réfutées) ;
+  jambe nord y −272 dans l'encombrement du poste TUG (shelf −7.4, lat 0.4 m).
+- **Tracé v2 retenu = bassin SUD** (seul corridor mesuré propre ET riche) : stade 4 sommets
+  x 818.9-826 / y −313..−347, **5 tours** même tirage (PERIM 77 m, T_TOTAL 20.2 min ≈ traj7r),
+  C1 = paroi trestle à 4.6 m cap OUEST (par_z 4.48→4.69 plombe ✓), pontons DE FACE fin de jambe
+  nord, pieux sud DE FACE fin de jambe est. **E0 v4 : PASS** (min lat 2.77 m, min fond 2.10 m,
+  0 obstacle au-dessus, 39 stations × 2 z × 4 caps).
+- Dérive nav prédite (v8, seed 8) : ancrée 1.61 m rms, Umeyama 1.11 m ✓ bande [1,8].
+**Codé (commit ci-dessous)** : `gen_bag_3d_v9.py` (patchs v5 + `_build_segments` dupliqué pour yaw0
+=180° + REFUS de générer sans E0 PASS à paramètres identiques) · `probe_traj8_path.py` (E0) ·
+`gen_traj8.sh` (grace 60 min tant que bag <1 Mo : 1ᵉʳ run octree 0.05 = reconstruction) ·
+`check_traj4.py --zone zone13` (P_A/E4/E8 inventaire mesuré/E9 bandes fond −9) ·
+`analysis/e10_richesse.py` (E10 = détecteur CFAR RÉEL, conteneur ; PASS si vides ≤20 % et méd ≥25).
+⚠ Leçons probe → mémoire `probe-raycast-limites-e0` (rayons fins sur pieux = aléatoire ;
+LaserUp aveugle à la surface = détecteur de pontons). Disque : 137 Go libres, cache octree 6.1 Go (à 0.1).
+**En cours : `./gen_traj8.sh --test 150`** → E1-E9 auto puis E10 conteneur vs traj7r.
+**Ensuite** : bag complet (`./gen_traj8.sh`, ~40-70 min) → runs B/BS `SONAR_RANGE=20` → verdict §7 du design.
 
 ## 2026-07-13 (nuit) : fix SC **VALIDÉ au niveau descripteur** (69/102 candidates retenues, dists 0.05–0.56) mais **0 contrainte au graphe** → le verrou actif est maintenant l'aval ICP/PCM ; ensuite traj8
 

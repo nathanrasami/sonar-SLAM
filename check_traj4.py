@@ -31,6 +31,28 @@ if "--rmax-h" in sys.argv:
     R_MAX_H = float(sys.argv[i + 1])
     del sys.argv[i:i + 2]
 
+# traj8 : `--zone zone13` (defaut = bassin 9-10 traj4..7). Remplace P_A/Z_A
+# (C1 = pieu du trestle, cap OUEST), la fenetre E4, les structures E8/E9
+# (inventaire MESURE zone13_structures.json, probe E0) et les bandes z d'E9
+# (fond -8.6..-9.3 au lieu de -19.4 : « >8 m sous le robot » est impossible
+# avec 9 m d'eau).
+ZONE = "pierharbor"
+if "--zone" in sys.argv:
+    i = sys.argv.index("--zone")
+    ZONE = sys.argv[i + 1]
+    del sys.argv[i:i + 2]
+E4_WIN = (528.0, 545.0)            # fenetre x du mur C1 (quai EST)
+E9_LAT = (-17.0, -2.5)             # bande z monde des murs (E9 lateral)
+E9_FOND = (-21.0, -17.0)           # bande z monde du fond (E9 vertical)
+E9_ROB_MIN, E9_DEEP = -6.5, -8.0   # fenetre robot haut / echos profonds capteur
+if ZONE == "zone13":
+    P_A, Z_A = (819.7, -318.0), -4.5   # C1 : paroi trestle (face mesuree 815.1)
+    WALL_X = 815.1
+    E4_WIN = (811.5, 817.5)            # fenetre x autour de la paroi (cap OUEST)
+    E9_LAT = (-7.5, -2.5)              # pieux/pontons ; exclut plateau -8.6..-9.3
+    E9_FOND = (-11.5, -7.5)            # plateau mesure (E0 14-07)
+    E9_ROB_MIN, E9_DEEP = -4.5, -3.0   # robot haut : fond a 4-6 m sous lui
+
 TS = get_typestore(Stores.ROS1_NOETIC)
 BAG = sys.argv[1] if len(sys.argv) > 1 else "BAG_files/holoocean_3d_traj4_test.bag"
 
@@ -132,7 +154,7 @@ print(f"E3 signe       : {100*ok_down:.1f} % des echos elev<-20° sous le robot 
 # de z de 1 m sur [-15,-3] : une projection radiale fausse ferait deriver le
 # front avec l'elevation ; un mur vertical le laisse fixe.
 c1 = (ST >= C1[0]) & (ST <= C1[1])
-wall = c1 & (W[:, 0] > 528.0) & (W[:, 0] < 545.0) & (np.abs(W[:, 1] - P_A[1]) < 3.0)
+wall = c1 & (W[:, 0] > E4_WIN[0]) & (W[:, 0] < E4_WIN[1]) & (np.abs(W[:, 1] - P_A[1]) < 3.0)
 fronts, zb = [], np.arange(-15.0, -2.0, 1.0)
 for zlo in zb[:-1]:
     band = wall & (W[:, 2] >= zlo) & (W[:, 2] < zlo + 1.0)
@@ -194,11 +216,30 @@ print(f"E7 couverture  : echos C2 sur {nbins*10} deg d'azimut "
 # et avec le signe OPPOSE (y -> -y en repere vehicule). Le bon signe colle aux
 # structures connues (quais x=462.5/531.5, mur GAMMA, bateau) ; le miroir les
 # disperse. PASS si score(tel quel) > 2 x score(miroir) ET > 0.15.
-SEGS = [((462.5, -705.0), (462.5, -630.0)),   # quai OUEST (face interne)
-        ((531.5, -705.0), (531.5, -630.0)),   # quai EST (face interne)
-        ((464.0, -645.0), (485.0, -645.0)),   # GAMMA horizontal
-        ((485.0, -650.0), (485.0, -701.0)),   # GAMMA vertical
-        ((518.0, -681.5), (530.0, -681.5))]   # bateau (axe long)
+if ZONE == "zone13":
+    # structures MESUREES par le probe E0 (zone13_structures.json §4) :
+    # polylignes sur les hits tries le long de l'axe dominant du groupe.
+    import json as _json, os as _os
+    _inv = _json.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                         "zone13_structures.json")))["inventaire"]
+
+    def _polyline(hits):
+        P = np.array([[h[0], h[1]] for h in hits], float)
+        if len(P) < 2:
+            return []
+        ax = int(np.argmax(P.max(0) - P.min(0)))          # axe dominant
+        P = P[np.argsort(P[:, ax])]
+        return [(tuple(P[k]), tuple(P[k + 1])) for k in range(len(P) - 1)
+                if 0.3 < np.linalg.norm(P[k + 1] - P[k]) < 6.0]
+
+    SEGS = sum((_polyline(h) for h in _inv.values()), [])
+    assert len(SEGS) >= 4, "inventaire E0 trop pauvre pour E8 — relancer le probe"
+else:
+    SEGS = [((462.5, -705.0), (462.5, -630.0)),   # quai OUEST (face interne)
+            ((531.5, -705.0), (531.5, -630.0)),   # quai EST (face interne)
+            ((464.0, -645.0), (485.0, -645.0)),   # GAMMA horizontal
+            ((485.0, -650.0), (485.0, -701.0)),   # GAMMA vertical
+            ((518.0, -681.5), (530.0, -681.5))]   # bateau (axe long)
 
 def d_seg(P, a, b):
     a, b = np.array(a), np.array(b)
@@ -251,11 +292,11 @@ if "/profiler_points" in counts:
             q = pts[:, :3].copy()
             q[:, 1] *= sy; q[:, 2] *= sz
             w, rob = to_world(q, t_ns)
-            band = (w[:, 2] > -17.0) & (w[:, 2] < -2.5)
+            band = (w[:, 2] > E9_LAT[0]) & (w[:, 2] < E9_LAT[1])
             if band.sum():
                 d = np.min(np.stack([d_seg(w[band, :2], a, b) for a, b in SEGS]), axis=0)
                 n_wall_ok += int((d < 1.5).sum()); n_wall += int(band.sum())
-            if rob[2] > -6.5:
+            if rob[2] > E9_ROB_MIN:
                 # deep sur le cloud ORIGINAL (avant flip) : le flip doit deplacer
                 # LA MEME population (« ou iraient les points du fond si le signe
                 # etait faux »). Selectionner apres flip testait les echos >8 m
@@ -263,9 +304,9 @@ if "/profiler_points" in counts:
                 # retombent dans la bande par coincidence 2*z0-zw des que la
                 # traj serre les quais -> faux FAIL traj7 (fm 52 % vs 0 % reel,
                 # mesure 2026-07-12 ; temoin traj6 inchange 83.5/0.0).
-                deep = pts[:, 2] < -8.0
+                deep = pts[:, 2] < E9_DEEP
                 if deep.sum():
-                    n_fond_ok += int(((w[deep, 2] > -21.0) & (w[deep, 2] < -17.0)).sum())
+                    n_fond_ok += int(((w[deep, 2] > E9_FOND[0]) & (w[deep, 2] < E9_FOND[1])).sum())
                     n_fond += int(deep.sum())
         return (n_wall_ok / max(n_wall, 1), n_wall,
                 n_fond_ok / max(n_fond, 1), n_fond)
@@ -276,12 +317,12 @@ if "/profiler_points" in counts:
     ok_lat = (wa > 2.0 * wm) and (wa > 0.10)
     if nfa + nfm == 0:
         res["E9"] = ok_lat
-        fond_txt = "fond : aucune fenetre z_rob>-6.5 (bag court) — non teste"
+        fond_txt = f"fond : aucune fenetre z_rob>{E9_ROB_MIN} (bag court) — non teste"
     else:
         ok_fond = (fa > 2.0 * fm) and (fa > 0.30)
         res["E9"] = ok_lat and ok_fond
-        fond_txt = (f"fond : {100*fa:.1f} % dans [-21,-17] vs {100*fm:.1f} % "
-                    f"en flip z (n={nfa}, PASS si ratio>2 et >30 %)")
+        fond_txt = (f"fond : {100*fa:.1f} % dans [{E9_FOND[0]:.0f},{E9_FOND[1]:.0f}] "
+                    f"vs {100*fm:.1f} % en flip z (n={nfa}, PASS si ratio>2 et >30 %)")
     print(f"E9 transverse  : lateral {100*wa:.1f} % <1.5 m des structures vs "
           f"{100*wm:.1f} % en miroir (n={nwa}, PASS si ratio>2 et >10 %) | "
           f"{fond_txt} -> {'PASS' if res['E9'] else 'FAIL'}")
