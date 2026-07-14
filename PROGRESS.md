@@ -39,6 +39,47 @@
   tutrice regardait ; si 215053 → réponse : fausses loop closures d'une config expérimentale
   revertée, pas un défaut de la méthode.
 
+## 2026-07-14 (soir, Fable) : **« Reprise A » = TRAJ9 quais 1 tour + passage SOUS le navire (correction de tir Nathan) ; au passage le gate dz_gate 0.2 est VALIDÉ bout-en-bout sur traj8**
+
+**⚠ Malentendu corrigé** : Fable avait interprété « A » = run dz_gate traj8 ; Nathan : **A = le
+run entre les 2 quais (celui qu'on fait depuis longtemps), 1 SEUL tour, plus bas, en passant SOUS
+le navire** (face.png/uv.png : coque sur treillis, jour dessous) ; **la zone 13/traj8 ne
+l'intéresse plus**. B = serpentine marina dessinée (bato (1).png), après A.
+
+**Run dz_gate quand même exploitable (fait avant la correction, run `205006`)** :
+- 📓 Journal R3 : `slam_holoocean.yaml` `sonar_context/dz_gate` 0.0 → 0.2 (1 seule variable vs
+  témoin BS2 124243 : traj8 complet, bs, NSSM=false, SONAR_RANGE=20). **REVERTÉ à 0.0 après run ✓**.
+- Verdict : **les 6 fausses loops (6.6-9.7 m) ont DISPARU** — 363 retenues = 362 vraies + 1 seule
+  « fausse » à dGT 2.63 m (limite du seuil 2 m, dz 0.07) ; vérif croisée dz runtime↔offline PASS.
+  ATE um 0.52 m (témoin 0.51, plancher 2 cm), cap RMS 1.0°, NN cloud 0.026, funnel identique.
+  ⚠ Non investigué (zone abandonnée) : ATE première-pose 1.28 vs 0.90 rapporté BS2.
+
+**TRAJ9 (A) PRÊTE — E0 ×3 PASS, gen v10 codée, bag test TOUT PASS E1-E9 ; Nathan lance la suite** :
+- **E0 3 passes (`probe_traj9_ship{,2,3}.py` + JSON, témoins fond -19.42/quai EST 19.85 PASS)** —
+  le navire (inconnu : PIEGES #18 avait réfuté l'ancien blob, probes 12-07 ne couvraient que
+  20×12 m) est MESURÉ : **flottant amarré au quai OUEST, x 466-484.5, y -645..-798 (~153×20 m),
+  quille PLATE z=-2.90 constant** (proue/poupe émergées +7/+10), fond -19.4 → 16.5 m d'eau sous
+  coque ; **AUCUN treillis dessous** (0/117 rayons fins grille 1 m + 0 plan sur 4 rayons
+  horizontaux de 140 m à z -5/-8/-12/-16) → le treillis de face.png = l'autre navire (marina, B) ;
+  pieux des 2 quais présents y -644..-796 (est 11.8 m depuis x=520, ouest 27.5 depuis 490), rive
+  au sud de -812, tombant au nord de -628. **Bonus : « mur Γ x=485 » (reco traj3) = le FLANC de
+  ce navire** (484.5 mesuré, proue -645 = « Γ horizontal »).
+- **`gen_bag_3d_v10.py`** (pattern v9, hérite v5+v6+v7+v8) : rectangle **1 tour** CW départ NE —
+  jambe EST x=524 (quai à 7.5 m à gauche), jambe OUEST x=474 **SOUS la coque** (quai ouest 11.5 m
+  à gauche), y -640..-806, PERIM 425 m ≈ 20 min ; **z CONSTANT -6.5** (demande Nathan : 3.6 m sous
+  quille, 12.9 m sur fond ; seule la couture phase A passe par Z_A=-9.5, assert bas relâché à Z_A,
+  bord HAUT strict = clearance quille) ; phase A traj4 INCHANGÉE (P_A 526.3,-660, C1 cap EST =
+  défauts v5, zéro duplication) ; SEED_NAV 9, octree_min 0.05, garde-fou E0 sur les 3 JSON
+  (refuse si quille≠-2.90±0.2, treillis>0, poupe<-802, fond relevé — testé PASS).
+- `check_traj4.py` : **zone `traj9`** ajoutée (SEGS E8 = quais y -796, flanc navire 484.5,
+  proue/poupe) ; E4/E9 défauts inchangés. `gen_traj9.sh` = wrapper watchdog (copie traj8).
+- **Bag test 150 s : TOUT PASS E1-E9** (E4 mur 531.4 dérive 0.03 m · E5 100 % appariés ·
+  E8 27.2 % vs 3.6 % miroir · E9 52.2 % vs 0.0). Nettoyage bags : traj7r (12 G) +
+  traj8_test (1,3 G) supprimés ; **traj8.bag GARDÉ** (repro suite BS/dz_gate + réf E10).
+- **➡ Nathan lance lui-même** : ① aperçu `BAG_HOLO=$PWD/BAG_files/holoocean_3d_traj9_test.bag
+  SONAR_RANGE=20 ./run_slam.sh holoocean 2D bs` ② complet `./gen_traj9.sh` (~35-60 min, ~11 Go)
+  puis run sur `holoocean_3d_traj9.bag`. Ensuite : B = serpentine marina (bato (1).png → waypoints).
+
 ## 2026-07-14 (fin d'après-midi, Fable) : **Δz INSTRUMENTÉ + BANC : la prémisse « fausses loops à z ÉGAL » est RÉFUTÉE — un gate 0.2 m tuerait 14/16 faux (215053) et 6/6 (traj8) pour ~1 % de vraies perdues**
 
 **① Instrumentation CODÉE + PROUVÉE (défaut = comportement figé inchangé)** :

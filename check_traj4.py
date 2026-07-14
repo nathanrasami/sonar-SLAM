@@ -234,6 +234,16 @@ if ZONE == "zone13":
 
     SEGS = sum((_polyline(h) for h in _inv.values()), [])
     assert len(SEGS) >= 4, "inventaire E0 trop pauvre pour E8 — relancer le probe"
+elif ZONE == "traj9":
+    # structures MESUREES probe_traj9_ship{,2,3} 2026-07-14 (E0 traj9) :
+    # navire flottant amarre au quai OUEST, quille plate -2.90, flanc est
+    # x~484.5 (mesure a y=-700 ; = l'ex « mur GAMMA » de la reco traj3),
+    # proue -645, poupe -798 ; pieux des 2 quais presents y -644..-796.
+    SEGS = [((462.5, -796.0), (462.5, -630.0)),   # quai OUEST (face interne)
+            ((531.5, -796.0), (531.5, -644.0)),   # quai EST (face interne)
+            ((484.5, -650.0), (484.5, -798.0)),   # flanc EST du navire
+            ((466.0, -645.0), (484.5, -645.0)),   # proue (debut coque immergee)
+            ((466.0, -798.0), (484.5, -798.0))]   # poupe
 else:
     SEGS = [((462.5, -705.0), (462.5, -630.0)),   # quai OUEST (face interne)
             ((531.5, -705.0), (531.5, -630.0)),   # quai EST (face interne)
