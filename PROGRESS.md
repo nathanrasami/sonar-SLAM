@@ -6,7 +6,33 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-14 (Fable) : **GO Nathan ×3 → E0 exécuté ×4 → TRACÉ v1 RÉFUTÉ, v2 « bassin sud » PASS — gen v9 + checks CODÉS, bag test en cours**
+## 🔜 REPRISE ICI — 2026-07-14 (après-midi, Fable) : **SUITE TRAJ8 ANALYSÉE — loop closure ÷2 l'ATE (1.11→0.51) ; BS ≈ B_NSSM (saturation) ; prochaine traj = REPLAY d'un bag poses enregistré chez le collègue**
+
+**Verdict suite nocturne (4 runs rc=0, étiquetage programmatique, KF=745 partout)** :
+| run | ATE um | cap RMS | NN cloud | loops retenues | nssm_constraints |
+|---|---|---|---|---|---|
+| B (témoin DR) | **1.11 m** (= prédiction 1.11 ✓) | 2.4° | 0.050 | — | 0 |
+| BS1 | 0.58 m | 1.0° | 0.027 | 359/418 | 339 |
+| BS2 | 0.51 m | 1.0° | 0.028 | 363/422 | 354 |
+| B_NSSM | 0.52 m | 0.9° | 0.036 | — | **173** |
+- **Loops 98 % VRAIES** (dGT via temps KF→GT : méd 0.13/0.14 m, p90 0.40) ; **6 fausses**
+  (6.6–9.7 m) **identiques dans BS1 et BS2** (paires 201↔73, 622↔498…) = aliasing structurel
+  déterministe, pas du bruit. La zone 13 a tenu sa promesse (69 retenues traj7r → ~360).
+- **B_NSSM = BS à 173 constraints vs 339-354** → saturation : au-delà de ~170 facteurs le graphe
+  ne s'améliore plus ; **le descripteur SC n'apporte rien vs proximité sur traj8** (même verdict
+  que traj7r, cette fois AVEC richesse). Non tranché : BS1↔BS2 Δ7 cm > plancher 2 cm mono-boucle.
+- Limite : analysé sur les CSV dérivés (pas relu les logs roslaunch ; config_lancee.txt du script
+  + ATE B≠BS font foi). E0 avait coté le bassin sud, PASS confirmé par les runs.
+
+**⚠ MALENTENDU TRACÉ (Nathan 14-07)** : « zone 13 » pour Nathan = les QUAIS À BATEAUX (bato.png,
+TUG en bas à droite), pas la crique sud ; il veut serpenter ENTRE les quais (bato(1).png), pas un
+stade en eau libre. **Décision : prochaine traj = REPLAY** — Nathan enregistre chez le collègue un
+bag x,y,(z),yaw SANS nos sonars, on rejoue ici par teleport (mécanisme v8:148 inchangé, seule la
+source du chemin change) + nav réaliste v8 + nos sonars. **E0 corridor OBLIGATOIRE sur le chemin
+enregistré AVANT génération** (la marina 5 mesurée VIDE au sonar : 1 écho/48 rayons — vérifier que
+les quais de bato.png ne sont pas pareils). Spécs bag à donner au collègue : § discussion 14-07.
+
+## 2026-07-14 (matin, Fable) : **GO Nathan ×3 → E0 exécuté ×4 → TRACÉ v1 RÉFUTÉ, v2 « bassin sud » PASS — gen v9 + checks CODÉS, bag test en cours**
 
 **L'E0 (probe corridor, nouveau) a réfuté le tracé v1 en 3 itérations de ~3 min de moteur chacune
 — AVANT toute génération** (mesures dans `zone13_structures.json`, logs `probe_traj8_path_v*.log`) :
