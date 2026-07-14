@@ -6,7 +6,40 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
-## 🔜 REPRISE ICI — 2026-07-14 (fin d'après-midi, Fable) : **Δz INSTRUMENTÉ + BANC : la prémisse « fausses loops à z ÉGAL » est RÉFUTÉE — un gate 0.2 m tuerait 14/16 faux (215053) et 6/6 (traj8) pour ~1 % de vraies perdues**
+## 🔜 REPRISE ICI — 2026-07-14 (soir, Fable) : **RÉUNION PROF → NOUVEAU PLAN = SUITE.md (racine, synchronisé 5 branches) ; question tutrice « SLAM pire que DR ? » TRANCHÉE par mesure : jamais sur run sain, seulement 215053 (fausses loops PCM-10 reverté) et SSM=true**
+
+**Nouveau plan (détail = SUITE.md ; ordre à choisir par Nathan)** :
+- **Aracati (branches Bruce + Bruce_Sonar_USBL)** : ① audit final code + résultats des 2
+  méthodes ② re-vérif des scripts d'analyse ③ papier restructuré : schéma de la VRAIE pipeline
+  d'abord, Chap 1 Bruce/aracati2017 (citer le papier), Chap 2 + Sonar Context (maths détaillées)
+  + USBL localisé dans la pipeline, comparaison **origine SEULE** (plus d'Umeyama), figures
+  listées SUITE.md l.12 ④ trancher « ATE par section > ATE origine » — fait math : avec UN
+  alignement global, RMSE_global² = moyenne pondérée des RMSE_section² ⇒ quelques sections
+  au-dessus du global = NORMAL, mais TOUTES au-dessus = IMPOSSIBLE ; si observé, le code
+  par-section ré-ancre chaque section sur une pose bruitée (convention ≠, à documenter) ou est
+  faux — lire le code AVANT de conclure ⑤ audit cloud_vs_gt.png : tracer dans le code ce qu'on
+  extrait de GT (cap ? ancrage ?), JAMAIS DISO, + métrique type ATE-pointcloud + plots par
+  section.
+- **HoloOcean (ici)** : tutrice VALIDE l'archi (traj 2D Pose2 + carte 3D offline, 2 sonars +
+  profiler gardés, PAS de variation z → le ③ multi-z de la section Δz ci-dessous est ABANDONNÉ,
+  gate dz_gate reste dispo défaut OFF ; à z constant le gate ne discriminera plus rien) :
+  ⑥ traj9 quais = 1 SEUL tour, plus profond (éviter le contournement du « bateau » — rappel
+  PIEGES #18 : blob (524,−680.5) = fantôme de reprojection), capter les DEUX quais ⑦ tour
+  marina depuis le dessin main de Nathan → Claude triangule les waypoints sur la géométrie
+  mesurée + E0 corridor avant génération — **BLOQUÉ : attendre le dessin (photo/scan)**
+  ⑧ Chap 3 papier : caractériser sonar vertical + profiler, vérifier que le SLAM est bien
+  Bruce original (écarts à déclarer : SSM=false, NSSM=true, min_st_sep 25, threshold).
+- **« SLAM drifte plus que DR IMU+DVL » (question tutrice) — MESURÉ ce jour** (script
+  scratchpad ate_slam_vs_dr.py, mêmes fonctions que holoocean_report) : sans contrainte de
+  loop SLAM=DR à l'identique (120051_B 1.52/1.52, 212120 1.51/1.51 origine — attendu, cf.
+  mémoire) ; suite traj8 saine SLAM **bat** DR (BS2 0.90 vs 1.51 origine, 0.51 vs 1.11
+  Umeyama) ; SLAM pire que DR UNIQUEMENT sur : ⓐ 215053 = expérience PCM seuil 10 REVERTÉE,
+  16 fausses loops → 6.03 vs 1.51 origine (5.53 vs 0.75 Umeyama) ⓑ SSM=true (ICP séquentiel
+  remplace le facteur DVL → 4.79 m, défauts figés 07-07). ➡ demander à Nathan QUEL plot la
+  tutrice regardait ; si 215053 → réponse : fausses loop closures d'une config expérimentale
+  revertée, pas un défaut de la méthode.
+
+## 2026-07-14 (fin d'après-midi, Fable) : **Δz INSTRUMENTÉ + BANC : la prémisse « fausses loops à z ÉGAL » est RÉFUTÉE — un gate 0.2 m tuerait 14/16 faux (215053) et 6/6 (traj8) pour ~1 % de vraies perdues**
 
 **① Instrumentation CODÉE + PROUVÉE (défaut = comportement figé inchangé)** :
 - Colonne `dz` dans loops_detected.csv (slam.py `sc_log` + en-tête slam_ros.py) ; z =
