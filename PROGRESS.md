@@ -59,6 +59,17 @@
   Pixel : 2.0 cm/bin @20 m (traj9) · 3.9 @40 m (traj5) · azimut 0.12°/bin. Bags attendus +~5 Go.
   ⚠ traj9.bag régénéré 14:02 en 512 = PÉRIMÉ ; traj5 partiel supprimé → **relancer
   `FORCE_REGEN=1 ./gen_2bags.sh`**, puis `./slam_2bags.sh`.
+- **📓 R3 (suite) — E6 FAIL traj9 1024² → cause MESURÉE = STRIES d'azimut, patch
+  `AzimuthBins` 1024→512 (RangeBins reste 1024)** : à 1024 colonnes le simulateur n'a pas
+  assez de rayons → 65 % de colonnes illuminées seulement (trous de 8 ; V 512×256 témoin :
+  97 %, trou max 2) ; la fenêtre E6 (5 colonnes centrales 510-514) tombait entre 2 stries
+  (509/516) → first_echo nan. Hypothèses réfutées par mesure : dilution ×4 (colonnes
+  illuminées à 0.29 = niveau 512), bruit précoce, géométrie (pic range PROPRE 5.17 m vs
+  V 5.12, |d|=0.05). ⚠ leçon : AzimuthBins > ~512 stríe l'image (et décimerait le CFAR) ;
+  scripts repro scratchpad (repro_e6.py). Bags striés purgés (traj9 33 Go + traj5 partiel) ;
+  cfg 1024×512 vérifiée à froid traj5(40 m)+traj9(20 m) PASS ; ⚠ piège vécu : patcher v5
+  PENDANT un gen ne change RIEN au process en cours (module déjà importé) — traj5 relancé
+  par Nathan avant le patch produisait encore du 1024² → stoppé à 40 %.
 - **Round 2 prévu (prof)** : mêmes 2 trajs, noise fort sonar/IMU/DVL (params à chiffrer avec
   Nathan avant : AddSigma/MultSigma sonar, SIGMA_GYRO/ACC/DVL) — 1 seule variable vs round 1.
 - Attentes chiffrées (Nathan) : traj9 ATE ~1.14 m, LC difficile (1 tour) ; traj5 : 2 tours →

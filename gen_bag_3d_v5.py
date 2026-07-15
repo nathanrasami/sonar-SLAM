@@ -298,10 +298,13 @@ def make_cfg():
                  "socket": "SonarSocket", "rotation": [0.0, 0.0, 0.0],
                  "Hz": int(SONAR_HZ),
                  "configuration": dict(common, Azimuth=AZIMUTH_DEG, Elevation=6,
-                                       # 512→1024 (2026-07-15, demande Nathan) :
-                                       # résolution ×2 → 2.0 cm/bin @20 m (traj9),
-                                       # 3.9 @40 m (traj5), azimut 0.12°/bin.
-                                       RangeBins=1024, AzimuthBins=1024)},
+                                       # RangeBins 512→1024 (2026-07-15, Nathan) :
+                                       # 2.0 cm/bin @20 m (traj9), 3.9 @40 m (traj5).
+                                       # ⚠ AzimuthBins RESTE 512 : à 1024 l'image est
+                                       # STRIÉE (65 % de colonnes illuminées, trous de
+                                       # 8 — densité de rayons du simu) → E6 FAIL,
+                                       # features CFAR décimées. Mesuré 2026-07-15.
+                                       RangeBins=1024, AzimuthBins=512)},
                 {"sensor_type": "ImagingSonar", "sensor_name": "SonarVert",
                  "socket": "SonarSocket", "location": [float(v) for v in LEVER],
                  "rotation": [90.0, 0.0, 0.0],
