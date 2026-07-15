@@ -39,6 +39,31 @@
   tutrice regardait ; si 215053 → réponse : fausses loop closures d'une config expérimentale
   revertée, pas un défaut de la méthode.
 
+## 2026-07-15 (après-midi) : **PIVOT — marina (traj10) DE CÔTÉ ; 2 scénarios prof = traj9 (tour complet, z const) + traj5 (z variable + contourne bateau) × {Bruce, Bruce_Sonar} ; résolution sonar H 512→1024**
+
+- **Mapping tranché par mesure** (bag_source.txt + headers gen) : run 225834 = traj9 ✓ ;
+  run cité « z variable + bateau » 212120 = en réalité **traj7r** (bateau supprimé) → Nathan
+  choisit **traj5** (v5 : z aléa [-12,-2], longe le bateau à 4 m, sonar 40, 2 tours).
+  Les plots 13-07 (015122→215053) tournaient sur traj7r (même famille errance 2 tours).
+- **Scripts séparés (demande Nathan : bags d'abord, SLAM après)** : `gen_2bags.sh` (génère
+  traj9+traj5, progression live, réutilise un bag présent sauf FORCE_REGEN=1) +
+  `slam_2bags.sh` (4 runs {traj9,traj5}×{Bruce,Bruce_Sonar}, **nssm=true parité** ssm=false 2D,
+  sonar_range 20/40, scenario_label.txt par run + analyse.sh). `compare_prof.sh` (tout-en-un,
+  1ʳᵉ version) obsolète. ⚠ vécu : Ctrl-C sur le wrapper laisse le python gen ORPHELIN
+  (lancé en `&`) + Holodeck zombie + shm — toujours vérifier `pgrep gen_bag_3d` après arrêt.
+- **📓 R3 — `gen_bag_3d_v5.py` make_cfg() SonarFin `RangeBins/AzimuthBins` 512→1024**
+  (demande Nathan « formes très fines au sonar » ; fait AVANT le round noise pour que les
+  2 rounds ne diffèrent que par le noise). Hérité par traj5 ET traj9 (chaîne v10→v6→v5),
+  vérifié à froid : cfg traj5 = 1024/RangeMax 40, cfg traj9 = 1024/RangeMax 20 PASS.
+  Sonar vertical INCHANGÉ (512/256). check_traj4.py lit les dims dynamiquement (rien à adapter).
+  Pixel : 2.0 cm/bin @20 m (traj9) · 3.9 @40 m (traj5) · azimut 0.12°/bin. Bags attendus +~5 Go.
+  ⚠ traj9.bag régénéré 14:02 en 512 = PÉRIMÉ ; traj5 partiel supprimé → **relancer
+  `FORCE_REGEN=1 ./gen_2bags.sh`**, puis `./slam_2bags.sh`.
+- **Round 2 prévu (prof)** : mêmes 2 trajs, noise fort sonar/IMU/DVL (params à chiffrer avec
+  Nathan avant : AddSigma/MultSigma sonar, SIGMA_GYRO/ACC/DVL) — 1 seule variable vs round 1.
+- Attentes chiffrées (Nathan) : traj9 ATE ~1.14 m, LC difficile (1 tour) ; traj5 : 2 tours →
+  LC réaliste, réf famille errance ~0.75 m origine sans fausses loops.
+
 ## 2026-07-15 (nuit, Fable) : **B (traj10) DÉMARRÉ — « la marina du dessin » = ZONE 13 elle-même ; inventaire E0 pass 1 en cours**
 
 - **Localisation tranchée par mesure** (`probe_traj10_marina{,_est}.py`, témoins fond plateau

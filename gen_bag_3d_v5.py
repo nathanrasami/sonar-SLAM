@@ -298,7 +298,10 @@ def make_cfg():
                  "socket": "SonarSocket", "rotation": [0.0, 0.0, 0.0],
                  "Hz": int(SONAR_HZ),
                  "configuration": dict(common, Azimuth=AZIMUTH_DEG, Elevation=6,
-                                       RangeBins=512, AzimuthBins=512)},
+                                       # 512→1024 (2026-07-15, demande Nathan) :
+                                       # résolution ×2 → 2.0 cm/bin @20 m (traj9),
+                                       # 3.9 @40 m (traj5), azimut 0.12°/bin.
+                                       RangeBins=1024, AzimuthBins=1024)},
                 {"sensor_type": "ImagingSonar", "sensor_name": "SonarVert",
                  "socket": "SonarSocket", "location": [float(v) for v in LEVER],
                  "rotation": [90.0, 0.0, 0.0],
