@@ -11,8 +11,9 @@ set -u
 cd "$(dirname "$0")"
 PY="$(cd .. && pwd)/holoocean-venv/bin/python"
 LOG="gen_traj5.log"
-BAG="BAG_files/holoocean_3d_traj5.bag"
-case "$*" in *--test*) BAG="BAG_files/holoocean_3d_traj5_test.bag";; esac
+SFX=""; [ "${NOISE_ROUND2:-0}" = 1 ] && SFX="_noise"   # round 2 « noise »
+BAG="BAG_files/holoocean_3d_traj5${SFX}.bag"
+case "$*" in *--test*) BAG="BAG_files/holoocean_3d_traj5${SFX}_test.bag";; esac
 
 [ -x "$PY" ] || { echo "venv introuvable : $PY"; exit 2; }
 # garde-fou : un VRAI générateur actif ? (comm=python*, pas les wrappers bash

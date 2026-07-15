@@ -38,6 +38,7 @@ from gen_bag_3d import (typestore, Time, Header, Vector3, Quaternion, Imu,
                         RANGE_MIN, RANGE_MAX, AZIMUTH_DEG,
                         SIGMA_GYRO, SIGMA_ACC, SIGMA_DVL, SIGMA_DEPTH)
 from rosbags.rosbag1 import Writer
+import noise_round2 as _NOISE          # round 2 « noise » (NOISE_ROUND2=1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ZONE = json.load(open(os.path.join(HERE, "pierharbor_zone.json")))
@@ -66,7 +67,7 @@ LEVER = np.array([0.0, 0.0, 0.15])
 VERT_RANGE_MAX  = 20.0
 VERT_RANGE_BINS = 512
 VERT_ELEV_BINS  = 256
-OUT_BAG = "BAG_files/holoocean_3d_traj5.bag"
+OUT_BAG = _NOISE.bag("BAG_files/holoocean_3d_traj5.bag")  # _noise si round 2
 
 # Sommets du circuit median (ordre de parcours ; s=0 juste apres W4).
 # W4 pres de P_A -> transit court depuis la phase A.
@@ -284,7 +285,9 @@ def verifier_chemin():
 
 def make_cfg():
     common = {"RangeMin": RANGE_MIN, "RangeMax": RANGE_MAX,
-              "AddSigma": 0.01, "MultSigma": 0.01, "RangeSigma": 0,
+              # L1 round 2 : AddSigma/MultSigma 0.01 -> 0.05 (x5) si NOISE_ROUND2=1
+              "AddSigma": _NOISE.SONAR_ADD, "MultSigma": _NOISE.SONAR_MULT,
+              "RangeSigma": 0,
               "MultiPath": False, "AzimuthStreaks": 0, "ScaleNoise": False,
               "InitOctreeRange": 50, "ViewRegion": False}
     return {

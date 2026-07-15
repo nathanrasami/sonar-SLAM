@@ -245,3 +245,31 @@ identiques sur toutes les paires = défaut structurel, jamais de la « sparsité
 - Règle 3 : changer l'échelle du descripteur ⇒ recalibrer AUSSI son seuil de décision
   (dist_threshold 0.98, calibré sur descripteurs quasi-vides, retiendrait 100 % des fausses à
   seuil 5 — mesuré : vraies 0.11 / fausses 0.29, couper vers ~0.2).
+
+## 22. ImagingSonar HoloOcean : AzimuthBins > ~512 STRIE l'image — sur-échantillonner un simu crée des trous, pas du détail (vécu : traj9 1024², 2026-07-15)
+
+Passage 512×512 → 1024×1024 (« augmenter la résolution ») : E6 FAIL, first_echo nan 100 % sur
+/sonar. Cause MESURÉE : à 1024 colonnes d'azimut le simulateur n'a pas assez de rayons →
+**65 % de colonnes illuminées seulement, trous jusqu'à 8 colonnes** (témoin /sonar_vert 512×256 :
+97 %, trou max 2). Les colonnes illuminées gardent l'intensité PLEINE (0.29 = niveau 512) —
+la « dilution d'énergie ×4 » était une fausse piste (réfutée par mesure par colonne).
+- Règle 1 : le gain « voir plus fin » passe par **RangeBins** (1024 → 2.0 cm/bin @20 m, pic
+  range propre) ; l'azimut reste ≤512 (plein). Config validée : E1-E9 TOUT PASS, E6 |d|=0.00.
+- Règle 2 : avant d'adopter une résolution de capteur simulé, mesurer la fraction de
+  colonnes/lignes illuminées sur une cible connue (10 lignes numpy) — des stries décimeraient
+  aussi les features CFAR du SLAM, pas seulement les E-checks.
+- Règle 3 : deux mesures qui se contredisent (max fenêtre 0.053 vs pic profil 0.267) = investiguer
+  par COLONNE avant tout verdict — ici les deux étaient justes, l'image était striée.
+
+## 23. Ctrl-C sur un wrapper gen_traj*.sh NE tue PAS la génération — python orphelin + patch inopérant (vécu : ×2, 2026-07-15)
+
+Le wrapper lance le python en `&` : Ctrl-C tue le wrapper, le python devient ORPHELIN et
+continue d'écrire le bag (vu 12+ min après l'arrêt), avec moteur zombie + shm HOLODECK_* actifs
+(→ BusyError au boot suivant). Après TOUT arrêt manuel : `pgrep -af gen_bag_3d` → kill, pkill
+moteur, `rm /dev/shm/HOLODECK_*`, et SUPPRIMER le bag partiel (Writer non fermé = invalide ;
+un script « skip si présent » le croirait bon).
+- Corollaire 1 : éditer un module python PENDANT un gen est INOPÉRANT pour le process en cours
+  (module importé en RAM) — un gen relancé avant un patch produit l'ancienne config en silence
+  (vécu : 40 % de traj5 strié à jeter).
+- Corollaire 2 : `pkill -9 -f <mot>` peut matcher TA propre ligne de commande (echos compris) →
+  shell tué à mi-nettoyage. Motifs par concaténation : `P='Holo''deck'; pkill -f "$P"`.

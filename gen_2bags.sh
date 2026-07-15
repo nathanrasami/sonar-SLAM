@@ -11,6 +11,9 @@
 set -u
 cd "$(dirname "$0")"
 FORCE_REGEN="${FORCE_REGEN:-0}"
+# Round 2 « noise » : NOISE_ROUND2=1 -> bags _noise (round 1 jamais ecrase).
+SFX=""; [ "${NOISE_ROUND2:-0}" = 1 ] && SFX="_noise"
+[ -n "$SFX" ] && echo "### ROUND 2 « noise » actif : bags *${SFX}.bag (L1x5 L2x5 L3x2) ###"
 
 BR="$(git branch --show-current 2>/dev/null || echo '?')"
 [ "$BR" = holoocean ] || { echo "⚠ branche='$BR' (attendu holoocean) — abandon."; exit 2; }
@@ -33,8 +36,8 @@ gen_one() {   # $1=nom  $2=wrapper  $3=bag
 }
 
 ok=0
-gen_one traj9 gen_traj9.sh BAG_files/holoocean_3d_traj9.bag && ok=$((ok+1))
-gen_one traj5 gen_traj5.sh BAG_files/holoocean_3d_traj5.bag && ok=$((ok+1))
+gen_one traj9 gen_traj9.sh "BAG_files/holoocean_3d_traj9${SFX}.bag" && ok=$((ok+1))
+gen_one traj5 gen_traj5.sh "BAG_files/holoocean_3d_traj5${SFX}.bag" && ok=$((ok+1))
 
 echo "==================== BAGS : $ok/2 prêts ===================="
 echo "→ SLAM ensuite : ./slam_2bags.sh"

@@ -61,6 +61,13 @@ OUT_BAG  = "BAG_files/holoocean_3d.bag"   # suffixe _traj1/_traj2 ajoute
 # ─── Sonar (§2.1) : memes RangeMax/Azimuth que le bag actuel ──────────────────
 RANGE_MIN, RANGE_MAX, AZIMUTH_DEG = 0.5, 40.0, 120.0
 SIGMA_GYRO, SIGMA_ACC, SIGMA_DVL, SIGMA_DEPTH = 0.002, 0.02, 0.01, 0.02
+# ─── Round 2 « noise » (NOISE_MISSION.md, Nathan 2026-07-15) : L2 x5 si
+# NOISE_ROUND2=1 (sinon x1.0 exact -> round 1 inchange). Herite par v5 ET v8. ──
+import noise_round2 as _NOISE
+SIGMA_GYRO *= _NOISE.L2_MULT
+SIGMA_ACC *= _NOISE.L2_MULT
+SIGMA_DVL *= _NOISE.L2_MULT
+SIGMA_DEPTH *= _NOISE.L2_MULT
 
 def make_cfg(with_profiler):
     """Scenario : sonar principal (§0 : MultiPath off, streaks 0, bruit 0.01 —

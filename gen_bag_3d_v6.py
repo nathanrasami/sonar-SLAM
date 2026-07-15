@@ -39,6 +39,7 @@ from gen_bag_3d import (typestore, Time, Header, Vector3, Quaternion, Imu,
                         R_MOUNT_PROF, RANGE_MIN,
                         SIGMA_GYRO, SIGMA_ACC, SIGMA_DVL, SIGMA_DEPTH)
 from rosbags.rosbag1 import Writer
+import noise_round2 as _NOISE          # round 2 « noise » (NOISE_ROUND2=1)
 
 # ─── 3e capteur : profiler TRANSVERSE 360° ────────────────────────────────────
 PROF_HZ         = 2                 # 0.35 m/s -> section tous les 17.5 cm
@@ -58,7 +59,9 @@ def make_cfg_v6():
     cfg = v5.make_cfg()
     cfg["name"] = "gen3dv6"
     common = {"RangeMin": RANGE_MIN, "RangeMax": PROF_RANGE_MAX,
-              "AddSigma": 0.01, "MultSigma": 0.01, "RangeSigma": 0,
+              # L1 round 2 : profiler transverse 0.01 -> 0.05 (x5) si NOISE_ROUND2=1
+              "AddSigma": _NOISE.SONAR_ADD, "MultSigma": _NOISE.SONAR_MULT,
+              "RangeSigma": 0,
               "MultiPath": False, "AzimuthStreaks": 0, "ScaleNoise": False,
               "InitOctreeRange": 50, "ViewRegion": False}
     cfg["agents"][0]["sensors"].append(

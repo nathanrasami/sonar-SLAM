@@ -21,8 +21,9 @@ set -u
 cd "$(dirname "$0")"
 PY="$(cd .. && pwd)/holoocean-venv/bin/python"
 LOG="gen_traj9.log"
-BAG="BAG_files/holoocean_3d_traj9.bag"
-case "$*" in *--test*) BAG="BAG_files/holoocean_3d_traj9_test.bag";; esac
+SFX=""; [ "${NOISE_ROUND2:-0}" = 1 ] && SFX="_noise"   # round 2 « noise »
+BAG="BAG_files/holoocean_3d_traj9${SFX}.bag"
+case "$*" in *--test*) BAG="BAG_files/holoocean_3d_traj9${SFX}_test.bag";; esac
 
 [ -x "$PY" ] || { echo "venv introuvable : $PY"; exit 2; }
 [ -f probe_traj9_ship3.json ] || { echo "⚠ E0 manquant : lancer probe_traj9_path.py d'abord."; exit 2; }

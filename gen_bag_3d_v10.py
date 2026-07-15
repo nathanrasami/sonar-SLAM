@@ -40,6 +40,7 @@ import gen_bag_3d_v5 as v5
 import gen_bag_3d_v6 as v6
 import gen_bag_3d_v7 as v7            # noqa: F401 — patch RangeMax 20
 import gen_bag_3d_v8 as v8            # main nav realiste
+import noise_round2 as _NOISE          # round 2 « noise » (NOISE_ROUND2=1)
 
 _D = os.path.dirname(os.path.abspath(__file__))
 E0_JSONS = [os.path.join(_D, f) for f in
@@ -72,7 +73,7 @@ v5.PERIM = float(v5._PCUM[-1])
 v5.N_MAX = N_MAX_V10
 v5.Z_MIN, v5.Z_MAX = Z_MIN_V10, Z_MAX_V10
 
-v8.OUT_BAG = "BAG_files/holoocean_3d_traj9.bag"
+v8.OUT_BAG = _NOISE.bag("BAG_files/holoocean_3d_traj9.bag")  # _noise si round 2
 v8.SEED_NAV = SEED_NAV_V10
 
 _make_cfg_v6 = v6.make_cfg_v6

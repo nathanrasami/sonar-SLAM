@@ -6,6 +6,42 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
+## 2026-07-15 (soir, Opus) : **ROUND 2 « noise » — CODE PATCHÉ + vérifié à froid ; bags à générer par Nathan (`NOISE_ROUND2=1`)**
+
+**Décisions Nathan (⛔ étape ① NOISE_MISSION.md, chiffré AVANT code)** : L1 sonar **×5** +
+L2 capteurs **×5** + L3 nav structuré **×2**. ⚠ **L3 = traj9 SEUL** : traj5 (v5.py:354-395)
+n'applique jamais `psi_err`/`dvl_mismount` — nav « trop parfaite », seulement du gaussien L2
+qui se moyenne (découvert à la source). traj5 round 2 = L1+L2 ×5 → mesure surtout la
+dégradation SONAR ; la dégradation nav ne vit que sur traj9.
+
+**📓 R3 — mécanisme = module unique `noise_round2.py` (gated `NOISE_ROUND2=1`)** : env absent
+→ multiplicateurs ×1.0 exacts + suffixe "" → **round 1 BYTE-identique** (vérifié). env=1 :
+- L1 `0.01→0.05` (v5.py:287 SonarFin+SonarVert · v6.py:61 ProfilerTrans — les 3 sonars) ;
+- L2 SIGMA_* `0.002/0.02/0.01/0.02 → ×5` (gen_bag_3d.py:63, hérité v5 ET v8) ;
+- L3 v8.py:49-52 `×2` (PSI0 2→4° · RW 0.15→0.30 · scale 0.005→0.010 · mis 0.5→1.0) ;
+- assert nav v8 `[1,8]→[1,30]` m (round-2 uniquement, round-1 garde 8) ;
+- bags → `holoocean_3d_traj{5,9}_noise.bag` (wrappers gen_traj{5,9}.sh + gen_2bags.sh
+  dérivent `_noise` ; noms python↔wrapper MATCH vérifiés). **Round 1 JAMAIS écrasé.**
+
+**Vérif à froid (sans simu, R1)** : env absent = valeurs round 1 exactes + bags sans suffixe ;
+env=1 = ×5/×5/×2 sur les 3 sonars + `_noise`. Dérive DR traj9 ×2 à sec = **11.54 m rms**
+(Umeyama 2.30, cap final 9.8° ; round 1 = 5.76/1.15) → assert PASS band 30. py_compile 6
+fichiers OK, bash -n 3 wrappers OK, bags round 1 (traj5/traj9 18 Go) intacts.
+
+**⚠ Garde-fous qui vont probablement se déclencher sous ×5 (mission ③ : STOP + montrer les
+chiffres, JAMAIS affaiblir en silence)** : (a) le commentaire du code lui-même (gen_bag_3d.py:66)
+prévient qu'AddSigma 0.05 « noie » les échos ~0.25 → E6/E-checks peuvent FAIL **légitimement** ;
+(b) les seuils SLAM aval (CFAR threshold 30, PIEGES #21) sont calibrés à la dynamique actuelle
+— la dégradation SLAM sous noise est probablement L'OBJET de l'expérience → ne rien compenser.
+
+**🔜 REPRISE (Nathan lance les gens ; Opus a fait le code)** :
+1. Test 150 s + E-checks : `NOISE_ROUND2=1 ./gen_traj9.sh --test 150` (E1-E9) puis
+   `NOISE_ROUND2=1 ./gen_traj5.sh --test 150` (E1-E8). ⚠ E-check FAIL → me montrer les chiffres.
+2. Bags complets : `NOISE_ROUND2=1 ./gen_2bags.sh` (ou gen_traj9/gen_traj5 séparément).
+3. SLAM 4 runs {traj9,traj5}_noise × {Bruce,Bruce_Sonar} + analyse ; compa round 1 vs round 2
+   (ATE, loops, funnel). Commit des docs (PIEGES #22-23, NOISE_MISSION, ce fichier, patch noise)
+   au 1er créneau sans run/gen actif.
+
 ## 🔜 REPRISE ICI — 2026-07-14 (soir, Fable) : **RÉUNION PROF → NOUVEAU PLAN = SUITE.md (racine, synchronisé 5 branches) ; question tutrice « SLAM pire que DR ? » TRANCHÉE par mesure : jamais sur run sain, seulement 215053 (fausses loops PCM-10 reverté) et SSM=true**
 
 **Nouveau plan (détail = SUITE.md ; ordre à choisir par Nathan)** :
@@ -70,8 +106,17 @@
   cfg 1024×512 vérifiée à froid traj5(40 m)+traj9(20 m) PASS ; ⚠ piège vécu : patcher v5
   PENDANT un gen ne change RIEN au process en cours (module déjà importé) — traj5 relancé
   par Nathan avant le patch produisait encore du 1024² → stoppé à 40 %.
-- **Round 2 prévu (prof)** : mêmes 2 trajs, noise fort sonar/IMU/DVL (params à chiffrer avec
-  Nathan avant : AddSigma/MultSigma sonar, SIGMA_GYRO/ACC/DVL) — 1 seule variable vs round 1.
+- **Config 1024×512 VALIDÉE bout-en-bout** : bag test 150 s → **E1-E9 TOUT PASS**, E6 passé
+  de nan à |d|=0.00 (5.11 vs 5.12 m), E8 25.6 % vs 3.2 % miroir, E4 dérive 0.03 m.
+  Pièges du jour consignés : **PIEGES #22** (AzimuthBins>512 = stries) et **#23**
+  (Ctrl-C wrapper = python orphelin ; patch pendant gen inopérant ; pkill self-match).
+- **🔜 REPRISE (Opus — Nathan économise Fable)** : round 1 relancé par Nathan
+  (`./gen_2bags.sh` EN COURS au moment d'écrire) → ensuite `./slam_2bags.sh` (4 runs) +
+  analyse. **Round 2 noise = brief complet dans `NOISE_MISSION.md`** (leviers mesurés
+  fichier:ligne — sonar AddSigma/MultSigma 0.01, nav SIGMA_* gen_bag_3d.py:63, DR structuré
+  v8:49-52 PSI0 2.0/RW 0.15/scale 0.005/mis 0.5 — étapes ⛔, interdits). ⚠ commit des docs
+  (PIEGES #22-23, NOISE_MISSION.md, ce fichier) en attente : gen en cours → 1ʳᵉ action
+  Opus au créneau propre (`pgrep -af "gen_bag_3d|roslaunch"` d'abord).
 - Attentes chiffrées (Nathan) : traj9 ATE ~1.14 m, LC difficile (1 tour) ; traj5 : 2 tours →
   LC réaliste, réf famille errance ~0.75 m origine sans fausses loops.
 

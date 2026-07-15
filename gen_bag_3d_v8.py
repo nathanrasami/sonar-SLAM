@@ -44,12 +44,15 @@ from gen_bag_3d import (typestore, Time, Header, Vector3, Quaternion, Imu,
                         SIGMA_GYRO, SIGMA_ACC, SIGMA_DVL, SIGMA_DEPTH)
 from gen_bag_3d_v6 import R_MOUNT_TRANS, PROF_IMG_DECIM, PROF_RANGE_MAX
 from rosbags.rosbag1 import Writer
+import noise_round2 as _NOISE          # round 2 « noise » (NOISE_ROUND2=1)
 
 OUT_BAG = "BAG_files/holoocean_3d_traj7r.bag"
-PSI0_DEG   = 2.0     # biais de cap constant (compas magnetique, port acier)
-RW_SIG_DEG = 0.15    # marche aleatoire du cap, deg/sqrt(s) (~5.7 deg sigma en fin)
-DVL_SCALE  = 0.005   # erreur d'echelle DVL (+0.5 %)
-DVL_MIS_DEG = 0.5    # desalignement yaw de la monture DVL
+# L3 round 2 : erreurs nav structurees x2 si NOISE_ROUND2=1 (traj9 SEUL ; traj5
+# n'applique pas L3). Mesure a sec : derive DR 5.76 -> 11.52 m rms (Umeyama 2.30).
+PSI0_DEG   = 2.0   * _NOISE.L3_MULT   # biais de cap constant (compas magnetique)
+RW_SIG_DEG = 0.15  * _NOISE.L3_MULT   # marche aleatoire du cap, deg/sqrt(s)
+DVL_SCALE  = 0.005 * _NOISE.L3_MULT   # erreur d'echelle DVL (+0.5 % x mult)
+DVL_MIS_DEG = 0.5  * _NOISE.L3_MULT   # desalignement yaw de la monture DVL
 SEED_NAV   = 7       # rng DEDIE aux erreurs nav (bruits capteurs : seed 0, inchange)
 # Cible : derive DR ~0.5-0.8 % de la distance parcourue (~530 m) = 2-4 m —
 # la fourchette d'un DVL + AHRS magnetique reel en environnement portuaire
@@ -100,7 +103,10 @@ def verifier_nav_v8(T):
           f"{rms(e_um):.2f} m (max {e_um.max():.2f}) | psi fin "
           f"{np.degrees(psi[len(P)-1]):+.2f} deg")
     if T > 600:            # bande visee sur le bag COMPLET seulement
-        assert 1.0 < rms(e_anc) < 8.0, "derive DR hors bande visee [1, 8] m"
+        # round 2 : borne haute elargie a NAV_DRIFT_HI (30 m) car le x2 L3 vise
+        # ~11.5 m rms (mesure a sec) -> hors [1,8] ; round 1 garde [1,8].
+        assert 1.0 < rms(e_anc) < _NOISE.NAV_DRIFT_HI, \
+            f"derive DR hors bande visee [1, {_NOISE.NAV_DRIFT_HI:.0f}] m"
     return rms(e_anc)
 
 
