@@ -22,6 +22,27 @@
 - BSU devant ISOPoT (3.2/3.5/4.6) sur LES 3 sections, seed 100 % GT-free.
 - **Gates : FAIL** (Bruce_U 9.38 > Bruce 4.99) → STOP mission sur chap 1.
 
+## 📄 CHAP 1-2 CLOS (17-07 ~2h, option A actée) — commits holoocean 9d9c32d + 8d58950 + 801cf8e
+- Chap 2 : tab 3 runs (2 seeds) + run FINAL 2.02 · tab:compare = run final (2.36/1.89/3.69,
+  devant publiés ×3) · NOUVEAU §ablation SC-sans-ancre · protocole seed cap 0 mesuré ·
+  preuve dr bit-identiques. Chap 1 inchangé (runs archivés, déjà en translation pure).
+- Relecture Nathan tranchée par mesure (801cf8e) : écart S3 odométrie 8.44 vs 6.5 publié =
+  SENSIBILITÉ AUX FRONTIÈRES de sections (enveloppe 6.1-9.4 m pour ±3 min de frontière ;
+  effets de cap RÉFUTÉS : re-ancrage entrée section −1°, compas continu → S3 9.0-9.2).
+  Repères archivés vérifiés : seed USBL = rotation RIGIDE +30.88/31.19° (résidu 0-2 mm),
+  SLAM B_USBL partiellement redressé (24.7°/11.8° résiduel, variable) vs BSU 1.40° (SC).
+- xelatex ×2 PASS, 21 p, 0 undef. PDF frais copié dans Paper/main.pdf (repo courant).
+- Docs synchronisés sur holoocean (PIEGES #26, REFONTE_MISSION, PROGRESS).
+- Bruce_USBL archivé (8-11 m origine) : insatisfaisant pour Nathan mais ASSUMÉ (convention
+  pure sans re-fit ; l'artefact de seed est expliqué au papier ; options B/C sinon).
+
+## ➡ SUITE : CHAP 3 HOLOOCEAN (nouvelle discussion, branche holoocean)
+- Contenu prévu (mémoire paper-latex-origine) : simulation 2 sonars + profiler, carte 3D,
+  rounds noise R1 vs R2 — matière : runs noise 16-07 (slam_2bags_noise_2026-07-16_114911),
+  baseline dvl 0.13 ×2, HOLOOCEAN_GARDE_FOU.md, branche.md holoocean.
+- Ouvrir la discussion SUR la branche holoocean ; relire PROGRESS + PIEGES + TESTS holoocean
+  avant d'écrire ; skill redaction-nathan à charger AVANT toute rédaction.
+
 ## 🚨 NON TRANCHÉ (R2) — Bruce/Bruce_U refonte SOUS les champions archivés
 - Mesuré : 88/57 loops natives, torsions 25-30°, USBL AGGRAVE (7.01 vs 3.21 Umeyama).
 - H2 ouverte : CODE divergent (752 lignes de diff slam.py/slam_ros.py vs branche Bruce) ;
