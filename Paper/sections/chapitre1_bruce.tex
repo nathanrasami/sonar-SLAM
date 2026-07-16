@@ -33,8 +33,8 @@ with the initial state $(\mathbf{p}_0, \theta_0)$ estimated from the
 course-over-ground of the first USBL fixes (no ground truth). Since $\omega_z$ is
 derived from the compass~[8], the integrated \textbf{heading} is accurate (relative
 rotation error $\approx 0$~°/m) but the \textbf{translation} drifts strongly
-(commands $\neq$ actual velocities; currents): \textbf{20 m} of anchored ATE at the
-end of the mission (orange curve in figures~\ref{fig:bruce-err} and
+(commands $\neq$ actual velocities; currents): \textbf{18.3--18.5 m} of anchored ATE
+over the mission (orange curve in figures~\ref{fig:bruce-err} and
 \ref{fig:bsu-err}). The whole point of the back-end is to correct this translation
 without touching the heading.
 
@@ -86,13 +86,13 @@ and relative errors. Two runs per configuration.}
 \hline
 Config & run & Global ATE & S1 & S2 & S3 & Trans. (\%) \\
 \hline
-Pure odometry & — & 19.90--20.10 & — & — & — & 32.5 \\
+Pure odometry & — & 18.30--18.54 & 5.05 & 11.69 & 7.62 & 32.5 \\
 \hline
-\multirow{2}{*}{Bruce (SSM+NSSM, no USBL)} & 1 & 3.25 & 2.68 & 3.72 & 1.88 & 8.18 \\
-                                            & 2 & 2.40 & 2.62 & 4.71 & 2.19 & \textbf{4.83} \\
+\multirow{2}{*}{Bruce (SSM+NSSM, no USBL)} & 1 & \textbf{2.33} & \textbf{2.72} & 7.94 & 3.01 & 8.18 \\
+                                            & 2 & 3.04 & 2.65 & 6.66 & 2.26 & \textbf{4.83} \\
 \hline
-\multirow{2}{*}{Bruce + USBL $\sigma{=}2.5$} & 1 & 4.48 & 4.79 & 3.55 & \textbf{1.75} & 23.63$^{1}$ \\
-                                              & 2 & 5.60 & 5.70 & 4.73 & 1.78 & 11.96$^{1}$ \\
+\multirow{2}{*}{Bruce + USBL $\sigma{=}2.5$} & 1 & 3.87 & 5.20 & \textbf{4.98} & 2.55 & 23.63$^{1}$ \\
+                                              & 2 & 5.76 & 5.60 & 5.74 & \textbf{2.05} & 11.96$^{1}$ \\
 \hline
 \end{tabular}
 \end{table}
@@ -100,11 +100,12 @@ Pure odometry & — & 19.90--20.10 & — & — & — & 32.5 \\
 With its native loops only (SSM/NSSM), Bruce-SLAM already corrects the odometry by an
 order of magnitude:
 \begin{itemize}
-\item from 20 m of raw drift down to \textbf{2.40--3.25 m} of anchored ATE, without
+\item from 18.3 m of raw drift down to \textbf{2.33--3.04 m} of anchored ATE, without
   degrading the heading (median 2.2--3.0°) — figures~\ref{fig:bruce-traj} and
   \ref{fig:bruce-err};
-\item per re-anchored section: 2.62 / 4.71 / 2.19 m (run 2,
-  figure~\ref{fig:bruce-sections});
+\item per re-anchored section: 2.65 / 6.66 / 2.26 m (run 2,
+  figure~\ref{fig:bruce-sections}) — S2 concentrates the drift, with few revisits to
+  correct it;
 \item the map is correct, not just sharp: point cloud at \textbf{0.09 m} (median)
   from the cloud re-rendered at the ground-truth poses, p90 0.70 m
   (figures~\ref{fig:bruce-map} and \ref{fig:bruce-cloudgt}).
@@ -162,7 +163,7 @@ $\sigma = 2.5$) gives figures~\ref{fig:bruce-usbl-traj} to
 
 \begin{itemize}
 \item \textbf{$^{1}$The seed artefact on the anchored metric.} The USBL runs show a
-  \emph{higher} Trans.~\% and global anchored ATE (4.48--5.60 m) than Bruce alone —
+  \emph{higher} Trans.~\% and global anchored ATE (3.87--5.76 m) than Bruce alone —
   a measured artefact, not a flaw of the anchor: the initial heading is estimated
   from the course-over-ground of the first USBL fixes (noisy), and in this method
   nothing corrects it afterwards (the USBL factors only touch $x,y$). The convention
@@ -171,18 +172,19 @@ $\sigma = 2.5$) gives figures~\ref{fig:bruce-usbl-traj} to
   the RE, which expresses displacements in the frame of \emph{each} pose, takes
   $\sim$1~\%/degree of offset. Bruce alone starts from a fixed heading (no estimated
   seed), hence a nominal $\beta$.
-\item \textbf{Per section, the anchor pays off where loops become scarce.} With each
-  section properly re-anchored, Bruce + USBL wins S3 (\textbf{1.75 m}, best value of
-  the chapter) and S2 (3.55 m), where the drift of Bruce alone is no longer corrected
-  by revisits. The map metric is unchanged (0.09 m median): the anchor moves the
-  trajectory, not the local consistency of the scans.
+\item \textbf{Per section, the anchor pays off after S1.} With each section properly
+  re-anchored, Bruce + USBL wins S2 (4.98--5.74 m against 6.66--7.94) and S3
+  (\textbf{2.05--2.55 m} against 2.26--3.01), where the drift of Bruce alone is no
+  longer corrected by revisits; S1 and the global figure pay the noisy heading seed.
+  The map metric is unchanged (0.09 m median): the anchor moves the trajectory, not
+  the local consistency of the scans.
 \end{itemize}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.72\textwidth]{Image/Bruce_USBL_traj_origine.png}
 \caption{Bruce + USBL $\sigma{=}2.5$ (run 1) — trajectories anchored at the common
-start. The global anchored ATE (4.48 m) is dominated by the noisy USBL heading seed
+start. The global anchored ATE (3.87 m) is dominated by the noisy USBL heading seed
 (§~\ref{sec:chap1-usbl}).}
 \label{fig:bruce-usbl-traj}
 \end{figure}
@@ -199,7 +201,7 @@ initial heading offset spreads over the whole mission; per-section re-anchoring
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{Image/Bruce_USBL_sections_origine.png}
-\caption{Bruce + USBL — sections re-anchored at their start: S3 = 1.75 m, best value
-of the chapter, where the anchor compensates the scarcity of loops.}
+\caption{Bruce + USBL — sections re-anchored at their start: S3 = 2.55 m and S2
+improve over Bruce alone, where the anchor compensates the scarcity of loops.}
 \label{fig:bruce-usbl-sections}
 \end{figure}

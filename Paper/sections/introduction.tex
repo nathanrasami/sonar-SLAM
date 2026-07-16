@@ -114,19 +114,28 @@ which is discarded here as a protocol choice.
 
 \paragraph{a) Origin-anchored ATE.} The estimated trajectory is translated so that
 its first pose coincides with the ground-truth one; since the DGPS ground truth has
-\emph{no} orientation, the initial rotation is set by aligning the \textbf{chord of
-the first 15 metres} of track. The ATE is the RMSE of the point-to-point distances
-(temporal association). Measured sensitivity to this anchor: a 10/15/20/30/50 m chord
-$\to$ ATE 8.6 / 5.6 / 3.6 / 2.3 / 1.9 m on the same run — an initial error of a few
-degrees rotates the whole trajectory ($\sim$1.6 m of ATE per degree over a 90 m
-footprint). The convention is therefore \emph{fixed} (15 m chord) and identical for
-all compared methods.
+\emph{no} orientation (the published methods anchor their first pose with their
+magnetometer heading), the initial orientation is set by a rigid fit (rotation, no
+scale) \textbf{on the first 15~\% of poses}. The ATE is the RMSE of the
+point-to-point distances (temporal association). Two properties of this rule:
+\begin{itemize}
+\item it is \emph{fixed and identical} for every method, run and section — an
+  anchored metric is very sensitive to the anchor estimate (an initial error of a
+  few degrees rotates the whole trajectory, $\sim$1.6 m of ATE per degree over a
+  90 m footprint), so no per-method tuning is allowed;
+\item it reproduces the published protocol: our odometry re-anchored per section
+  with this rule gives \textbf{5.05 / 11.69 / 7.62 m}, against
+  \textbf{5.8 / 12.5 / 6.5 m} for the ``odometry alone'' row published by
+  ISOPoT~[4] on the same data (§~\ref{sec:compare}) — the two evaluations are on
+  the same convention.
+\end{itemize}
 
 \paragraph{b) Sections S1/S2/S3.} DISO evaluates Aracati as 3 sequences of
 $\sim$15 min (odometry restarted at each section); the exact boundaries are not
 published. We split the continuous mission into \textbf{temporal thirds}, each
-section being \textbf{re-anchored at its own start} (translation + local 15 m chord).
-Two consequences to keep in mind:
+section being \textbf{re-anchored at its own start} (translation + initial
+orientation fitted on the first 15~\% of the section, same rule as §a). Two
+consequences to keep in mind:
 \begin{itemize}
 \item each section inherits its own noisy local anchor — a section can therefore show
   an ATE above or below the global one, since the anchors are independent;
@@ -183,8 +192,9 @@ come directly from them.
   (chapter~2).
 \item \textbf{Explicit evaluation protocol} (origin anchoring per section, RE, map
   metric) and \textbf{controlled comparison} with the published methods on this
-  dataset: relative translation error of \textbf{5.0~\%} against 9.69~\% for the best
-  published assisted method (ISOPoT), section-wise anchored ATE shared
+  dataset: global anchored ATE of \textbf{1.83 m} over the 44 min mission, relative
+  translation error of \textbf{5.0~\%} against 9.69~\% for the best published
+  assisted method (ISOPoT), and the best published values on sections S2 and S3
   (chapter~2, §~\ref{sec:compare}).
 \end{enumerate}
 

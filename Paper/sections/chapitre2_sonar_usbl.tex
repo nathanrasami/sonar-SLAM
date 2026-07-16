@@ -77,21 +77,25 @@ USBL factor literature~[5]).
 \hline
 run & Global ATE & S1 & S2 & S3 & Trans. (\%) & Rot. (°/m) \\
 \hline
-1 & 5.08 & 5.13 & 2.38 & 4.42 & 5.00 & 0.090 \\
-2 & 4.82 & 4.60 & 2.55 & 3.52 & 4.99 & 0.080 \\
+1 & \textbf{1.83} & 4.01 & 2.77 & 1.86 & 5.00 & 0.090 \\
+2 & \textbf{1.83} & 3.86 & 3.03 & 1.61 & 4.99 & 0.080 \\
 \hline
 \end{tabular}
 \end{table}
 
-The gain specific to appearance-based detection shows on the metric least sensitive
-to anchors: \textbf{Trans. 5.0~\%} (repeatable to 0.01 points between the two runs),
-against 4.83--23.6~\% in chapter~1 depending on the seed draw — and above all against
-the published methods (§~\ref{sec:compare}). The global anchored ATE (4.8--5.1 m)
-remains dominated by the USBL start anchor, as in chapter~1 ($\beta = 90.0$--90.3°
-only here: the Sonar Context loops also straighten the heading, where the chapter~1
-method let the initial offset drift). The map is at \textbf{0.07 m} (median) from the
-true map, p90 0.54 m — the best figure of both chapters
-(figure~\ref{fig:bsu-cloudgt}).
+Three readings:
+\begin{itemize}
+\item \textbf{Global anchored ATE of 1.83 m over the 44 min mission, identical
+  across both runs} — the best value of this document (chapter~1: 2.33--5.76 m), and
+  an order of magnitude below the odometry (18.5 m). The Sonar Context loops also
+  straighten the heading ($\beta = 90.0$--90.3°, nominal), where the chapter~1
+  method let the initial USBL seed offset drift.
+\item \textbf{The local metric confirms it}: Trans. 5.0~\%, repeatable to 0.01
+  points between the two runs, against 4.83--23.6~\% in chapter~1 depending on the
+  seed draw — and above all against the published methods (§~\ref{sec:compare}).
+\item \textbf{The map is at 0.07 m} (median) from the true map, p90 0.54 m — the
+  best figure of both chapters (figure~\ref{fig:bsu-cloudgt}).
+\end{itemize}
 
 \begin{figure}[H]
 \centering
@@ -105,17 +109,17 @@ truth, SLAM, pure odometry.}
 \centering
 \includegraphics[width=0.9\textwidth]{Image/BSU_err_time_origine.png}
 \caption{Chapter 2 — position error over the mission (origin-anchored convention).
-The Sonar Context loop closures keep the error within 2--7 m over the 44 min,
-against 20 m of accumulated odometry.}
+The Sonar Context loop closures keep the error bounded (ATE 1.83 m over 44 min),
+against 18.5 m of accumulated odometry.}
 \label{fig:bsu-err}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{Image/BSU_sections_origine.png}
-\caption{Chapter 2 — sections re-anchored at their start. S2 (2.38 m) benefits from
-the highest revisit density; S1 pays the noisy start anchor
-(§~\ref{sec:protocole}b).}
+\caption{Chapter 2 — sections re-anchored at their start. S2 (2.77 m) and S3
+(1.86 m) benefit from the revisit density; S1 pays the scarcity of loops at the
+start of the mission (§~\ref{sec:protocole}b).}
 \label{fig:bsu-sections}
 \end{figure}
 
@@ -157,8 +161,10 @@ Odom+Mag & Odometry alone (reset/section) & 5.8 & 12.5 & 6.5 & 19.07 & \textbf{0
 Odom+Mag & DISO~[3] & 5.3 & 6.1 & 10.9 & 13.90 & 0.44 \\
 Odom+Mag & SONIC~[10] & 7.0 & 11.2 & 13.7 & 22.83 & \textbf{0.0} \\
 Odom+Mag & ISOPoT~[4] & \textbf{3.2} & 3.5 & 4.6 & 9.69 & \textbf{0.0} \\
-Odom+USBL & \textbf{Adapted Bruce-SLAM (chap.~1)} & 4.79 & 3.55 & \textbf{1.75} & 23.63$^{1}$ & 0.057 \\
-Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 5.13 & \textbf{2.38} & 4.42 & \textbf{5.00} & 0.090 \\
+\hline
+Odom+Mag & Our odometry (same rule, §~\ref{sec:protocole}a) & 5.05 & 11.69 & 7.62 & — & — \\
+Odom+USBL & \textbf{Adapted Bruce-SLAM (chap.~1)} & 5.20 & 4.98 & 2.55 & 23.63$^{1}$ & 0.057 \\
+Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 4.01 & \textbf{2.77} & \textbf{1.86} & \textbf{5.00} & 0.090 \\
 \hline
 \end{tabular}
 \end{table}
@@ -171,8 +177,11 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 5.13 & \textbf{2.38} & 4.42 & \
   ($^{1}$The 23.6~\% of chapter~1 is the seed artefact documented in
   §~\ref{sec:chap1-usbl}: measured at 4.83~\% with a nominal $\beta$.)
 \item \textbf{The section-wise anchored ATE is shared}: assisted ISOPoT wins S1
-  (3.2 m), we win S2 (2.38 m) and S3 (1.75 m). No method dominates all three
-  sections.
+  (3.2 vs 4.01 m), Sonar Context wins S2 (\textbf{2.77} vs 3.5 m) and S3
+  (\textbf{1.86} vs 4.6 m) — the best published values on these two sections. No
+  method dominates all three. Over the \emph{full 44 min mission}, the global
+  anchored ATE stays at \textbf{1.83 m} — the published odometries have no global
+  figure, since their sections restart from zero.
 \item \textbf{Our weak point S1 is identified and mechanical}: USBL heading seed
   (course-over-ground of the first fixes, noisy) + almost no revisits at the start of
   the mission — nothing corrects the anchor before S2. The ``Odom+Mag'' methods start
@@ -183,10 +192,13 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 5.13 & \textbf{2.38} & 4.42 & \
   the bag: $\int\omega_z$ and $\Delta$yaw of the ground truth identical to 0.01° over
   120 s). Our 0.057--0.090 °/m are not ``worse'': SLAM adjusts the heading through
   the loops, for global consistency.
-\item \textbf{Acknowledged protocol difference}: their ``odometry alone'' restarts
-  from zero at each section; our methods run for 44 min straight and close loops
-  across sections. Finally, none of the published methods delivers a map — we
-  deliver trajectory \emph{and} map (0.07 m median, figure~\ref{fig:bsu-cloudgt}).
+\item \textbf{Protocol check}: our odometry re-anchored per section with the rule of
+  §~\ref{sec:protocole}a (5.05 / 11.69 / 7.62 m) reproduces their published
+  ``odometry alone'' row (5.8 / 12.5 / 6.5 m) on the same data — the two evaluations
+  are on the same convention. Remaining difference: their odometry restarts from
+  zero at each section, ours runs for 44 min straight and closes loops across
+  sections. Finally, none of the published methods delivers a map — we deliver
+  trajectory \emph{and} map (0.07 m median, figure~\ref{fig:bsu-cloudgt}).
 \item \textbf{Nature of the methods}: ISOPoT relies on pre-trained networks (TAPNext
   point tracking, ResNet50 descriptors) with GPU inference; our two methods are
   100~\% geometric (CFAR, ICP, factor graph), with no learning, CPU-executable —
