@@ -11,6 +11,13 @@
          heading_from_compass) sont SUPPRIMÉS : la mauvaise config est intapable. -->
     <arg name="sc" default="false"/>
     <arg name="usbl_backend" default="false"/>
+    <!-- sc choisit aussi la CONFIG champion FIGÉE de la méthode (décision Nathan
+         16-07, après run bruce 80.7 m : les 2 champions historiques n'ont jamais
+         partagé un yaml — le NSSM natif sur le yaml BSU = 31 fausses loops, +190°).
+         sc=true  → slam_aracati.yaml        (champion BSU : SC, kf 1 m, pcm 6, σ_USBL 1.4)
+         sc=false → slam_aracati_native.yaml (champion Bruce : SSM+NSSM natifs, kf 3 m,
+                                              σ_odom 0.2, sep 8, min_pcm 4, σ_USBL 2.5) -->
+    <arg name="slam_yaml" value="$(eval 'slam_aracati.yaml' if arg('sc') else 'slam_aracati_native.yaml')"/>
 
     <arg name="rviz" default="true"/>
     <arg name="enable_slam" default="true"/>
@@ -42,13 +49,10 @@
             <!-- SLAM node : le yaml porte les réglages FIGÉS, le launch ne pilote que
                  les 2 interrupteurs (+ σ USBL lié à la méthode). -->
             <node pkg="bruce_slam" name="slam" type="slam_node.py" output="screen">
-                <rosparam command="load" file="$(find bruce_slam)/config/slam_aracati.yaml" subst_value="true"/>
+                <rosparam command="load" file="$(find bruce_slam)/config/$(arg slam_yaml)" subst_value="true"/>
                 <param name="sonar_context/enable" value="$(arg sc)"/>
                 <param name="usbl/enable" value="$(arg usbl_backend)"/>
-                <!-- σ champion par méthode (⛔3, à re-vérifier sur 1 run chacun) :
-                     BSU (sc on) = 1.4 · Bruce_U (sc off) = 2.5. Sans effet si
-                     usbl_backend:=false. -->
-                <param name="usbl/sigma" value="$(eval 1.4 if arg('sc') else 2.5)" type="double"/>
+                <!-- σ USBL : porté par le yaml de la méthode (1.4 BSU / 2.5 natif, ⛔3) -->
                 <param name="enable_slam" value="$(arg enable_slam)"/>
                 <param name="save_fig" value="false"/>
                 <param name="save_data" value="true"/>
