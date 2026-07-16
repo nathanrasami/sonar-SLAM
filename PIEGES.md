@@ -273,3 +273,19 @@ un script « skip si présent » le croirait bon).
   (vécu : 40 % de traj5 strié à jeter).
 - Corollaire 2 : `pkill -9 -f <mot>` peut matcher TA propre ligne de commande (echos compris) →
   shell tué à mi-nettoyage. Motifs par concaténation : `P='Holo''deck'; pkill -f "$P"`.
+
+## 24. Bruit image simulé : p99(bruit) doit rester SOUS le seuil d'intensité du détecteur, sinon INONDATION (vécu : noise round 2 ×5, 2026-07-16)
+
+AddSigma 0.05 (×5) sur les 3 sonars → la queue du bruit dépasse `filter.threshold: 30` :
+mesuré à la source (bags `_noise_test`) **6.4-6.8 % des pixels ≥ 30 (p99 = 40)** contre
+0.09-0.11 % round 1 (p99 = 7.9, échos max ~65). Conséquence en cascade : nuage ×40-90
+(1.6-2.2 M pts = blob illisible), nœud SLAM en retard → **KF perdus** (623/837 traj9 B),
+ICP sur du bruit → 363 fausses contraintes, ATE origine 67 m. Les 4 runs ×5 : inexploitables
+(archive 2 images/run : `results/noise_x5_archive/`).
+- Règle 1 : avant de générer un bag bruité, calculer p99 ≈ 2.33·σ_add·255 et le comparer au
+  seuil du détecteur aval (30). σ=0.02 → p99 ≈ 12 : OK. σ=0.05 → p99 ≈ 30 : inondation.
+- Règle 2 : 10 lignes de numpy sur le bag test (% pixels ≥ seuil vs témoin round 1) AVANT
+  les 2×25 Go et les 4 runs. C'est le même réflexe que PIEGES #22 règle 2.
+- Règle 3 : « l'effet doit être visible sur le DR » ne passe PAS par L1 (l'image sonar ne
+  touche pas le DR) — c'est L2/L3. L1 trop fort détruit l'outil de MESURE (la carte), pas
+  la nav. ⚠ /sonar = 32FC1 (floats 0-1), seuil mono8 30 ≡ 0.118 — lire uint8 = mesure fausse.

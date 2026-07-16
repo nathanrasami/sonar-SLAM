@@ -3,15 +3,19 @@
 #   {traj9, traj5} × {Bruce, Bruce_Sonar}, nssm=true (parité) ssm=false 2D.
 #   sonar_range 20 (traj9) / 40 (traj5). Séquentiel (un seul run à la fois).
 #   Progression LIVE dans le terminal (tee) + log par run + analyse.sh.
-# Usage :  ./slam_2bags.sh
+# Usage :  ./slam_2bags.sh                 # round 1 (bags sans noise)
+#          NOISE_ROUND2=1 ./slam_2bags.sh  # round 2 (bags *_noise.bag)
 set -u
 cd "$(dirname "$0")"; HERE="$(pwd)"
-STAMP="$(date +%Y-%m-%d_%H%M%S)"; OUT="slam_2bags_${STAMP}"; mkdir -p "$OUT"
+# Round 2 « noise » : NOISE_ROUND2=1 -> runs sur les bags _noise (symétrique gen_2bags.sh).
+SFX=""; [ "${NOISE_ROUND2:-0}" = 1 ] && SFX="_noise"
+STAMP="$(date +%Y-%m-%d_%H%M%S)"; OUT="slam_2bags${SFX}_${STAMP}"; mkdir -p "$OUT"
+[ -n "$SFX" ] && echo "### ROUND 2 « noise » : runs sur *${SFX}.bag ###"
 
 # nom | bag | sonar_range | description
 SPECS=(
-  "traj9|BAG_files/holoocean_3d_traj9.bag|20|tour complet"
-  "traj5|BAG_files/holoocean_3d_traj5.bag|40|z variable + contourne bateau"
+  "traj9${SFX}|BAG_files/holoocean_3d_traj9${SFX}.bag|20|tour complet${SFX:+ (noise)}"
+  "traj5${SFX}|BAG_files/holoocean_3d_traj5${SFX}.bag|40|z variable + contourne bateau${SFX:+ (noise)}"
 )
 METHODS=("Bruce" "Bruce_Sonar")
 

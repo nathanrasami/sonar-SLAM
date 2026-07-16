@@ -6,6 +6,47 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
+## 2026-07-16 (Fable) : **ROUND 2 ×5 INEXPLOITABLE (mesuré) → L1 ×5→×2 (PIEGES #24) + pipeline `./run_noise2.sh` relancé ; ménage −73 Go ; papier LaTeX démarré (Paper/)**
+
+**① Verdict des 8 runs (ATE origine ancré 1ʳᵉ pose, script scratchpad noise_compare.py)** :
+| run | ATE or. SLAM | ATE or. DR | nssm | cloud |
+|---|---|---|---|---|
+| traj9 B R1 (105207) | 11.0 | 3.04 | 25 | 24.7 k |
+| traj9 BS R1 (203755) | 3.04 (=DR) | 3.04 | 0 | 24.7 k |
+| traj9 B R2 (114911) | **67.1** | 5.70 | **363** | **1.62 M** |
+| traj9 BS R2 (121754) | 9.1 | 6.14 | 42 | 2.22 M |
+| traj5 B R1 (210132) | 13.1 | 0.13 | 310 | 58.5 k |
+| traj5 BS R1 (212543) | 2.8 | 0.12 | 135 | 56.5 k |
+| traj5 B R2 (124803) | 39.3 | 0.59 | 138 | 1.24 M |
+| traj5 BS R2 (131530) | 12.3 | 0.59 | 21 | 1.79 M |
+- **R2 inexploitable, cause MESURÉE À LA SOURCE** (pixels des bags `_noise_test`, 32FC1) :
+  L1 ×5 → **6.4-6.8 % pixels ≥ seuil CFAR 30 (p99=40)** vs 0.09-0.11 % round 1 (p99=7.9)
+  → nuage ×40-90, KF perdus (623/837 traj9 B), ICP sur bruit → ATE 67 m. **La partie DR est
+  elle CONFORME au design** : traj9 3.04→5.7-6.1 (L3 ×2 ✓), traj5 0.13→0.59 (L2 ×5 ✓).
+- **⚠ ROUND 1 : partout où nssm insère, SLAM ≫ DR** (traj5 B : 310 contraintes → 13.1 vs
+  DR 0.13 ; traj9 B : 25 → 11.0 vs 3.04 ; traj5 BS : 135 → 2.8 vs 0.12). Piège re-ciblage
+  max-overlap sur quais périodiques (mémoire nssm-retarget). Seul run « sain » = traj9 BS
+  (0 loop, SLAM=DR). **À trancher avant le chap 3 : présenter B/BS avec nssm=true tel quel
+  (honnête : les loops nuisent ici) ou re-runner nssm=false.** Non tranché ce jour.
+- **📓 R3 — `noise_round2.py` SONAR_ADD/MULT 0.05 → 0.02 (L1 ×5→×2)** ; L2 ×5 L3 ×2 INCHANGÉS
+  (décision Nathan 15-07 : l'effet DR voulu, et il est là). Prédiction ×2 : p99 ≈ 12 < 30.
+  Piège consigné **PIEGES #24** (p99 bruit vs seuil détecteur + gate 10 lignes avant gen).
+- **② `./run_noise2.sh` (nouveau, lancé en fond ce jour)** : gen 2 bags _noise (FORCE_REGEN)
+  → gate anti-inondation sur bags réels (STOP si % pixels ≥30 ≥ 1 %) → `slam_2bags.sh`
+  (NOISE_ROUND2=1) → renommage programmatique `*_{B|BS}_{9|5}_2` via scenario_label.txt
+  (jamais à la main, piège suffixe). Log : `run_noise2.log`.
+- **🧹 Ménage étape 0 (demande Nathan, −73 Go bags → 156 Go libres)** : SUPPRIMÉS bags
+  `traj{5,9}_noise{,_test}.bag` (×5 cassés) + `traj9_original.bag` (512, périmé) ; runs 13-07
+  traj7r (7) + 225834 + compare_prof + suite logs ; 4 runs R2 ×5 (2 images/run archivées →
+  `results/noise_x5_archive/`) ; racine : gen v4/v9 + wrappers traj4/6/7/7r/8 + probes
+  traj8/9/10/zone13/boat (.py/.log, JSON E0 traj9+traj10 GARDÉS — v10 les exige) + balade +
+  suite_*.sh + compare_prof.sh (tout tracké git = récupérable). **GARDÉS** : traj9/traj5.bag
+  (référence R1), traj8.bag (repro dz_gate), 212120 (figure Nathan), 4 runs R1, 2 runs aracati.
+- **③ Papier (priorité Nathan)** : template xelatex de `../rapport_final` copié → `Paper/` ;
+  chap 1 (Bruce/Aracati) + chap 2 (Sonar Context + USBL) entiers ; comparaison ORIGINE seule
+  (ATE par section + erreur/temps ancrée origine + Trans%/Rot% si utile) ; chap 3 = holoocean
+  R1 vs R2 quand le pipeline aura fini.
+
 ## 2026-07-15 (soir, Opus) : **ROUND 2 « noise » — CODE PATCHÉ + vérifié à froid ; bags à générer par Nathan (`NOISE_ROUND2=1`)**
 
 **Décisions Nathan (⛔ étape ① NOISE_MISSION.md, chiffré AVANT code)** : L1 sonar **×5** +
