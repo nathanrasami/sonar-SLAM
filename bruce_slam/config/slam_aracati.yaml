@@ -46,7 +46,7 @@ min_pcm: 6
 # apparence. L'aval (shgo, ICP+cov, PCM) est inchangé. Journal des décisions
 # exporté dans loops_detected.csv.
 sonar_context:
-  enable: True
+  enable: True           # ÉCRASÉ par aracati.launch (arg sc) à chaque run — REFONTE.
   knn: 5                 # candidats présélectionnés par la Polar Key
   # Seuil sur la distance cosinus, calibré sur sc_descriptor_bench.py (descripteur
   # densité-intensité) : vraies revisites médiane ~0.53, fausses ~0.75, seuil de
@@ -73,8 +73,9 @@ sonar_context:
 # Prouvé en sandbox (usbl_sim.py) : ~3 m lisse vs 47 m dead-reckoning. Chaque fix =
 # prior unaire robuste (Cauchy) sur x,y seulement (cap laissé à l'odométrie).
 usbl:
-  enable: True       # ablation : True pour ancrer sur USBL
-  sigma: 1.4         # 🏆 CHAMPION (1.2a 003823 + runs finaux BSU_1/2 : 1.45/1.50/1.52,
+  enable: True       # ÉCRASÉ par aracati.launch (arg usbl_backend) à chaque run — REFONTE.
+  sigma: 1.4         # ÉCRASÉ par aracati.launch : 1.4 si sc (BSU), 2.5 sinon (Bruce_U).
+                     # 🏆 CHAMPION (1.2a 003823 + runs finaux BSU_1/2 : 1.45/1.50/1.52,
                      # méd 1.50 — MEILLEURE médiane du stage). La répétabilité (07-05) a
                      # montré que σ1.8 (ex-branche Ultime : 1.47/1.54/1.60) est ÉQUIVALENT
                      # dans la variance ICP ±0.1 → on garde 1.4. Rejouer un σ :

@@ -49,6 +49,18 @@ Mesure : calculer (a) et (b) offline, comparer l'angle à la route-fond DGPS des
 30 premiers mètres (GT utilisée pour VALIDER le choix a posteriori, pas pour
 seeder). Retenir la règle, la déclarer dans le papier, ne plus y toucher.
 
+## ✅ ÉTAPE 0 — TRANCHÉ par MESURE (2026-07-16, `analysis/etape0_seed_cap.py`, ×2 identiques)
+
+- θ0 vrai à t0 (fit rigide cmd_vel→DGPS) : **−1.1° / +2.5°** (bases 20/30 m) →
+  **(a) cap fixe 0 RETENU** (erreur 1.1-2.5°, la croissance à 30-40 m = dérive cmd_vel).
+- (b) route-fond USBL CORRECTE = fit de FORME Kabsch (trajectoire cmd_vel θ0=0 → fixes
+  USBL) : 2.2-4.0° d'erreur — pas mieux que (a), plus complexe → rejeté.
+- ⚠ (b) NAÏF (atan2/course de la piste USBL, même en longue base) : **45-78° d'erreur** —
+  le ROV tourne de −88° pendant les 30 premiers mètres, la course n'est PAS le cap.
+  PIEGES #25 aggravé : la longue base ne suffit pas, il faut un fit de forme.
+- Règle déclarée (papier) : seed = (0,0), cap 0, codé EN DUR dans cmd_vel_odom.py
+  (zéro paramètre). Ne plus y toucher.
+
 ## Chantier code (session Ultracode — branche NEUVE)
 
 1. **Nouvelle branche** (proposition : `refonte`, basée sur `Bruce_Sonar_USBL` qui

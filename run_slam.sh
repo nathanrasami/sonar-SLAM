@@ -1,29 +1,21 @@
 #!/usr/bin/env bash
-# Lance une simu SLAM dans un dossier de résultats DÉDIÉ et horodaté.
-# Le launch utilisé dépend de la branche git — pas besoin de passer un mode.
+# Lance une simu SLAM dans un dossier de résultats DÉDIÉ, horodaté et labellisé
+# PROGRAMMATIQUEMENT (jamais de suffixe manuel — piège connu, cf. mémoire).
 #
-# Usage :
-#   ./run_slam.sh              # aracati (défaut) = cmd_vel + seed /pose_gt t=0 + USBL back-end
-#                              #   + Sonar Context, GT-free (ATE ~1.45 m). bag full.
-#   ODOM_SOURCE=odom_pose ./run_slam.sh   # intégration cmd_vel façon aracati2017 (ATE ~1.49 m)
-#   GT_FREE_SEED=false ./run_slam.sh      # ancien seed /pose_gt t=0 (A/B vs seed USBL GT-free)
-#   ODOM_SOURCE=diso DISO_PRIOR=cmd_vel ./run_slam.sh   # variante DISO GT-free
+# REFONTE (REFONTE_MISSION.md) — 4 méthodes = 4 presets, 2 interrupteurs (SC × USBL),
+# AUCUN autre réglage de méthode possible ici :
+#   ./run_slam.sh bruce         # SC off, USBL off          (NSSM natif)
+#   ./run_slam.sh bruce_u       # SC off, USBL back-end on  (σ 2.5)
+#   ./run_slam.sh bruce_sonar   # SC on,  USBL off
+#   ./run_slam.sh bsu           # SC on,  USBL back-end on  (σ 1.4)
+#   ./run_slam.sh holoocean     # simulation (branche holoocean)
 #
-# Branche ULTIME (séquence de runs, cf. ULTIME.md) :
-#   RU1-RU4 FAITS (07-04, cf. ULTIME.md Journal) : champion = σ1.8 (FIGÉ dans le yaml,
-#   ./run_slam.sh nu le reproduit) ; union et B″ rejetés.
-#   USBL_ADAPTIVE=true ./run_slam.sh      # RU5 (U6) : σ USBL adaptatif par fix (GT-free)
-#   USBL_SIGMA=x ./run_slam.sh            # rejouer un σ fixe donné (vide = yaml)
+# L'odométrie (cmd_vel_odom) est PURE et identique dans les 4 presets (⛔2) ;
+# gate post-runs : analysis/gates_refonte.py (dr identiques ×4, ATE origine, ordre).
+# Env optionnel : BAG=<bag> RATE=<r> RVIZ=false ./run_slam.sh <preset>
 #
-# /!\ NE PAS mettre USBL=true : ça active la fusion USBL DANS le front-end (cmd_vel_odom),
-#     EN PLUS du back-end (usbl.enable=True dans slam_aracati.yaml). Double ancrage USBL =
-#     l'odométrie snappe/saute sur chaque fix bruité (1.4 m, max 73 m) → trajectoire en
-#     ZIGZAG, ATE 1.45 -> 4.66 m. Le bon réglage : front-end = dead-reckoning LISSE,
-#     back-end = ancrage USBL (facteurs gtsam). cf. run 111133 (zigzag) vs 135228 (propre).
-#   ./run_slam.sh holoocean    # roslaunch bruce_slam holoocean.launch
-#
-# Les CSV sont écrits dans results/run_aracati_<date>/. Pour analyser :
-#   SLAM_RESULTS_DIR=results/run_aracati_2026-... python3 analyze_drift.py
+# /!\ UN SEUL run à la fois ; ne RIEN committer/modifier dans le dépôt pendant un run.
+# Les CSV sont écrits dans results/run_<preset>_<date>/. Analyse : ./analyse.sh <run>.
 
 set -e
 
@@ -41,20 +33,28 @@ export ROS_HOSTNAME=localhost
 export ROS_MASTER_URI=http://localhost:11311
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-TYPE="${1:-aracati}"
+TYPE="${1:?Usage: ./run_slam.sh bruce|bruce_u|bruce_sonar|bsu|holoocean}"
 BAG="${BAG:-$HERE/ARACATI_2017_8bits_full.bag}"
+
+case "$TYPE" in
+  bruce)       SC=false; USBL_BACKEND=false ;;
+  bruce_u)     SC=false; USBL_BACKEND=true  ;;
+  bruce_sonar) SC=true;  USBL_BACKEND=false ;;
+  bsu)         SC=true;  USBL_BACKEND=true  ;;
+  holoocean)   ;;
+  *) echo "Preset inconnu: $TYPE (bruce|bruce_u|bruce_sonar|bsu|holoocean)"; exit 1 ;;
+esac
+
 RUN_DIR="$HERE/results/run_${TYPE}_$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN_DIR"
 export SLAM_RESULTS_DIR="$RUN_DIR"
-echo "[run_slam] Résultats dans : $RUN_DIR"
+echo "[run_slam] Preset $TYPE → résultats dans : $RUN_DIR"
 
-case "$TYPE" in
-  aracati)   roslaunch bruce_slam aracati.launch bag_file:="$BAG" rate:="${RATE:-1.0}" usbl:="${USBL:-false}" \
-                 odom_source:="${ODOM_SOURCE:-cmd_vel}" diso_prior:="${DISO_PRIOR:-cmd_vel}" diso_seed_gt:="${DISO_SEED_GT:-true}" \
-                 gt_free_seed:="${GT_FREE_SEED:-true}" heading_from_compass:="${HEADING_COMPASS:-false}" \
-                 usbl_sigma:="${USBL_SIGMA:-}" loop_union:="${LOOP_UNION:-false}" usbl_adaptive:="${USBL_ADAPTIVE:-false}" ;;
-  holoocean) roslaunch bruce_slam holoocean.launch ;;
-  *) echo "Type inconnu: $TYPE (aracati|holoocean)"; exit 1 ;;
-esac
+if [ "$TYPE" = "holoocean" ]; then
+    roslaunch bruce_slam holoocean.launch
+else
+    roslaunch bruce_slam aracati.launch sc:="$SC" usbl_backend:="$USBL_BACKEND" \
+        bag_file:="$BAG" rate:="${RATE:-1.0}" rviz:="${RVIZ:-true}"
+fi
 
 echo "[run_slam] Terminé. Analyse : ./analyse.sh $(basename "$RUN_DIR")"
