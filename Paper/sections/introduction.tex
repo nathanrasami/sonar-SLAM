@@ -114,10 +114,20 @@ which is discarded here as a protocol choice.
 
 \paragraph{a) Start-pinned ATE.} The estimated trajectory and the ground truth are
 both translated so that they start at $(0,0)$. \emph{No rotation is fitted, on
-anything}: the orientation of the estimated frame is part of the system output — it
-is initialised on board from the first USBL fixes (position of the first fix,
-course-over-ground heading), the GT-free equivalent of the \texttt{/initialpose} a
-deployed vehicle receives. The ATE is the RMSE of the point-to-point distances
+anything}: the orientation of the estimated frame is part of the system output. In
+the final configuration it is initialised at a fixed zero heading, the GT-free
+equivalent of the \texttt{/initialpose} a deployed vehicle receives. We validated
+this rule offline before adopting it:
+\begin{itemize}
+\item a rigid fit of the integrated odometry onto the DGPS track over the first
+  10--30 m puts the true initial heading within 1--2.5° of zero, and the same fit
+  onto the USBL track does no better (2--4°);
+\item a naive course-over-ground seed would be off by 45--78° even on a 30 m
+  baseline: the vehicle turns by 88° during its first 30 m, so the course is not
+  the heading. Earlier runs that seed from the first USBL fixes (position +
+  course-over-ground) are labelled as such where they appear.
+\end{itemize}
+The ATE is the RMSE of the point-to-point distances
 (temporal association). Two properties of this rule:
 \begin{itemize}
 \item it has \emph{zero free parameter} and is identical for every method, run and
