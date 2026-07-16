@@ -245,3 +245,69 @@ identiques sur toutes les paires = défaut structurel, jamais de la « sparsité
 - Règle 3 : changer l'échelle du descripteur ⇒ recalibrer AUSSI son seuil de décision
   (dist_threshold 0.98, calibré sur descripteurs quasi-vides, retiendrait 100 % des fausses à
   seuil 5 — mesuré : vraies 0.11 / fausses 0.29, couper vers ~0.2).
+
+## 22. ImagingSonar HoloOcean : AzimuthBins > ~512 STRIE l'image — sur-échantillonner un simu crée des trous, pas du détail (vécu : traj9 1024², 2026-07-15)
+
+Passage 512×512 → 1024×1024 (« augmenter la résolution ») : E6 FAIL, first_echo nan 100 % sur
+/sonar. Cause MESURÉE : à 1024 colonnes d'azimut le simulateur n'a pas assez de rayons →
+**65 % de colonnes illuminées seulement, trous jusqu'à 8 colonnes** (témoin /sonar_vert 512×256 :
+97 %, trou max 2). Les colonnes illuminées gardent l'intensité PLEINE (0.29 = niveau 512) —
+la « dilution d'énergie ×4 » était une fausse piste (réfutée par mesure par colonne).
+- Règle 1 : le gain « voir plus fin » passe par **RangeBins** (1024 → 2.0 cm/bin @20 m, pic
+  range propre) ; l'azimut reste ≤512 (plein). Config validée : E1-E9 TOUT PASS, E6 |d|=0.00.
+- Règle 2 : avant d'adopter une résolution de capteur simulé, mesurer la fraction de
+  colonnes/lignes illuminées sur une cible connue (10 lignes numpy) — des stries décimeraient
+  aussi les features CFAR du SLAM, pas seulement les E-checks.
+- Règle 3 : deux mesures qui se contredisent (max fenêtre 0.053 vs pic profil 0.267) = investiguer
+  par COLONNE avant tout verdict — ici les deux étaient justes, l'image était striée.
+
+## 23. Ctrl-C sur un wrapper gen_traj*.sh NE tue PAS la génération — python orphelin + patch inopérant (vécu : ×2, 2026-07-15)
+
+Le wrapper lance le python en `&` : Ctrl-C tue le wrapper, le python devient ORPHELIN et
+continue d'écrire le bag (vu 12+ min après l'arrêt), avec moteur zombie + shm HOLODECK_* actifs
+(→ BusyError au boot suivant). Après TOUT arrêt manuel : `pgrep -af gen_bag_3d` → kill, pkill
+moteur, `rm /dev/shm/HOLODECK_*`, et SUPPRIMER le bag partiel (Writer non fermé = invalide ;
+un script « skip si présent » le croirait bon).
+- Corollaire 1 : éditer un module python PENDANT un gen est INOPÉRANT pour le process en cours
+  (module importé en RAM) — un gen relancé avant un patch produit l'ancienne config en silence
+  (vécu : 40 % de traj5 strié à jeter).
+- Corollaire 2 : `pkill -9 -f <mot>` peut matcher TA propre ligne de commande (echos compris) →
+  shell tué à mi-nettoyage. Motifs par concaténation : `P='Holo''deck'; pkill -f "$P"`.
+
+## 24. Bruit image simulé : p99(bruit) doit rester SOUS le seuil d'intensité du détecteur, sinon INONDATION (vécu : noise round 2 ×5, 2026-07-16)
+
+AddSigma 0.05 (×5) sur les 3 sonars → la queue du bruit dépasse `filter.threshold: 30` :
+mesuré à la source (bags `_noise_test`) **6.4-6.8 % des pixels ≥ 30 (p99 = 40)** contre
+0.09-0.11 % round 1 (p99 = 7.9, échos max ~65). Conséquence en cascade : nuage ×40-90
+(1.6-2.2 M pts = blob illisible), nœud SLAM en retard → **KF perdus** (623/837 traj9 B),
+ICP sur du bruit → 363 fausses contraintes, ATE origine 67 m. Les 4 runs ×5 : inexploitables
+(archive 2 images/run : `results/noise_x5_archive/`).
+- Règle 1 : avant de générer un bag bruité, calculer p99 ≈ 2.33·σ_add·255 et le comparer au
+  seuil du détecteur aval (30). σ=0.02 → p99 ≈ 12 : OK. σ=0.05 → p99 ≈ 30 : inondation.
+- Règle 2 : 10 lignes de numpy sur le bag test (% pixels ≥ seuil vs témoin round 1) AVANT
+  les 2×25 Go et les 4 runs. C'est le même réflexe que PIEGES #22 règle 2.
+- Règle 3 : « l'effet doit être visible sur le DR » ne passe PAS par L1 (l'image sonar ne
+  touche pas le DR) — c'est L2/L3. L1 trop fort détruit l'outil de MESURE (la carte), pas
+  la nav. ⚠ /sonar = 32FC1 (floats 0-1), seuil mono8 30 ≡ 0.118 — lire uint8 = mesure fausse.
+
+## 25. Un seed de cap « route-fond » estimé sur 1 m avec des fixes bruités à 1.4 m = cap ALÉATOIRE ; et l'odométrie ne doit JAMAIS dépendre de l'USBL (vécu : papier, 2026-07-17)
+
+`cmd_vel_odom.py` (use_usbl=True) seedait le repère : position = fix courant, cap =
+route-fond après `usbl_seed_min_disp = 1.0` m — or un fix USBL bruite à ~1.4 m : la
+fenêtre d'estimation est PLUS PETITE que le bruit d'un seul point → cap seedé quasi
+aléatoire (mesuré : **−30.88°** sur les runs Bruce_USBL, déterministe au replay).
+Conséquence : TOUTE l'odométrie (et le SLAM aval) vit dans un repère tourné ; en
+métrique translation-pure ça coûte 1.6 m/° (Bruce+USBL : 8-11 m d'ATE alors que la
+trajectoire relative est saine, carte 0.09 m).
+- Règle 1 : l'odométrie intègre /cmd_vel et RIEN d'autre — un capteur absolu (USBL)
+  n'entre que comme FACTEURS back-end. Gate : les traces dr de 2 configs ±USBL
+  doivent être identiques (rigid-check : rotation 0°, résidu ~0).
+- Règle 2 : tout cap estimé par route-fond exige une base ≥ 10-20× le bruit d'un fix
+  (ici ≥ 20-30 m), avec fit robuste — sinon c'est un tirage.
+- Règle 3 (vécu ×3 sur ce papier) : une CONVENTION d'évaluation est une décision
+  utilisateur consignée, pas un détail d'implémentation — corde 15 m et fit « 15 %
+  des poses » (analyze_origine, période Opus) ont chacun réécrit l'histoire des
+  résultats sans que personne ne l'ait décidé. Convention FINALE (Nathan 17-07) :
+  translation pure, zéro rotation ajustée. Cf. REFONTE_MISSION.md.
+- Corollaire logging : dr_theta doit être dans le MÊME repère que dr_x/y (la branche
+  Bruce loggait theta sans l'offset de seed, positions avec).
