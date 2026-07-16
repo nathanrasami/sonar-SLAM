@@ -47,23 +47,17 @@ def au_depart(xy):
     return xy - xy[0] if xy is not None and len(xy) else xy
 
 
-def aligner_origine(src_xy, t_src, gt, label, frac=0.15):
-    """Aligne l'ORIENTATION DE DÉPART sur la GT, sans optimisation globale.
-
-    On ajuste Umeyama (rotation OU réflexion, SANS échelle) sur les `frac`
-    premiers points SEULEMENT, puis on applique cette transfo fixe à toute la
-    trajectoire et on recentre à (0,0). Une seule règle qui gère tous les cas :
-      - run main (odom = GT relayée)  → R ≈ identité (rien à corriger)
-      - DISO (swap x/y)               → R = réflexion (corrige le flip)
-      - Odom pure (/cmd_vel)          → R = rotation du cap initial
-    La dérive en aval reste VISIBLE (on n'ajuste que le début) → ATE conservateur.
+def aligner_origine(src_xy, t_src, gt, label):
+    """TRANSLATION PURE (convention FINALE du papier, décision Nathan 2026-07-17) :
+    les deux trajectoires commencent à (0,0), AUCUNE rotation ni réflexion ajustée.
+    L'orientation du repère estimé est une sortie du système (seed embarqué).
+    ⚠ Historique : jusqu'au 17-07 cette fonction ajustait l'orientation initiale
+    par Umeyama sur les 15 premiers %% de points (les anciens plots des runs
+    affichent donc des ATE légèrement différents, ex. BSU 1.83 vs 1.94).
     Retourne (xy_aligné, ATE)."""
     gt_xy = associer_par_temps(t_src, gt["time"], gt["x"], gt["y"])
     gt_p  = au_depart(gt_xy)
-    src_p = au_depart(src_xy)
-    n = max(2, int(round(len(src_p) * frac)))
-    _, R, _ = umeyama(src_p[:n], gt_p[:n], with_scale=False, allow_reflection=True)
-    est_p = au_depart((R @ src_p.T).T)
+    est_p = au_depart(src_xy)
     return est_p, calculer_ate(est_p, gt_p)
 
 
