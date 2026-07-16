@@ -1,4 +1,38 @@
-# PROGRESS — état au 2026-07-06 (soir) — mémoire native + COMPARE.md + caves validée
+# PROGRESS — état au 2026-07-17 (00h30) — REFONTE exécutée, BSU 2.02 validé, gates FAIL sur Bruce_U
+
+## 🏗 REFONTE (16-07, branche `refonte`, session Ultracode) — commits 40872d0→45aa602
+- **ÉTAPE 0 tranchée par mesure** : seed = (0,0), CAP FIXE 0 en dur (θ0 vrai −1.1/+2.5° ;
+  route-fond naïve = 45-78° faux, le ROV tourne de −88° sur 30 m — etape0_seed_cap.py ×2).
+- **⛔2 PROUVÉ** (gate ①) : traces dr des 4 runs finaux BIT-IDENTIQUES (0.0000°/0.00000 m,
+  14 430+ pts) — l'odométrie ne touche plus jamais l'USBL (cmd_vel_odom purgé 259→75 l.).
+- **Amendement 1** : 2 yamls champions FIGÉS (PIEGES #26) — NSSM natif sur yaml BSU =
+  31 fausses loops/+190°/80.7 m. sc=false → slam_aracati_native.yaml ; sc=true → BSU.
+- **Amendement 2** : Bruce_Sonar = FINDING hors verdict (SC détecte 154 vraies revisites,
+  0 acceptée : correction méd 9.5 m > garde-fou 8 m sans ancre ; avec USBL 1.2 m → 65).
+- **Analyse unifiée** : analyse.sh → paper_figs_origine (translation PURE) partout,
+  labels programmatiques ; zéro fit 15 % (vérifié code + git + cross-check ×4 runs).
+
+## 📊 RÉSULTATS (translation pure, PV = results/gates_2026-07-17_0020.txt)
+| méthode | run | ATE origine | S1/S2/S3 | Umeyama | carte méd/p90 |
+|---|---|---|---|---|---|
+| **BSU** 🏆 | 213715 | **2.02** | 2.36/**1.89**/**3.69** | **1.38** (record stage) | **0.07/0.51** |
+| Bruce_Sonar | 205255 | 19.24 (=odom, finding) | 6.06/12.50/8.64 | 10.64 | 0.25/1.73 |
+| Bruce natif | 230354 | 4.99 ⚠ | 2.62/2.84/4.46 | 3.21 (arch. 1.88) | 0.13/0.95 |
+| Bruce_U natif | 234801 | 9.38 ⚠ | 3.16/3.29/11.00 | 7.01 (arch. 1.74) | 0.29/1.60 |
+- BSU devant ISOPoT (3.2/3.5/4.6) sur LES 3 sections, seed 100 % GT-free.
+- **Gates : FAIL** (Bruce_U 9.38 > Bruce 4.99) → STOP mission sur chap 1.
+
+## 🚨 NON TRANCHÉ (R2) — Bruce/Bruce_U refonte SOUS les champions archivés
+- Mesuré : 88/57 loops natives, torsions 25-30°, USBL AGGRAVE (7.01 vs 3.21 Umeyama).
+- H2 ouverte : CODE divergent (752 lignes de diff slam.py/slam_ros.py vs branche Bruce) ;
+  H variance (1 seul run, R3 exige ×2) ; archéologie launch Bruce incomplète (front-end
+  usbl=true gain 0.4 par DÉFAUT chez eux, env TESTS.md le coupait).
+- Options (Nathan tranche) : A) chap 1 = runs ARCHIVÉS branche Bruce (223959/233119),
+  refonte porte BSU+BS+preuve odométrie — zéro run en plus · B) ×2 re-runs (1,5 h) ·
+  C) archéologie code (long). Papier PAS touché (⛔ mission : EN DERNIER).
+
+---
+
 
 ## 🧠 MÉMOIRE REFONDUE (07-06 soir) — claude-mem SUPPRIMÉ, natif en place
 - claude-mem v13 installé puis **supprimé le soir même** : ses hooks bloquaient les réponses

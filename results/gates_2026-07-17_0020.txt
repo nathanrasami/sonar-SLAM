@@ -1,0 +1,31 @@
+Runs évalués :
+  bruce        /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_bruce_2026-07-16_230354
+  bruce_u      /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_bruce_u_2026-07-16_234801
+  bruce_sonar  /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_bruce_sonar_2026-07-16_205255
+  bsu          /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_bsu_2026-07-16_213715
+
+── Gate ① dr identiques ×4 (réf = bruce) [seuils : rot ≤ 0.02°, méd ≤ 0.01 m, p99 ≤ 0.05 m]
+  méthode        N pts  rotation  résidu méd      p99      max
+  bruce_u        14430   0.0000°    0.00000m  0.0000m  0.0000m  ✓
+  bruce_sonar    14433   0.0000°    0.00000m  0.0000m  0.0000m  ✓
+  bsu            14435   0.0000°    0.00000m  0.0000m  0.0000m  ✓
+
+── Gate ② ATE origine translation pure (global · S1/S2/S3 · odom)
+  bruce        ATE   4.99 m | S 2.62/2.84/4.46 | odom 19.57 m | run_bruce_2026-07-16_230354
+  bruce_u      ATE   9.38 m | S 3.16/3.29/11.00 | odom 19.56 m | run_bruce_u_2026-07-16_234801
+  bruce_sonar  ATE  19.24 m | S 6.06/12.50/8.64 | odom 19.24 m | run_bruce_sonar_2026-07-16_205255
+  bsu          ATE   2.02 m | S 2.36/1.89/3.69 | odom 19.21 m | run_bsu_2026-07-16_213715
+
+── Gate ③ ordre attendu : BSU ≤ BU < Bruce (BS hors verdict, amendé 16-07)
+  ℹ Bruce_Sonar (finding SC-sans-ancre) : ATE 19.24 m, attendu ≈ odométrie 19.24 m
+  ✓ BSU ≤ Bruce_U          (marge +7.36 m)
+  ✗ Bruce_U < Bruce        VIOLÉ de 4.39 m → FAIL, STOP (R2)
+  ✓ BSU < Bruce            (marge +2.97 m)
+
+── Gate ④ carte : cloud vs cloud-GT (méd/p90, Umeyama interne) — informatif
+  bruce        méd  0.13 m | p90  0.95 m (87389 pts)
+  bruce_u      méd  0.29 m | p90  1.60 m (87316 pts)
+  bruce_sonar  méd  0.25 m | p90  1.73 m (218249 pts)
+  bsu          méd  0.07 m | p90  0.51 m (217065 pts)
+
+════ VERDICT GATES : FAIL
