@@ -289,3 +289,25 @@ ICP sur du bruit → 363 fausses contraintes, ATE origine 67 m. Les 4 runs ×5 :
 - Règle 3 : « l'effet doit être visible sur le DR » ne passe PAS par L1 (l'image sonar ne
   touche pas le DR) — c'est L2/L3. L1 trop fort détruit l'outil de MESURE (la carte), pas
   la nav. ⚠ /sonar = 32FC1 (floats 0-1), seuil mono8 30 ≡ 0.118 — lire uint8 = mesure fausse.
+
+## 25. Un seed de cap « route-fond » estimé sur 1 m avec des fixes bruités à 1.4 m = cap ALÉATOIRE ; et l'odométrie ne doit JAMAIS dépendre de l'USBL (vécu : papier, 2026-07-17)
+
+`cmd_vel_odom.py` (use_usbl=True) seedait le repère : position = fix courant, cap =
+route-fond après `usbl_seed_min_disp = 1.0` m — or un fix USBL bruite à ~1.4 m : la
+fenêtre d'estimation est PLUS PETITE que le bruit d'un seul point → cap seedé quasi
+aléatoire (mesuré : **−30.88°** sur les runs Bruce_USBL, déterministe au replay).
+Conséquence : TOUTE l'odométrie (et le SLAM aval) vit dans un repère tourné ; en
+métrique translation-pure ça coûte 1.6 m/° (Bruce+USBL : 8-11 m d'ATE alors que la
+trajectoire relative est saine, carte 0.09 m).
+- Règle 1 : l'odométrie intègre /cmd_vel et RIEN d'autre — un capteur absolu (USBL)
+  n'entre que comme FACTEURS back-end. Gate : les traces dr de 2 configs ±USBL
+  doivent être identiques (rigid-check : rotation 0°, résidu ~0).
+- Règle 2 : tout cap estimé par route-fond exige une base ≥ 10-20× le bruit d'un fix
+  (ici ≥ 20-30 m), avec fit robuste — sinon c'est un tirage.
+- Règle 3 (vécu ×3 sur ce papier) : une CONVENTION d'évaluation est une décision
+  utilisateur consignée, pas un détail d'implémentation — corde 15 m et fit « 15 %
+  des poses » (analyze_origine, période Opus) ont chacun réécrit l'histoire des
+  résultats sans que personne ne l'ait décidé. Convention FINALE (Nathan 17-07) :
+  translation pure, zéro rotation ajustée. Cf. REFONTE_MISSION.md.
+- Corollaire logging : dr_theta doit être dans le MÊME repère que dr_x/y (la branche
+  Bruce loggait theta sans l'offset de seed, positions avec).

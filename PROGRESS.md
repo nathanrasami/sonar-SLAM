@@ -6,6 +6,33 @@
 > ⚠ **`§2.3quinquies` n'existe plus** : HOLOOCEAN_3D_GUIDE.md a été réécrit lean (129 lignes).
 > La spec du sonar vertical est désormais son **§1** ; les checks sont **E1–E4** (§2).
 
+## 2026-07-17 (Fable) : **CRISE CONVENTIONS PAPIER RÉSOLUE → convention FINALE translation pure + REFONTE décidée (4 méthodes, 1 état de code) — mission consignée `REFONTE_MISSION.md`, session « Ultracode » à ouvrir**
+
+**Chronologie de la crise (3 conventions en 24 h — PIEGES #25 règle 3)** :
+corde 15 m (BSU 5.08, Nathan alerte) → fit 15 % des poses (BSU 1.83 — venait
+d'analyze_origine période Opus, jamais décidé par personne) → **translation PURE
+(décision Nathan : GT et estimé épinglés (0,0), zéro rotation, zéro GT)** = finale,
+implémentée partout (paper_figs_origine + analyze_origine alignés), commit ec3a36c.
+- Chiffres finaux (anciens runs) : **BSU 1.94/2.00 ×2, sections 2.22/2.46/2.65 =
+  devant TOUS les publiés sur les 3 sections** (ISOPoT-assisté 3.2/3.5/4.6, protocole
+  plus sévère chez nous) ; Bruce seul 2.58/3.56 ; odom check 6.0/12.6/8.4 ≈ leur ligne.
+- **Découverte majeure (question Nathan « pourquoi USBL déforme l'odométrie ? ») —
+  MESURÉ** : l'odométrie des runs ±USBL est identique à 5 cm RMS près APRÈS rotation
+  rigide **−30.88°** → le seed `use_usbl` de cmd_vel_odom (cap route-fond sur 1 m <
+  bruit fix 1.4 m) tournait tout le repère (PIEGES #25). Bruce+USBL 8-11 m en
+  translation-pure = repère tourné, PAS une dérive. + incohérence logging dr_theta
+  (branche Bruce : theta sans l'offset, xy avec).
+- **DÉCISIONS FIGÉES (Nathan)** : odométrie JAMAIS abonnée à l'USBL (gate : dr
+  identiques ×4 configs) · USBL = facteurs back-end seuls · 4 méthodes
+  {Bruce, Bruce_U, Bruce_Sonar, BSU} = 2 interrupteurs sur UN état de code, 1 run
+  chacune · seed GT-free (cap : étape 0 = mesure (a) cap fixe vs (b) route-fond
+  longue base ≥20-30 m) · objectif ATE origine < 2 m, ordre BSU ≤ BS/BU < B.
+- **➡ PROCHAINE DISCUSSION (« Ultracode ») = exécuter `REFONTE_MISSION.md`** :
+  branche neuve, cmd_vel_odom purgé de l'USBL, launch 2 args, presets run_slam,
+  gates ①-④, papier mis à jour EN DERNIER. Ici : AUCUN code modifié (demande
+  Nathan), tout consigné. Papier état 20 p compile PASS (ec3a36c) — tableaux à
+  refaire après la refonte.
+
 ## 2026-07-16 (Fable) : **ROUND 2 ×5 INEXPLOITABLE (mesuré) → L1 ×5→×2 (PIEGES #24) + pipeline `./run_noise2.sh` relancé ; ménage −73 Go ; papier LaTeX démarré (Paper/)**
 
 **① Verdict des 8 runs (ATE origine ancré 1ʳᵉ pose, script scratchpad noise_compare.py)** :
