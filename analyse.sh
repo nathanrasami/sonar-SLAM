@@ -44,6 +44,9 @@ case "$RUN" in
     # ===== chaîne ARACATI (historique) =====
     run_py analyze_drift.py        # erreur de trajectoire over time
     run_py analyze_origine.py
+    # figures papier (REFONTE ⛔1) : traj/err/sections en TRANSLATION PURE,
+    # label = nom du run (programmatique, jamais manuel)
+    run_py paper_figs_origine.py "$CHEMIN" --label "$RUN" --out "$CHEMIN"
     run_py plot_trajectories.py
 
     # cloud filtré par intensité — seulement si la colonne existe
