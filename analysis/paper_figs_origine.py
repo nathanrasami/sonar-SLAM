@@ -60,16 +60,16 @@ def main():
 
     # ---- 1) trajectoire ancrée origine
     fig, ax = plt.subplots(figsize=(7, 6))
-    ax.plot(gxy[:, 0], gxy[:, 1], color=C_GT, lw=1.6, label="Vérité terrain (DGPS)")
+    ax.plot(gxy[:, 0], gxy[:, 1], color=C_GT, lw=1.6, label="Ground truth (DGPS)")
     ax.plot(est_fp[:, 0], est_fp[:, 1], color=C_SLAM, lw=1.3,
-            label=f"SLAM ancré départ — ATE {ate_fp:.2f} m")
+            label=f"SLAM, start-anchored — ATE {ate_fp:.2f} m")
     ax.plot(dr_fp[:, 0], dr_fp[:, 1], color=C_ODOM, lw=1.0, ls="--",
-            label=f"Odométrie ancrée départ — ATE {ate_o_fp:.2f} m")
-    ax.plot(*gxy[0], "k*", ms=12, label="Départ commun")
+            label=f"Odometry, start-anchored — ATE {ate_o_fp:.2f} m")
+    ax.plot(*gxy[0], "k*", ms=12, label="Common start")
     ax.set_aspect("equal"); ax.grid(alpha=0.3)
     ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
     ax.legend(loc="best", fontsize=9)
-    ax.set_title(f"{a.label} — alignement première pose (corde 15 m)")
+    ax.set_title(f"{a.label} — first-pose alignment (15 m chord)")
     fig.tight_layout()
     fig.savefig(os.path.join(out, f"{a.label}_traj_origine.png"), dpi=150)
     plt.close(fig)
@@ -80,7 +80,7 @@ def main():
     tb = np.linspace(d["t"][0], d["t"][-1], a.sections + 1)
     fig, ax = plt.subplots(figsize=(8, 3.6))
     ax.plot(t_min, e_odom, color=C_ODOM, lw=1.0, ls="--",
-            label=f"Odométrie (fin {e_odom[-1]:.1f} m)")
+            label=f"Odometry (end {e_odom[-1]:.1f} m)")
     ax.plot(t_min, e_slam, color=C_SLAM, lw=1.3,
             label=f"SLAM (ATE {ate_fp:.2f} m)")
     for k in range(1, a.sections):
@@ -89,10 +89,10 @@ def main():
         xm = ((tb[k] + tb[k + 1]) / 2 - d["t"][0]) / 60.0
         ax.text(xm, ax.get_ylim()[1] * 0.92, f"S{k+1}", ha="center",
                 color="gray", fontsize=9)
-    ax.set_xlabel("temps mission (min)")
-    ax.set_ylabel("erreur position (m)")
+    ax.set_xlabel("mission time (min)")
+    ax.set_ylabel("position error (m)")
     ax.grid(alpha=0.3); ax.legend(loc="upper left", fontsize=9)
-    ax.set_title(f"{a.label} — erreur au cours du temps, ancré départ")
+    ax.set_title(f"{a.label} — error over time, start-anchored")
     fig.tight_layout()
     fig.savefig(os.path.join(out, f"{a.label}_err_time_origine.png"), dpi=150)
     plt.close(fig)
@@ -105,14 +105,14 @@ def main():
         a_fp, e_fp = ate_premiere_pose(est[m], gxy[m])
         ates.append(a_fp)
         ax.plot(gxy[m, 0], gxy[m, 1], color=C_GT, lw=1.5, label="GT")
-        ax.plot(e_fp[:, 0], e_fp[:, 1], color=C_SLAM, lw=1.2, label="SLAM ré-ancré")
+        ax.plot(e_fp[:, 0], e_fp[:, 1], color=C_SLAM, lw=1.2, label="SLAM re-anchored")
         ax.plot(*gxy[m][0], "k*", ms=10)
         ax.set_aspect("equal"); ax.grid(alpha=0.3)
         ax.set_title(f"S{k+1} — ATE {a_fp:.2f} m", fontsize=10)
         ax.set_xlabel("x (m)")
         if k == 0:
             ax.set_ylabel("y (m)"); ax.legend(fontsize=8, loc="best")
-    fig.suptitle(f"{a.label} — sections ré-ancrées à leur départ (convention DISO/ISOPoT)")
+    fig.suptitle(f"{a.label} — sections re-anchored at their start (DISO/ISOPoT convention)")
     fig.tight_layout()
     fig.savefig(os.path.join(out, f"{a.label}_sections_origine.png"), dpi=150)
     plt.close(fig)
