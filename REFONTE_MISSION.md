@@ -93,6 +93,23 @@ seeder). Retenir la règle, la déclarer dans le papier, ne plus y toucher.
 Runs anciens conservés : 223959 (Bruce), 233119/001730 (Bruce_U), 201541/210733
 (BSU). Ils restent la référence de comparaison avant/après refonte.
 
+## 🔧 Amendements en session Ultracode (Nathan, 2026-07-16, mesures à l'appui)
+
+1. **⛔4 amendé — 2 yamls champions FIGÉS** (commit 2db18eb, PIEGES #26) : le NSSM
+   natif sur le yaml BSU = 31 fausses loops, +190°, ATE 80.7 m (run 192435). Les 2
+   champions historiques n'ont jamais partagé un yaml. `sc=false` →
+   `slam_aracati_native.yaml` (copie branche Bruce : SSM on, kf 3 m, σ_odom 0.2,
+   sep 8, min_pcm 4, σ_USBL 2.5) ; `sc=true` → `slam_aracati.yaml` (BSU, σ 1.4).
+   « 1 état de CODE » inchangé. Gate ① validé en réel : dr bit-identiques (0.0000°/0.00 mm).
+2. **Gate ③ amendé — Bruce_Sonar hors verdict, reporté comme FINDING** : SC seul
+   détecte 154 vraies revisites (sc_dist 0.60) mais 0 acceptée — sans ancre absolue
+   la correction nécessaire à la revisite (méd 9.5 m, 69 % > 8 m) dépasse le
+   garde-fou `max_translation` et affame le PCM ; avec USBL : méd 1.2 m, 65 loops,
+   ATE 2.02. → complémentarité SC↔USBL, résultat honnête au papier (run 205255,
+   19.24 ≈ odométrie). Ordre du verdict : BSU ≤ Bruce_U < Bruce.
+3. Premier chiffre refonte validé : **BSU 2.02 m origine / 1.38 m Umeyama**
+   (meilleur Umeyama du stage, seed 100 % GT-free cap 0), run 213715.
+
 ## Interdits (rappel)
 
 - /pose_gt hors évaluation (seed compris). Umeyama hors debug interne.

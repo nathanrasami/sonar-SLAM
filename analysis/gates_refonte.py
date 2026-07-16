@@ -7,7 +7,10 @@
   ② ATE origine : TRANSLATION PURE (départs épinglés (0,0), zéro rotation),
       global + sections S1/S2/S3 ré-épinglées — même métrique que
       paper_figs_origine.py (⛔1).
-  ③ ordre : BSU ≤ Bruce_Sonar, BSU ≤ Bruce_U, Bruce_Sonar < Bruce, Bruce_U < Bruce.
+  ③ ordre : BSU ≤ Bruce_U < Bruce (AMENDÉ par Nathan 16-07 : Bruce_Sonar sort du
+      verdict — SC sans ancre absolue = 0/154 loops acceptées, la dérive à la
+      revisite (méd 9.5 m) dépasse le garde-fou 8 m → BS ≈ odométrie, reporté au
+      papier comme FINDING de complémentarité SC↔USBL, pas comme échec de gate).
       Violation ≤ 0.10 m = LIMITE (variance ICP connue : ×2 avant verdict, R3) ;
       au-delà = FAIL → STOP, investigation R2, pas de rapport (⛔5).
   ④ carte : cloud vs cloud-GT méd/p90 (Umeyama INTERNE debug, jamais papier).
@@ -109,12 +112,13 @@ def gate2_ate(dirs):
 
 def gate3_ordre(res):
     a = {k: v[0] for k, v in res.items()}
-    checks = [("BSU ≤ Bruce_Sonar", a["bsu"], a["bruce_sonar"], True),
-              ("BSU ≤ Bruce_U", a["bsu"], a["bruce_u"], True),
-              ("Bruce_Sonar < Bruce", a["bruce_sonar"], a["bruce"], False),
-              ("Bruce_U < Bruce", a["bruce_u"], a["bruce"], False)]
+    checks = [("BSU ≤ Bruce_U", a["bsu"], a["bruce_u"], True),
+              ("Bruce_U < Bruce", a["bruce_u"], a["bruce"], False),
+              ("BSU < Bruce", a["bsu"], a["bruce"], False)]
     verdict = "PASS"
-    print("\n── Gate ③ ordre attendu : BSU ≤ BS/BU < Bruce")
+    print("\n── Gate ③ ordre attendu : BSU ≤ BU < Bruce (BS hors verdict, amendé 16-07)")
+    print(f"  ℹ Bruce_Sonar (finding SC-sans-ancre) : ATE {a['bruce_sonar']:.2f} m, "
+          f"attendu ≈ odométrie {res['bruce_sonar'][2]:.2f} m")
     for label, lhs, rhs, or_eq in checks:
         d = rhs - lhs
         if (lhs <= rhs if or_eq else lhs < rhs):
