@@ -65,34 +65,35 @@ chapter~1 ($\sigma = 2.5$) — each constraint source has a ``stiffness budget''
 one stiffens the other must yield (measured three times, in line with the adaptive
 USBL factor literature~[5]).
 
-\subsection{Results (origin protocol)}
+\subsection{Results (start-pinned protocol)}
 \label{sec:chap2-res}
 
 \begin{table}[H]
 \centering
-\caption{Chapter 2 — origin-anchored ATE (m) and relative errors, two runs
+\caption{Chapter 2 — start-pinned ATE (m) and relative errors, two runs
 (champion configuration: Sonar Context $\tau = 0.70$ + USBL $\sigma = 1.4$).}
 \label{tab:chap2}
 \begin{tabular}{lcccccc}
 \hline
 run & Global ATE & S1 & S2 & S3 & Trans. (\%) & Rot. (°/m) \\
 \hline
-1 & \textbf{1.83} & 4.01 & 2.77 & 1.86 & 5.00 & 0.090 \\
-2 & \textbf{1.83} & 3.86 & 3.03 & 1.61 & 4.99 & 0.080 \\
+1 & \textbf{1.94} & 2.22 & 2.46 & 2.65 & 5.00 & 0.090 \\
+2 & \textbf{2.00} & 2.49 & 2.37 & 2.28 & 4.99 & 0.080 \\
 \hline
 \end{tabular}
 \end{table}
 
 Three readings:
 \begin{itemize}
-\item \textbf{Global anchored ATE of 1.83 m over the 44 min mission, identical
-  across both runs} — the best value of this document (chapter~1: 2.33--5.76 m), and
-  an order of magnitude below the odometry (18.5 m). The Sonar Context loops also
-  straighten the heading ($\beta = 90.0$--90.3°, nominal), where the chapter~1
-  method let the initial USBL seed offset drift.
+\item \textbf{Start-pinned ATE of 1.94--2.00 m over the 44 min mission, flat across
+  the sections (2.2--2.7 m)} — the best values of this document (chapter~1:
+  2.58--10.90 m), an order of magnitude below the odometry (20.9 m). The Sonar
+  Context loops straighten the frame heading (residual offset 0.0--0.3°), which is
+  precisely what the chapter~1 USBL variant lacked: the raw-frame evaluation only
+  works because the loops correct the noisy heading seed.
 \item \textbf{The local metric confirms it}: Trans. 5.0~\%, repeatable to 0.01
-  points between the two runs, against 4.83--23.6~\% in chapter~1 depending on the
-  seed draw — and above all against the published methods (§~\ref{sec:compare}).
+  points between the two runs — and above all against the published methods
+  (§~\ref{sec:compare}).
 \item \textbf{The map is at 0.07 m} (median) from the true map, p90 0.54 m — the
   best figure of both chapters (figure~\ref{fig:bsu-cloudgt}).
 \end{itemize}
@@ -100,7 +101,7 @@ Three readings:
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.72\textwidth]{Image/BSU_traj_origine.png}
-\caption{Chapter 2 (run 1) — trajectories anchored at the common start: ground
+\caption{Chapter 2 (run 1) — trajectories pinned at the common start: ground
 truth, SLAM, pure odometry.}
 \label{fig:bsu-traj}
 \end{figure}
@@ -108,18 +109,17 @@ truth, SLAM, pure odometry.}
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{Image/BSU_err_time_origine.png}
-\caption{Chapter 2 — position error over the mission (origin-anchored convention).
-The Sonar Context loop closures keep the error bounded (ATE 1.83 m over 44 min),
-against 18.5 m of accumulated odometry.}
+\caption{Chapter 2 — position error over the mission (start-pinned convention).
+The Sonar Context loop closures keep the error bounded (ATE 1.94 m over 44 min),
+against 20.9 m of accumulated odometry.}
 \label{fig:bsu-err}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{Image/BSU_sections_origine.png}
-\caption{Chapter 2 — sections re-anchored at their start. S2 (2.77 m) and S3
-(1.86 m) benefit from the revisit density; S1 pays the scarcity of loops at the
-start of the mission (§~\ref{sec:protocole}b).}
+\caption{Chapter 2 — sections re-pinned at their start: 2.2--2.7 m everywhere,
+without any orientation re-fit (§~\ref{sec:protocole}b).}
 \label{fig:bsu-sections}
 \end{figure}
 
@@ -141,15 +141,17 @@ start of the mission (§~\ref{sec:protocole}b).}
 \subsection{Comparison with published methods}
 \label{sec:compare}
 
-Same dataset, same convention (section-wise anchored ATE, RE) — published rows:
-Table~I of ISOPoT~[4] (their evaluation toolbox). ``Aux'' = auxiliary sensors on top
-of the sonar.
+Same dataset — published rows: Table~I of ISOPoT~[4] (their evaluation toolbox,
+sections restarted with the magnetometer heading). Our rows: start-pinned protocol
+of §~\ref{sec:protocole}a, \emph{stricter} (no orientation re-fit anywhere).
+``Aux'' = auxiliary sensors on top of the sonar.
 
 \begin{table}[H]
 \centering
-\caption{Comparison on Aracati2017 — section-wise anchored ATE (m) and relative
-errors. Best value of each column in bold. Our numbers: champion run of each
-chapter.}
+\caption{Comparison on Aracati2017 — section-wise ATE (m) and relative errors.
+Best value of each column in bold. Our numbers: champion run of each chapter,
+start-pinned (no orientation re-fit; the published rows restart each section with
+the magnetometer heading).}
 \label{tab:compare}
 \begin{tabular}{llccccc}
 \hline
@@ -162,9 +164,9 @@ Odom+Mag & DISO~[3] & 5.3 & 6.1 & 10.9 & 13.90 & 0.44 \\
 Odom+Mag & SONIC~[10] & 7.0 & 11.2 & 13.7 & 22.83 & \textbf{0.0} \\
 Odom+Mag & ISOPoT~[4] & \textbf{3.2} & 3.5 & 4.6 & 9.69 & \textbf{0.0} \\
 \hline
-Odom+Mag & Our odometry (same rule, §~\ref{sec:protocole}a) & 5.05 & 11.69 & 7.62 & — & — \\
-Odom+USBL & \textbf{Adapted Bruce-SLAM (chap.~1)} & 5.20 & 4.98 & 2.55 & 23.63$^{1}$ & 0.057 \\
-Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 4.01 & \textbf{2.77} & \textbf{1.86} & \textbf{5.00} & 0.090 \\
+Odom+Mag & Our odometry (fixed-heading frame, check) & 6.00 & 12.62 & 8.44 & — & — \\
+Odom+USBL & \textbf{Adapted Bruce-SLAM (chap.~1, no USBL)} & 2.57 & 5.61 & 2.80 & 4.83 & 0.069 \\
+Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & \textbf{2.22} & \textbf{2.46} & \textbf{2.65} & \textbf{5.00} & 0.090 \\
 \hline
 \end{tabular}
 \end{table}
@@ -172,33 +174,33 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & 4.01 & \textbf{2.77} & \textbf{
 \noindent Reading, with the precautions of §~\ref{sec:protocole}:
 
 \begin{itemize}
-\item \textbf{On the most robust metric (Trans.~\%), we are ahead}: 5.00~\% against
-  9.69~\% for the best published assisted method (ISOPoT), 13.90~\% for DISO.
-  ($^{1}$The 23.6~\% of chapter~1 is the seed artefact documented in
-  §~\ref{sec:chap1-usbl}: measured at 4.83~\% with a nominal $\beta$.)
-\item \textbf{The section-wise anchored ATE is shared}: assisted ISOPoT wins S1
-  (3.2 vs 4.01 m), Sonar Context wins S2 (\textbf{2.77} vs 3.5 m) and S3
-  (\textbf{1.86} vs 4.6 m) — the best published values on these two sections. No
-  method dominates all three. Over the \emph{full 44 min mission}, the global
-  anchored ATE stays at \textbf{1.83 m} — the published odometries have no global
-  figure, since their sections restart from zero.
-\item \textbf{Our weak point S1 is identified and mechanical}: USBL heading seed
-  (course-over-ground of the first fixes, noisy) + almost no revisits at the start of
-  the mission — nothing corrects the anchor before S2. The ``Odom+Mag'' methods start
-  from a magnetometer heading that never drifts.
+\item \textbf{On the most robust metric (Trans.~\%), we are ahead}: 4.83--5.00~\%
+  against 9.69~\% for the best published assisted method (ISOPoT), 13.90~\% for
+  DISO.
+\item \textbf{Sonar Context is below every published method on all three
+  sections} (2.22 / 2.46 / 2.65 m against 3.2 / 3.5 / 4.6 m for the best assisted
+  one) — with a stricter protocol on our side (their sections restart with a fresh
+  magnetometer heading, ours never re-fit any orientation). Over the \emph{full
+  44 min mission}, the start-pinned ATE is \textbf{1.94--2.00 m} — the published
+  odometries have no global figure, since their sections restart from zero.
+\item \textbf{The raw frame is part of the result}: the chapter~1 USBL variant
+  reads 8--11 m in this convention because its noisy heading seed is never
+  corrected (§~\ref{sec:chap1-usbl}); Sonar Context brings it back to 1.94--2.00 m
+  by correcting the heading through loops. The ``Odom+Mag'' methods start from a
+  magnetometer heading that never drifts.
 \item \textbf{The ``Rot. 0.0'' of the Odom+Mag rows is by construction}: their
   heading \emph{is} the magnetometer, which an odometry never modifies; and the
   ``ground-truth'' heading of this dataset derives from the same compass (verified in
   the bag: $\int\omega_z$ and $\Delta$yaw of the ground truth identical to 0.01° over
   120 s). Our 0.057--0.090 °/m are not ``worse'': SLAM adjusts the heading through
   the loops, for global consistency.
-\item \textbf{Protocol check}: our odometry re-anchored per section with the rule of
-  §~\ref{sec:protocole}a (5.05 / 11.69 / 7.62 m) reproduces their published
-  ``odometry alone'' row (5.8 / 12.5 / 6.5 m) on the same data — the two evaluations
-  are on the same convention. Remaining difference: their odometry restarts from
-  zero at each section, ours runs for 44 min straight and closes loops across
-  sections. Finally, none of the published methods delivers a map — we deliver
-  trajectory \emph{and} map (0.07 m median, figure~\ref{fig:bsu-cloudgt}).
+\item \textbf{Protocol check}: our odometry evaluated in a fixed-heading frame
+  (6.00 / 12.62 / 8.44 m) lands close to their published ``odometry alone'' row
+  (5.8 / 12.5 / 6.5 m) on the same data — the two evaluations are consistent.
+  Remaining difference: their odometry restarts from zero at each section, ours
+  runs for 44 min straight and closes loops across sections. Finally, none of the
+  published methods delivers a map — we deliver trajectory \emph{and} map (0.07 m
+  median, figure~\ref{fig:bsu-cloudgt}).
 \item \textbf{Nature of the methods}: ISOPoT relies on pre-trained networks (TAPNext
   point tracking, ResNet50 descriptors) with GPU inference; our two methods are
   100~\% geometric (CFAR, ICP, factor graph), with no learning, CPU-executable —

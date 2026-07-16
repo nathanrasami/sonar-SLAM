@@ -112,33 +112,33 @@ from the same known point, and the metric accumulates the actual drift from this
 start instead of spreading it with an optimal a posteriori fit (Umeyama-style),
 which is discarded here as a protocol choice.
 
-\paragraph{a) Origin-anchored ATE.} The estimated trajectory is translated so that
-its first pose coincides with the ground-truth one; since the DGPS ground truth has
-\emph{no} orientation (the published methods anchor their first pose with their
-magnetometer heading), the initial orientation is set by a rigid fit (rotation, no
-scale) \textbf{on the first 15~\% of poses}. The ATE is the RMSE of the
-point-to-point distances (temporal association). Two properties of this rule:
+\paragraph{a) Start-pinned ATE.} The estimated trajectory and the ground truth are
+both translated so that they start at $(0,0)$. \emph{No rotation is fitted, on
+anything}: the orientation of the estimated frame is part of the system output — it
+is initialised on board from the first USBL fixes (position of the first fix,
+course-over-ground heading), the GT-free equivalent of the \texttt{/initialpose} a
+deployed vehicle receives. The ATE is the RMSE of the point-to-point distances
+(temporal association). Two properties of this rule:
 \begin{itemize}
-\item it is \emph{fixed and identical} for every method, run and section — an
-  anchored metric is very sensitive to the anchor estimate (an initial error of a
-  few degrees rotates the whole trajectory, $\sim$1.6 m of ATE per degree over a
-  90 m footprint), so no per-method tuning is allowed;
-\item it reproduces the published protocol: our odometry re-anchored per section
-  with this rule gives \textbf{5.05 / 11.69 / 7.62 m}, against
-  \textbf{5.8 / 12.5 / 6.5 m} for the ``odometry alone'' row published by
-  ISOPoT~[4] on the same data (§~\ref{sec:compare}) — the two evaluations are on
-  the same convention.
+\item it has \emph{zero free parameter} and is identical for every method, run and
+  section — nothing from the ground truth enters the estimate, not even an
+  orientation anchor;
+\item it is \emph{stricter} than the published protocol: ISOPoT~[4] re-anchors each
+  section with the magnetometer heading, we never re-fit any orientation. As a
+  sanity check, our odometry evaluated in a fixed-heading frame gives
+  \textbf{6.00 / 12.62 / 8.44 m} per section, close to the
+  \textbf{5.8 / 12.5 / 6.5 m} of the ``odometry alone'' row published by ISOPoT on
+  the same data (§~\ref{sec:compare}).
 \end{itemize}
 
 \paragraph{b) Sections S1/S2/S3.} DISO evaluates Aracati as 3 sequences of
 $\sim$15 min (odometry restarted at each section); the exact boundaries are not
 published. We split the continuous mission into \textbf{temporal thirds}, each
-section being \textbf{re-anchored at its own start} (translation + initial
-orientation fitted on the first 15~\% of the section, same rule as §a). Two
-consequences to keep in mind:
+section being \textbf{re-pinned in translation at its own start} (no rotation, same
+rule as §a). Two consequences to keep in mind:
 \begin{itemize}
-\item each section inherits its own noisy local anchor — a section can therefore show
-  an ATE above or below the global one, since the anchors are independent;
+\item a section carries the frame-heading error accumulated up to its start — our
+  sections are \emph{not} given a fresh orientation, unlike the published ones;
 \item our SLAM methods close loops \emph{across} sections (an advantage), while the
   published odometries restart from zero (a disadvantage) — the cross-reading is
   indicative, not a ranking.
@@ -190,12 +190,12 @@ come directly from them.
   low-resolution P900 (density descriptor instead of max-pooling,
   AUC 0.55 $\to$ 0.86), with a geometric gate and a documented threshold calibration
   (chapter~2).
-\item \textbf{Explicit evaluation protocol} (origin anchoring per section, RE, map
-  metric) and \textbf{controlled comparison} with the published methods on this
-  dataset: global anchored ATE of \textbf{1.83 m} over the 44 min mission, relative
-  translation error of \textbf{5.0~\%} against 9.69~\% for the best published
-  assisted method (ISOPoT), and the best published values on sections S2 and S3
-  (chapter~2, §~\ref{sec:compare}).
+\item \textbf{Explicit evaluation protocol} (start-pinned, zero fit, per section;
+  RE; map metric) and \textbf{controlled comparison} with the published methods on
+  this dataset: start-pinned ATE of \textbf{1.94--2.00 m} over the 44 min mission,
+  relative translation error of \textbf{5.0~\%} against 9.69~\% for the best
+  published assisted method (ISOPoT), and better values than every published method
+  on \emph{all three} sections (chapter~2, §~\ref{sec:compare}).
 \end{enumerate}
 
 Chapter~1 presents the base method (Bruce-SLAM adapted GT-free) and its results;
