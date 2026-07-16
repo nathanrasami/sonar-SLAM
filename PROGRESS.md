@@ -22,6 +22,13 @@
 - BSU devant ISOPoT (3.2/3.5/4.6) sur LES 3 sections, seed 100 % GT-free.
 - **Gates : FAIL** (Bruce_U 9.38 > Bruce 4.99) → STOP mission sur chap 1.
 
+## 📄 PAPIER FAIT (17-07, ~1h30, option A actée) — commits holoocean 9d9c32d + 8d58950
+- Chap 2 : tab 3 runs (2 seeds) + run FINAL 2.02 · tab:compare = run final (2.36/1.89/3.69,
+  devant publiés ×3) · NOUVEAU §ablation SC-sans-ancre · protocole seed cap 0 mesuré ·
+  preuve dr bit-identiques. Chap 1 inchangé (runs archivés, déjà en translation pure).
+- xelatex ×2 PASS, 21 p, 0 undef. PDF frais copié dans Paper/main.pdf (repo courant).
+- Docs synchronisés sur holoocean (PIEGES #26, REFONTE_MISSION, PROGRESS).
+
 ## 🚨 NON TRANCHÉ (R2) — Bruce/Bruce_U refonte SOUS les champions archivés
 - Mesuré : 88/57 loops natives, torsions 25-30°, USBL AGGRAVE (7.01 vs 3.21 Umeyama).
 - H2 ouverte : CODE divergent (752 lignes de diff slam.py/slam_ros.py vs branche Bruce) ;
