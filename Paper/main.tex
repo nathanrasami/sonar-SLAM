@@ -1,0 +1,22 @@
+%!TEX root = main.tex
+\input{util/header}
+
+\begin{document}
+
+%Contenu de la 1ere page
+\input{util/titlepage}
+\begingroup \let\clearpage\relax \tableofcontents \listoffigures \endgroup %
+
+% Contenu du document
+\setcounter{section}{-1} % Introduction = 0, les chapitres portent leur numéro
+\input{sections/introduction}
+
+\input{sections/chapitre1_bruce}
+
+\input{sections/chapitre2_sonar_usbl}
+
+% \input{sections/chapitre3_holoocean}   % Chap 3 : simulation HoloOcean + rounds noise (à venir)
+
+\input{sections/bibliographie}
+
+\end{document}

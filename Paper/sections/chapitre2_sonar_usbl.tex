@@ -1,0 +1,193 @@
+%!TEX root = ../main.tex
+\section{Détection de boucles par apparence : Sonar Context adapté + USBL (branche \texttt{Bruce\_Sonar\_USBL})}
+\label{sec:chap2}
+
+Le goulot restant du chapitre~1 est la \textbf{détection} des revisites : la
+présélection par covariance devient aveugle dès que l'incertitude accumulée gonfle.
+Nous remplaçons cette détection par une place recognition \textbf{par apparence}
+dérivée de Sonar Context~[2], en conservant toute la vérification géométrique aval
+(shgo + ICP + PCM) et l'ancrage USBL du chapitre~1 — la contribution est chirurgicale
+(un seul étage change dans la figure~\ref{fig:pipeline}).
+
+\subsection{Descripteur : Sonar Context ré-dérivé pour le P900}
+\label{sec:sc-desc}
+
+Sonar Context~[2] encode l'image sonar polaire en une matrice azimut $\times$ range
+par \emph{max-pooling} d'intensité. Sur le P900 d'Aracati (basse résolution, fond
+marin brillant, saturations), le max-pooling sature partout : descripteur non
+discriminant (\textbf{AUC 0.55}, mesurée sur un banc de paires vraies/fausses
+revisites). Notre variante encode la \textbf{densité de retours structurels} :
+l'image repolarisée $I$ est seuillée puis moyennée par blocs vers $A \times R$ cases
+($A = R = 40$) :
+\begin{equation}
+C(a, r) = \frac{1}{|B_{a,r}|} \sum_{(u,v) \in B_{a,r}} \max\big(I(u,v) - \tau_I,\ 0\big),
+\qquad \tau_I = 95
+\end{equation}
+normalisée par son maximum. Cette variante sépare bien vraies et fausses revisites
+(\textbf{AUC 0.86}). La \textbf{Polar Key} $P_r = \frac{1}{A}\sum_a C(a,r)$
+(invariante en azimut, donc en cap) sert d'index de recherche rapide (kNN euclidien,
+$k = 5$).
+
+\subsection{Distance et décision}
+\label{sec:sc-dist}
+
+Deux contextes sont comparés par distance cosinus colonne par colonne, minimisée sur
+des décalages bornés (rotation $\leftrightarrow$ décalage d'azimut, translation
+radiale $\leftrightarrow$ décalage de range), avec \emph{zero-padding} (le champ de
+130° n'est pas circulaire, contrairement au LiDAR de Scan Context) :
+\begin{equation}
+d(C^q, C^c) = \min_{|s_a| \le 10,\ |s_r| \le 5}\ \frac{1}{R} \sum_{r}
+\left(1 - \frac{\langle C^q_{\cdot r},\ \tilde{C}^c_{\cdot r}(s_a, s_r)\rangle}
+{\lVert C^q_{\cdot r}\rVert\,\lVert \tilde{C}^c_{\cdot r}\rVert}\right)
+\end{equation}
+Un candidat est retenu si $d < \tau$ \textbf{et} s'il passe une \textbf{porte
+géométrique} de 10 m sur la distance des poses estimées (élimine les faux positifs
+lointains que l'apparence seule ne peut pas exclure dans une marina répétitive). Le
+décalage optimal $(s_a, s_r)$ fournit en prime une initialisation grossière de la
+transformation.
+
+\textbf{Calibration du seuil $\tau$.} Le banc descripteur donne un seuil de Youden à
+0.695 (TPR 84~\%, FPR 24~\%). Le journal des décisions d'un run
+(\texttt{loops\_detected.csv}) a ensuite montré qu'entre $\tau = 0.60$ et $0.70$ il y
+avait \textbf{+108 candidats tous vrais (0 faux)} — la porte géométrique et le PCM
+filtrant en aval, nous avons fixé $\tau = 0.70$ (116 contraintes de boucle dans le
+graphe, contre 82 à 0.60).
+
+\subsection{Vérification géométrique et ancrage inchangés}
+
+Chaque candidat retenu suit exactement le pipeline de Bruce-SLAM~[1] : initialisation
+globale shgo (bornes plafonnées à $\pm$20 m — sans ce plafond, la covariance accumulée
+gonfle les bornes à $\pm$130 m et l'optimiseur ne converge plus), ICP avec covariance,
+puis cohérence par paires PCM~[6]. La robustesse ne repose donc \emph{jamais} sur
+l'apparence seule. L'ancrage USBL est celui du §~\ref{sec:usbl}, avec
+$\sigma_{\text{usbl}} = 1.4$ : avec des boucles nombreuses, l'ancre peut être plus
+raide que sur la branche Bruce ($\sigma = 2.5$) — chaque source de contrainte a un
+« budget de rigidité », quand l'une raidit l'autre doit céder (constat mesuré trois
+fois, qui rejoint la littérature des facteurs USBL adaptatifs~[5]).
+
+\subsection{Résultats (protocole origine)}
+\label{sec:chap2-res}
+
+\begin{table}[H]
+\centering
+\caption{Chapitre 2 — ATE ancrée origine (m) et erreurs relatives, deux runs
+(configuration champion : Sonar Context $\tau = 0.70$ + USBL $\sigma = 1.4$).}
+\label{tab:chap2}
+\begin{tabular}{lcccccc}
+\hline
+run & ATE glob. & S1 & S2 & S3 & Trans. (\%) & Rot. (°/m) \\
+\hline
+1 & 5.08 & 5.13 & 2.38 & 4.42 & 5.00 & 0.090 \\
+2 & 4.82 & 4.60 & 2.55 & 3.52 & 4.99 & 0.080 \\
+\hline
+\end{tabular}
+\end{table}
+
+Le gain propre à la détection par apparence se lit sur la métrique la moins sensible
+aux ancres : \textbf{Trans. 5.0~\%} (répétable à 0.01 point près entre les deux runs),
+contre 4.83--23.6~\% au chapitre~1 selon le tirage du seed — et surtout contre les
+méthodes publiées (§~\ref{sec:compare}). L'ATE globale ancrée (4.8--5.1 m) reste
+dominée par l'ancre de départ USBL, comme au chapitre~1 ($\beta = 90.0$--90.3°
+seulement ici : les boucles Sonar Context redressent aussi le cap, là où la branche
+Bruce laissait dériver l'offset initial). La carte est à \textbf{0.07 m} (médiane) de
+la carte vraie, p90 0.54 m — le meilleur chiffre des deux chapitres
+(figure~\ref{fig:bsu-cloudgt}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{Image/BSU_traj_origine.png}
+\caption{Chapitre 2 (run 1) — trajectoires ancrées au départ commun : vérité terrain,
+SLAM, odométrie pure.}
+\label{fig:bsu-traj}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{Image/BSU_err_time_origine.png}
+\caption{Chapitre 2 — erreur de position au cours de la mission (convention ancrée
+origine). Les fermetures de boucle Sonar Context bornent l'erreur autour de
+2--7 m sur les 44 min, contre 20 m d'odométrie cumulée.}
+\label{fig:bsu-err}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Image/BSU_sections_origine.png}
+\caption{Chapitre 2 — sections ré-ancrées à leur départ. S2 (2.38 m) profite de la
+densité maximale de revisites ; S1 paie l'ancre de départ bruitée
+(§~\ref{sec:protocole}b).}
+\label{fig:bsu-sections}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Image/BSU_pointcloud_map.png}
+\caption{Chapitre 2 — carte brute (nuage complet, sans filtre).}
+\label{fig:bsu-map}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Image/BSU_cloud_vs_gt.png}
+\caption{Chapitre 2 — carte estimée contre carte « vraie » (§~\ref{sec:protocole}e) :
+médiane 0.07 m, p90 0.54 m.}
+\label{fig:bsu-cloudgt}
+\end{figure}
+
+\subsection{Comparaison aux méthodes publiées}
+\label{sec:compare}
+
+Même dataset, même convention (ATE ancrée par section, RE) — lignes publiées :
+Table~I d'ISOPoT~[4] (leur toolbox d'évaluation). « Aux » = capteurs auxiliaires en
+plus du sonar.
+
+\begin{table}[H]
+\centering
+\caption{Comparaison sur Aracati2017 — ATE ancrée par section (m) et erreurs
+relatives. Meilleure valeur de chaque colonne en gras. Nos chiffres : moyennes non
+arrondies du run champion de chaque chapitre.}
+\label{tab:compare}
+\begin{tabular}{llccccc}
+\hline
+Aux & Méthode & S1 & S2 & S3 & Trans. (\%) & Rot. (°/m) \\
+\hline
+Aucun & SONIC~[10] & 36.6 & 113.3 & 69.8 & 137.65 & 2.45 \\
+Aucun & ISOPoT~[4] & 8.8 & 12.7 & 16.7 & 22.76 & 0.99 \\
+Odom+Mag & Odométrie seule (reset/section) & 5.8 & 12.5 & 6.5 & 19.07 & \textbf{0.0} \\
+Odom+Mag & DISO~[3] & 5.3 & 6.1 & 10.9 & 13.90 & 0.44 \\
+Odom+Mag & SONIC~[10] & 7.0 & 11.2 & 13.7 & 22.83 & \textbf{0.0} \\
+Odom+Mag & ISOPoT~[4] & \textbf{3.2} & 3.5 & 4.6 & 9.69 & \textbf{0.0} \\
+Odom+USBL & \textbf{Bruce (chap.~1)} & 4.79 & 3.55 & \textbf{1.75} & 23.63$^{1}$ & 0.057 \\
+Odom+USBL & \textbf{Bruce\_Sonar\_USBL (chap.~2)} & 5.13 & \textbf{2.38} & 4.42 & \textbf{5.00} & 0.090 \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent Lecture, avec les précautions du §~\ref{sec:protocole} :
+
+\begin{itemize}
+\item \textbf{Sur la métrique la plus robuste (Trans.~\%), nous sommes devant} :
+  5.00~\% contre 9.69~\% pour la meilleure méthode assistée publiée (ISOPoT), 13.90~\%
+  pour DISO. ($^{1}$Le 23.6~\% du chapitre~1 est l'artefact de seed documenté en
+  §~\ref{sec:chap1-res} : mesuré 4.83~\% à $\beta$ nominal.)
+\item \textbf{L'ATE ancrée par section est partagée} : ISOPoT-assisté gagne S1
+  (3.2 m), nous gagnons S2 (2.38 m) et S3 (1.75 m). Aucune méthode ne domine les trois
+  sections.
+\item \textbf{Notre point faible S1 est identifié et mécanique} : seed de cap USBL
+  (route-fond des premiers fixes, bruitée) + presque pas de revisites en début de
+  mission — rien ne corrige l'ancre avant S2. Les méthodes « Odom+Mag » partent, elles,
+  d'un cap magnétomètre jamais dévié.
+\item \textbf{Le « Rot. 0.0 » des lignes Odom+Mag est par construction} : leur cap
+  \emph{est} le magnétomètre, qu'une odométrie ne modifie jamais ; et le cap « GT »
+  de ce dataset dérive du même compas (vérifié dans le bag : $\int\omega_z$ et
+  $\Delta$yaw GT identiques à 0.01° près sur 120 s). Nos 0.057--0.090 °/m ne sont pas
+  « moins bons » : le SLAM ajuste le cap via les boucles, par cohérence globale.
+\item \textbf{Différence de protocole assumée} : leur « odométrie seule » repart de
+  zéro à chaque section ; nos méthodes courent 44 min d'affilée et ferment des boucles
+  à travers les sections. Enfin, aucune des méthodes publiées ne livre de carte —
+  nous livrons trajectoire \emph{et} carte (0.07 m médiane, figure~\ref{fig:bsu-cloudgt}).
+\item \textbf{Nature des méthodes} : ISOPoT s'appuie sur des réseaux pré-entraînés
+  (suivi de points TAPNext, descripteurs ResNet50) avec inférence GPU ;
+  Bruce/Bruce\_Sonar\_USBL est 100~\% géométrique (CFAR, ICP, graphe de facteurs),
+  sans apprentissage, exécutable CPU — embarquable.
+\end{itemize}

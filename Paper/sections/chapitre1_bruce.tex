@@ -1,0 +1,176 @@
+%!TEX root = ../main.tex
+\section{Bruce-SLAM adapté à Aracati2017 — méthode de base (branche \texttt{Bruce})}
+\label{sec:chap1}
+
+Ce chapitre décrit la méthode de \emph{base} : le système Bruce-SLAM~[1] rendu
+opérationnel en GT-free sur Aracati2017. L'architecture d'origine est conservée
+intégralement ; les sections qui suivent décrivent ce qu'il a fallu \textbf{ajouter}
+pour qu'elle fonctionne — odométrie de bord, correction de chiralité, ancrage USBL —
+puis les résultats selon le protocole du §~\ref{sec:protocole}.
+
+\subsection{Rappel du pipeline Bruce-SLAM}
+
+Le front-end extrait des points « structure » de chaque image sonar par un détecteur
+\textbf{SOCA-CFAR} ; les scans successifs sont agrégés en \textbf{keyframes} (créées
+au-delà d'un seuil de déplacement) et recalés par \textbf{ICP} séquentiel initialisé
+par l'odométrie. Le back-end est un graphe de facteurs optimisé par \textbf{iSAM2}~[9].
+Les fermetures de boucle « non séquentielles » (NSSM) sont détectées géométriquement :
+présélection par covariance et recouvrement estimé, initialisation globale de l'ICP
+par l'optimiseur \textbf{shgo}, validation par la cohérence par paires \textbf{PCM}~[6].
+Un module SSM (recalage court terme multi-frames) affine l'odométrie.
+
+\subsection{Odométrie GT-free : intégration de \texttt{/cmd\_vel}}
+\label{sec:odom}
+
+Aracati2017 ne fournit pas d'odométrie inertielle exploitable ; nous intégrons les
+consignes de vitesse du bord (modèle unicycle plan) :
+\begin{equation}
+\theta_{k+1} = \theta_k + \omega_{z,k}\,\Delta t_k, \qquad
+\mathbf{p}_{k+1} = \mathbf{p}_k + v_{x,k}\,\Delta t_k\,[\cos\theta_k,\ \sin\theta_k]^\top
+\end{equation}
+avec l'amorçage $(\mathbf{p}_0, \theta_0)$ estimé par la route-fond des premiers fixes
+USBL (aucune GT). Comme $\omega_z$ est dérivée du compas~[8], le \textbf{cap} intégré
+est précis (erreur de rotation relative $\approx 0$~°/m) mais la \textbf{translation}
+dérive fortement (consignes $\neq$ vitesses réelles ; courants) : \textbf{20 m} d'ATE
+ancrée en fin de mission (courbe orange des figures~\ref{fig:bruce-err} et
+\ref{fig:bsu-err}). Tout l'enjeu du back-end est de corriger cette translation sans
+toucher au cap.
+
+\subsection{Le bug de chiralité et sa correction}
+\label{sec:chiralite}
+
+\textbf{Symptôme.} Carte « en tourbillon » : chaque scan individuellement net, mais
+les scans successifs peints en arcs incohérents dès que le véhicule tourne — alors que
+la trajectoire, elle, est correcte.
+
+\textbf{Cause.} Les features cartésiennes étaient extraites avec l'axe latéral $y$
+orienté \emph{à droite} (convention héritée du mode DISO du fork, repère indirect),
+tandis que l'odométrie \texttt{/cmd\_vel} produit des poses en repère \emph{direct}
+($\det = +1$). Soit $M = \mathrm{diag}(1, -1)$ le miroir latéral et $\mathbf{p}_l$ un
+point du scan en repère capteur. Le rendu monde applique alors :
+\begin{equation}
+\mathbf{p}_w = R(\theta_k)\,M\,\mathbf{p}_l + \mathbf{t}_k
+             = M\,R(-\theta_k)\,\mathbf{p}_l + \mathbf{t}_k
+\end{equation}
+par l'identité $R(\theta)M = MR(-\theta)$ : tout se passe comme si chaque scan était
+rendu dans un monde en miroir \emph{avec un cap opposé} au cap réel. Les scans
+tournent à contre-sens du véhicule — arcs, « tourbillon », et surtout \textbf{échec
+silencieux de l'ICP de boucle} (les nuages source et cible d'une revisite ne sont pas
+superposables par une transformation rigide directe).
+
+\textbf{Correction.} Un paramètre \texttt{cartesian/flip\_bearing} inverse le $y$
+latéral au moment de l'empaquetage des features ($\chi = +1$ pour l'odométrie directe
+\texttt{/cmd\_vel}, $\chi = -1$ conservé pour DISO). \textbf{Validation} (mêmes
+données, même config) : auto-cohérence du nuage (distance médiane au plus proche
+voisin, 8000 points) \textbf{0.365 $\to$ 0.203 m}, contraintes de boucle acceptées par
+PCM \textbf{6 $\to$ 82}, le quai en T devient lisible. C'est le déblocage dont
+dépendent tous les résultats de ce document.
+
+\subsection{Ancrage USBL dans le graphe de facteurs}
+\label{sec:usbl}
+
+L'USBL fournit des fixes de position absolue $\mathbf{u}_i$ bruités (multitrajets,
+pings aberrants à $\sim$73 m près du transpondeur). Chaque fix est associé à la
+keyframe la plus proche en temps ($|t_i - t_k| \le 1$ s, gating de vitesse 3 m/s) et
+ajouté comme \textbf{facteur unaire robuste sur la position seule} (le cap reste à
+l'odométrie et aux boucles) :
+\begin{equation}
+\phi_i(\mathbf{X}) = \rho_c\!\left(\frac{\lVert \Pi\,\mathbf{X}_{k(i)} - \mathbf{u}_i \rVert}{\sigma_{\text{usbl}}}\right),
+\qquad \rho_c(r) = \tfrac{c^2}{2}\,\log\!\left(1 + \tfrac{r^2}{c^2}\right)
+\end{equation}
+où $\Pi$ projette la pose sur $(x, y)$ et $\rho_c$ est le noyau de Cauchy (les
+outliers saturent au lieu de tirer la solution). Piège documenté : activer \emph{à la
+fois} la correction USBL du front-end et ces facteurs back-end constitue un double
+ancrage contradictoire (dégradation mesurée $\times 3$ de l'ATE).
+
+\subsection{Résultats (protocole origine, §~\ref{sec:protocole})}
+\label{sec:chap1-res}
+
+Deux runs par configuration (répétabilité), chaîne capteurs identique partout
+(chiralité corrigée + odométrie §~\ref{sec:odom}) :
+
+\begin{table}[H]
+\centering
+\caption{Chapitre 1 — ATE ancrée origine (m), globale et par section ré-ancrée,
+et erreurs relatives. Deux runs par configuration.}
+\label{tab:chap1}
+\begin{tabular}{llccccc}
+\hline
+Config & run & ATE glob. & S1 & S2 & S3 & Trans. (\%) \\
+\hline
+Odométrie pure & — & 19.95--20.10 & — & — & — & 32.5 \\
+\hline
+\multirow{2}{*}{Bruce pur (SSM+NSSM, sans USBL)} & 1 & 3.25 & 2.68 & 3.72 & 1.88 & 8.18 \\
+                                                  & 2 & 2.40 & 2.62 & 4.71 & 2.19 & \textbf{4.83} \\
+\hline
+\multirow{2}{*}{Bruce + USBL $\sigma{=}2.5$}      & 1 & 4.48 & 4.79 & 3.55 & \textbf{1.75} & 23.63$^{1}$ \\
+                                                  & 2 & 5.60 & 5.70 & 4.73 & 1.78 & 11.96$^{1}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent Trois lectures, dans l'ordre d'importance :
+
+\textbf{1) Le SLAM corrige bien l'odométrie.} De 20 m de dérive brute à 2.4--5.6 m
+d'ATE ancrée : les boucles natives (SSM/NSSM, 130 contraintes PCM sur le meilleur run)
+et l'ancre USBL ramènent la translation d'un ordre de grandeur, sans dégrader le cap
+(médiane 1.8--3.0°).
+
+\textbf{2) $^{1}$L'artefact de seed sur la métrique ancrée.} Les runs avec USBL
+affichent un Trans.~\% et une ATE globale ancrée \emph{plus élevés} que Bruce pur sans
+USBL — c'est un artefact mesuré, pas un défaut de l'ancre : le cap initial est estimé
+par la route-fond des premiers fixes USBL (bruités), et sur cette branche rien ne le
+corrige ensuite (les facteurs USBL ne touchent que $x,y$). L'offset de convention
+$\beta$ tiré au départ varie d'un run à l'autre ($\beta$ = 90.3° $\to$ Trans 4.83~\% ;
+100.5° $\to$ 11.96~\% ; 112.4° $\to$ 23.63~\% — corrélation directe), et la RE, qui
+exprime les déplacements dans le repère de \emph{chaque} pose, encaisse
+$\sim$1~\%/degré d'offset. Bruce pur, qui part d'un cap fixe (pas de seed estimé),
+tire un $\beta$ nominal. En revanche, \emph{par section} — où chaque tronçon est
+ré-ancré proprement — l'ancre USBL gagne là où les boucles se raréfient (S3 : 1.75 m,
+meilleure valeur du chapitre).
+
+\textbf{3) La carte est juste, pas seulement nette.} Nuage à \textbf{0.09 m} (médiane)
+du nuage re-rendu aux poses GT (p90 0.68 m) — figure~\ref{fig:bruce-cloudgt}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{Image/Bruce_traj_origine.png}
+\caption{Chapitre 1 (run 1, Bruce + USBL) — trajectoires ancrées au départ commun
+(étoile) : vérité terrain DGPS, SLAM, odométrie pure.}
+\label{fig:bruce-traj}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{Image/Bruce_err_time_origine.png}
+\caption{Chapitre 1 — erreur de position au cours de la mission, convention ancrée
+origine. L'odométrie (orange) cumule $\sim$20 m ; le SLAM reste borné. Pointillés
+gris : frontières des sections.}
+\label{fig:bruce-err}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Image/Bruce_sections_origine.png}
+\caption{Chapitre 1 — chaque section ré-ancrée à son propre départ (convention
+DISO/ISOPoT). Les ATE par section ne se moyennent pas vers le global : chaque section
+hérite d'une ancre locale indépendante (§~\ref{sec:protocole}b).}
+\label{fig:bruce-sections}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Image/Bruce_pointcloud_map.png}
+\caption{Chapitre 1 — carte brute (nuage de points complet, sans filtre) : le quai en
+T et les pontons de la marina.}
+\label{fig:bruce-map}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Image/Bruce_cloud_vs_gt.png}
+\caption{Chapitre 1 — carte estimée contre carte « vraie » (mêmes détections
+re-rendues aux poses GT : position DGPS, cap compas — §~\ref{sec:protocole}e).
+Médiane 0.09 m, p90 0.68 m.}
+\label{fig:bruce-cloudgt}
+\end{figure}

@@ -1,0 +1,197 @@
+%!TEX root = ../main.tex
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Contexte et contrainte « GT-free »}
+
+Sous l'eau, ni GPS ni caméra exploitable en eau turbide : le sonar imageur frontal
+(\emph{Forward-Looking Sonar}, FLS) est souvent le seul capteur extéroceptif dense.
+Bruce-SLAM~[1] démontre un SLAM 2D temps réel à partir d'un FLS, mais son déploiement
+sur un dataset réel tiers expose des hypothèses implicites : conventions de repères,
+odométrie de qualité, revisites détectables.
+
+La règle du jeu de ce travail : \textbf{le résultat final doit être obtenable sur un
+vrai véhicule}. Sont autorisés le sonar, l'odométrie du bord et l'USBL (positionnement
+acoustique standard en opération). Sont interdits le DGPS de vérité terrain
+(\texttt{/pose\_gt}) et tout capteur « de laboratoire » — la vérité terrain ne sert
+qu'à l'évaluation. Nuance assumée et documentée : la vitesse angulaire de l'odométrie
+du bord d'Aracati2017 est \emph{dérivée du compas magnétique du véhicule} (README du
+dataset~[8]) — un compas est un capteur embarqué légitime ; la conséquence (cap
+odométrique quasi exact, erreur de rotation relative $\approx 0$) est la même que pour
+les baselines « Odom+Mag » de DISO~[3] et ISOPoT~[4], et nous la signalons partout où
+elle avantage une métrique.
+
+\subsection{Le dataset Aracati2017}
+
+Marina de Rio Grande (Brésil), ROV LBV300-5 naviguant sous une planche flottante
+portant un DGPS (vérité terrain de \emph{position} uniquement — pas d'orientation) :
+sonar \textbf{BlueView P900-130} (130° de champ, portée 50 m, images cartésiennes),
+consignes de vitesse \texttt{/cmd\_vel}, fixes USBL \texttt{/usbl\_point}, compas.
+Mission de 44 min ($\sim$1.5 km) le long d'un quai en T et de pontons. Dataset réputé
+difficile (artefacts de réflexion, zones surexposées, cf.\ l'analyse d'ISOPoT~[4]) ;
+DISO~[3] et ISOPoT~[4] l'utilisent comme banc d'essai, ce qui permet une lecture
+croisée de nos chiffres (§~\ref{sec:protocole}).
+
+\subsection{Vue d'ensemble de la pipeline}
+\label{sec:pipeline}
+
+La figure~\ref{fig:pipeline} synthétise la pipeline réellement exécutée. Le
+chapitre~1 (méthode de base, branche \texttt{Bruce}) couvre tout le schéma avec la
+détection de boucles \emph{géométrique} native de Bruce-SLAM ; le chapitre~2 (méthode
+proposée, branche \texttt{Bruce\_Sonar\_USBL}) remplace \emph{uniquement} l'étage de
+détection des candidats par une place recognition par apparence (Sonar Context adapté
+au P900) — toute la vérification géométrique aval (shgo, ICP, PCM) et l'ancrage USBL
+sont inchangés.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    box/.style={draw=polytechblue, thick, rounded corners=2pt, fill=polytechblue!8,
+                text width=3.0cm, align=center, minimum height=8mm, inner sep=3pt},
+    sensor/.style={draw=black!60, thick, rounded corners=2pt, fill=black!5,
+                text width=2.4cm, align=center, minimum height=8mm, inner sep=3pt},
+    chap2/.style={draw=polytechlight, thick, rounded corners=2pt, fill=polytechlight!12,
+                text width=3.0cm, align=center, minimum height=8mm, inner sep=3pt},
+    outbox/.style={draw=polytechblue, very thick, rounded corners=2pt, fill=white,
+                text width=2.6cm, align=center, minimum height=8mm, inner sep=3pt},
+    fl/.style={-stealth, thick, draw=black!70},
+    node distance=4mm and 7mm]
+
+  % --- rangée 1 : front-end sonar
+  \node[sensor]            (sonar) at (0,0)     {Sonar P900\\ \tiny images polaires 130°};
+  \node[box]               (cfar)  at (3.6,0)   {Détecteur\\ SOCA-CFAR};
+  \node[box]               (chir)  at (7.2,0)   {Features + correction de chiralité ($\chi$)};
+  \node[box]               (kf)    at (10.9,0)  {Keyframes\\ \tiny seuil de déplacement, ICP séquentiel init.\ odom.};
+
+  % --- rangée 2 : détection + vérification des boucles
+  \node[box]               (nssm)  at (5.4,-2.0) {\textbf{Chap.~1} : candidats par proximité / covariance};
+  \node[chap2]             (sc)    at (5.4,-3.6) {\textbf{Chap.~2} : Sonar Context adapté P900\\ \tiny descripteur densité + Polar Key kNN + porte 10 m};
+  \node[box, text width=2.4cm] (verif) at (9.2,-2.8) {Vérification :\\ shgo $\to$ ICP $\to$ PCM};
+
+  % --- rangées 3-4 : odométrie, USBL, back-end
+  \node[sensor]            (cmd)   at (0,-5.6)  {\texttt{/cmd\_vel}\\ \tiny $v_x$ bord, $\omega_z$ compas};
+  \node[box]               (unic)  at (3.6,-5.6) {Intégration unicycle\\ \tiny $\theta_{k+1}{=}\theta_k{+}\omega_z\Delta t$};
+  \node[sensor]            (usbl)  at (0,-7.4)  {USBL\\ \tiny fixes de position bruités};
+  \node[box]               (cauchy) at (3.6,-7.4) {Facteur unaire robuste (Cauchy)\\ \tiny association temporelle KF, position seule};
+  \node[box, text width=2.5cm, fill=polytechblue!15] (graph) at (9.2,-6.0)
+       {\textbf{Graphe de facteurs iSAM2}};
+
+  % --- sorties
+  \node[outbox] (traj)  at (13.0,-5.2) {Trajectoire 2D};
+  \node[outbox] (carte) at (13.0,-6.8) {Carte (nuage de points)};
+
+  % --- flux
+  \draw[fl] (sonar) -- (cfar);
+  \draw[fl] (cfar) -- (chir);
+  \draw[fl] (chir) -- (kf);
+  \draw[fl] (cmd) -- (unic);
+  \draw[fl] (usbl) -- (cauchy);
+  \draw[fl] (kf.south) |- (nssm.east);
+  \draw[fl] (kf.south) |- (sc.east);
+  \draw[fl] (nssm.south) |- ($(verif.west)+(0,2mm)$);
+  \draw[fl] (sc.east) -- ++(4mm,0) |- ($(verif.west)+(0,-2mm)$);
+  \draw[fl] (verif.south) -- (graph.north);
+  \draw[fl] (kf.east) -- ++(4mm,0) |- ($(graph.east)+(4mm,1mm)$) -- ($(graph.east)+(0,1mm)$);
+  \draw[fl] (unic.east) -- ($(graph.west)+(0,1mm)$);
+  \draw[fl] (cauchy.east) -- ++(3mm,0) |- ($(graph.west)+(0,-2mm)$);
+  \draw[fl] ($(graph.north east)!0.5!(graph.east)$) -| ($(traj.west)+(-2mm,0)$) -- (traj.west);
+  \draw[fl] ($(graph.south east)!0.5!(graph.east)$) -| ($(carte.west)+(-2mm,0)$) -- (carte.west);
+\end{tikzpicture}
+\caption{Pipeline réellement exécutée. En gris : capteurs embarqués autorisés (jamais
+la vérité terrain). En bleu foncé : pipeline commune (chapitre~1). En bleu clair : le
+seul étage remplacé au chapitre~2 (détection des candidats de boucle par apparence).}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Protocole d'évaluation : comparaison ancrée à l'origine}
+\label{sec:protocole}
+
+Tous les chiffres de ce document utilisent la \textbf{comparaison ancrée à l'origine}
+(dite « première pose ») : c'est la convention des tables publiées sur Aracati
+(DISO~[3], ISOPoT~[4]) et la plus réaliste opérationnellement — toutes les méthodes
+partent du même endroit connu, et la métrique cumule la dérive réelle depuis ce départ
+au lieu de la répartir par un recalage optimal a posteriori (type Umeyama), écarté ici
+par choix de protocole.
+
+\paragraph{a) ATE ancrée origine.} La trajectoire estimée est translatée pour
+superposer sa première pose à celle de la vérité terrain ; comme la GT DGPS n'a
+\emph{pas} d'orientation, la rotation initiale est fixée en alignant la \textbf{corde
+des 15 premiers mètres} de piste. L'ATE est le RMSE des distances point à point (association
+temporelle). Sensibilité mesurée à cette ancre : corde de 10/15/20/30/50 m
+$\to$ ATE 8.6 / 5.6 / 3.6 / 2.3 / 1.9 m sur un même run — une erreur de quelques
+degrés au départ fait tourner toute la trajectoire ($\sim$1.6 m d'ATE par degré sur
+une emprise de 90 m). La convention est donc \emph{fixée} (corde 15 m) et identique
+pour toutes les méthodes comparées.
+
+\paragraph{b) Sections S1/S2/S3.} DISO évalue Aracati en 3 séquences de $\sim$15 min
+(odométrie redémarrée à chaque section) ; les frontières exactes ne sont pas publiées.
+Nous découpons la mission continue en \textbf{tiers temporels}, chaque section étant
+\textbf{ré-ancrée à son propre départ} (translation + corde 15 m locale). Deux
+conséquences à garder en tête : (i) chaque section hérite d'une ancre locale bruitée —
+une section peut donc afficher une ATE supérieure ou inférieure au global, les ancres
+étant indépendantes ; (ii) nos méthodes SLAM ferment des boucles \emph{à travers} les
+sections (avantage), quand les odométries publiées repartent de zéro (désavantage) —
+la lecture croisée est indicative, pas un classement.
+
+\paragraph{c) Erreurs relatives (RE), comparables aux tables DISO/ISOPoT.} Pour chaque
+départ $i$, on prend le segment de piste GT de longueur $L$ = 10~\% de la section, et
+on compare les déplacements relatifs exprimés dans le repère de la pose $i$ :
+\begin{equation}
+e_{\text{trans}} = \frac{100}{|S|} \sum_{i}
+\frac{\lVert \Delta\hat{\mathbf{p}}_i - \Delta\mathbf{p}_i \rVert}{L_i}\ [\%],
+\qquad
+e_{\text{rot}} = \frac{1}{|S|} \sum_{i}
+\frac{|\Delta\hat\theta_i - \Delta\theta_i|}{L_i}\ [°/\text{m}]
+\end{equation}
+C'est la métrique la moins sensible aux conventions d'ancrage, donc la plus comparable
+entre papiers. Le cap GT $\theta$ vient du compas — fiable sur ce dataset (capteur
+émergé~[4]), mais \emph{identique} à la source de $\omega_z$ : l'erreur de rotation de
+toutes les méthodes « Odom+Mag » (nous compris) est $\approx 0$ par construction, et
+la comparaison signifiante porte sur la translation.
+
+\paragraph{d) Erreur de cap dans le temps.} Le cap estimé $\theta_k$ et le cap compas
+$g_k$ (NED) diffèrent par une convention : on ajuste $g_k \approx s\,\theta_k + \beta$
+($s = \pm 1$, $\beta$ = moyenne circulaire du résidu), puis on rapporte le résidu
+replié — médiane et RMS. L'offset $\beta$ retiré est un choix de repère, pas une
+erreur de la méthode.
+
+\paragraph{e) Erreur de carte.} Les métriques de nuage usuelles (auto-cohérence)
+mesurent la \emph{netteté}, pas la \emph{justesse}. Nous re-rendons \textbf{les mêmes
+détections} aux poses de vérité terrain : chaque point est ramené dans le repère local
+de sa keyframe via la pose estimée, puis re-projeté via la pose GT (position DGPS,
+cap compas $s\,(g_k - \beta)$ — jamais DISO ni aucune méthode tierce). L'erreur de
+carte d'un point est sa distance au plus proche voisin de ce « nuage vrai » ; on
+rapporte médiane et 90\textsuperscript{e} percentile. À détections identiques, cette
+métrique isole la dégradation de la carte causée par les seules erreurs de pose.
+
+Tout le protocole est implémenté dans \texttt{analysis/paper\_eval.py} et
+\texttt{analysis/paper\_figs\_origine.py} ; les chiffres et figures de ce document en
+sortent directement.
+
+\subsection{Contributions et plan}
+
+\begin{enumerate}
+\item \textbf{Diagnostic et correction d'un bug de chiralité} entre les features sonar
+  et l'odométrie (§~\ref{sec:chiralite}) : identité $R(\theta)M = MR(-\theta)$
+  expliquant la carte « en tourbillon », correction en un paramètre, validation
+  quantitative (auto-cohérence du nuage 0.365 $\to$ 0.203 m ; contraintes de boucle
+  6 $\to$ 82).
+\item \textbf{Chaîne odométrique GT-free} : intégration unicycle des consignes
+  \texttt{/cmd\_vel} + facteurs unaires USBL robustes (noyau de Cauchy) dans le graphe
+  iSAM2 (chapitre~1).
+\item \textbf{Détection de boucles par apparence} : Sonar Context~[2] ré-dérivé pour
+  le P900 basse résolution (descripteur de densité au lieu du max-pooling,
+  AUC 0.55 $\to$ 0.86), avec porte géométrique et calibration de seuil documentée
+  (chapitre~2).
+\item \textbf{Protocole d'évaluation explicité} (ancrage origine par section, RE,
+  métrique de carte) et \textbf{comparaison contrôlée} aux méthodes publiées sur ce
+  dataset : erreur relative de translation \textbf{5.0~\%} contre 9.69~\% pour la
+  meilleure méthode assistée publiée (ISOPoT), ATE ancrée par section partagée
+  (chapitre~2, §~\ref{sec:compare}).
+\end{enumerate}
+
+Le chapitre~1 présente la méthode de base (Bruce-SLAM adapté GT-free) et ses
+résultats ; le chapitre~2 la méthode proposée (Sonar Context + USBL) et la comparaison
+complète. Un troisième chapitre (simulation HoloOcean, cartes 3D et robustesse au
+bruit capteur) est en préparation.
