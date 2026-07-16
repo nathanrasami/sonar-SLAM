@@ -311,3 +311,19 @@ trajectoire relative est saine, carte 0.09 m).
   translation pure, zéro rotation ajustée. Cf. REFONTE_MISSION.md.
 - Corollaire logging : dr_theta doit être dans le MÊME repère que dr_x/y (la branche
   Bruce loggait theta sans l'offset de seed, positions avec).
+
+## 26. Une config champion ne se transfère pas entre méthodes : NSSM natif sur le yaml BSU = fausses loops en série (vécu : refonte, 2026-07-16)
+
+- Le quai périodique d'Aracati fabrique des loops fausses MUTUELLEMENT COHÉRENTES qui
+  passent le PCM (cf. §12 et mémoire nssm-retarget) : `bruce` sur le yaml BSU (kf 1 m,
+  SANS SSM, sep 30, min_pcm 6) → **31 loops acceptées, graphe tordu +190°, ATE origine
+  80.7 m** (run 192435). L'odométrie, elle, est restée BIT-IDENTIQUE entre les runs
+  (rigid-check 0.0000°/0.00 mm) : le mal est 100 % back-end.
+- L'ancre USBL ne sauve que PARTIELLEMENT : `bruce_u` même yaml = 4.58 m origine
+  (122 loops, S3 7.93 m) — loin du champion Bruce_U (~2 m).
+- Le champion Bruce historique (223959, 1.88) = SSM=true + yaml branche Bruce
+  (kf 3 m, σ_odom 0.2, sep 8, min_pcm 4) : les 2 champions n'ont JAMAIS partagé un yaml.
+- Règle : une méthode = SA config champion FIGÉE. `sc=false` → `slam_aracati_native.yaml`
+  (copie branche Bruce) ; `sc=true` → `slam_aracati.yaml` (BSU). « 1 état de CODE »
+  ≠ « 1 config » — ne jamais faire tourner un détecteur de loops sur la config
+  calibrée pour un autre.
