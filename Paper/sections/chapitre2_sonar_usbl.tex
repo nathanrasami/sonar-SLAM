@@ -227,8 +227,12 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & \textbf{2.36} & \textbf{1.89} &
 \item \textbf{Protocol check}: our odometry evaluated in a fixed-heading frame
   (6.00 / 12.62 / 8.44 m) lands close to their published ``odometry alone'' row
   (5.8 / 12.5 / 6.5 m) on the same data — the two evaluations are consistent.
-  Remaining difference: their odometry restarts from zero at each section, ours
-  runs for 44 min straight and closes loops across sections. Finally, none of the
+  Remaining difference, on S3: the exact section boundaries are not published, and
+  S3 is the boundary-sensitive one — shifting our S2/S3 boundary by $\pm$3 min
+  moves the odometry S3 figure between 6.1 and 9.4 m, and their 6.5 m sits inside
+  this envelope. We checked that heading effects do not explain the gap:
+  re-anchoring the heading at each section start, or integrating with the
+  continuous compass heading, leaves S3 at 9.0--9.2 m. Finally, none of the
   published methods delivers a map — we deliver trajectory \emph{and} map (0.07 m
   median, figure~\ref{fig:bsu-cloudgt}).
 \item \textbf{Nature of the methods}: ISOPoT relies on pre-trained networks (TAPNext
