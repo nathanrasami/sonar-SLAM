@@ -30,6 +30,14 @@ ItalicFont = *-SemiBoldItalic
 \usepackage{multirow}
 \usepackage{caption}
 \usepackage{hyperref}
+% Autoref compact : "§" pour (sub)section au lieu de "Section"/"Subsection"
+% (AtBeginDocument : babel redéfinit ces noms à \begin{document}, après tout
+% \renewcommand direct du préambule — il faut donc s'exécuter APRÈS lui)
+\AtBeginDocument{%
+  \renewcommand{\sectionautorefname}{§}%
+  \renewcommand{\subsectionautorefname}{§}%
+  \renewcommand{\subsubsectionautorefname}{§}%
+}
 \usepackage{siunitx}
 \usepackage[left=2cm, right=2cm, bottom=2cm, top=3cm, headheight=3cm, headsep=1cm, heightrounded=true]{geometry}
 \graphicspath{{./images/}}

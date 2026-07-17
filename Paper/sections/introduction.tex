@@ -5,7 +5,7 @@
 \subsection{Context and the ``GT-free'' constraint}
 
 Underwater, neither GPS nor cameras are usable in turbid water: the forward-looking
-sonar (FLS) is often the only dense exteroceptive sensor. Bruce-SLAM~[1] demonstrates
+sonar (FLS) is often the only dense sensor. Bruce-SLAM~\hyperref[bib:bruceslam]{[1]} demonstrates
 real-time 2D SLAM from an FLS, but deploying it on a third-party real dataset exposes
 implicit assumptions: frame conventions, odometry quality, detectable revisits.
 
@@ -15,26 +15,33 @@ vehicle}. The allowed sensors are the sonar, the on-board odometry and the USBL
 (\texttt{/pose\_gt}) and any ``laboratory'' sensor are forbidden — ground truth is
 used for evaluation only. One documented nuance: the angular velocity of the
 Aracati2017 on-board odometry is \emph{derived from the vehicle compass} (dataset
-README~[8]) — a compass is a legitimate on-board sensor; the consequence (near-exact
+README~\hyperref[bib:aracati]{[8]}) — a compass is a legitimate on-board sensor; the consequence (near-exact
 odometric heading, relative rotation error $\approx 0$) is the same as for the
-``Odom+Mag'' baselines of DISO~[3] and ISOPoT~[4], and it is flagged wherever it
+``Odom+Mag'' baselines of DISO~\hyperref[bib:diso]{[3]} and ISOPoT~\hyperref[bib:isopot]{[4]}, and it is flagged wherever it
 favours a metric.
 
 \subsection{The Aracati2017 dataset}
 
 Marina of Rio Grande (Brazil), LBV300-5 ROV navigating under a floating board
-carrying a DGPS (\emph{position-only} ground truth — no orientation): a
+carrying a DGPS (\emph{position-only} ground truth — no orientation): 
 \textbf{BlueView P900-130} sonar (130° field of view, 50 m range, Cartesian images),
 velocity commands \texttt{/cmd\_vel}, USBL fixes \texttt{/usbl\_point}, compass.
 A 44-minute mission ($\sim$1.5 km) along a T-shaped dock and pontoons. The dataset is
 known to be difficult (reflection artefacts, overexposed areas, cf.\ the ISOPoT
-analysis~[4]); DISO~[3] and ISOPoT~[4] use it as a benchmark, which allows a
-cross-reading of our numbers (§~\ref{sec:protocole}).
+analysis~\hyperref[bib:isopot]{[4]}); DISO~\hyperref[bib:diso]{[3]} and ISOPoT~\hyperref[bib:isopot]{[4]} use it as a benchmark, which allows a
+cross-reading of our numbers (\autoref{sec:protocole}).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth, trim= 11cm 8cm 9cm 8cm, clip]{Image/aracati.png}
+  \caption{Aracati2017 marina aerial view}
+  \label{fig:aracati}
+\end{figure}
 
 \subsection{Pipeline overview}
 \label{sec:pipeline}
 
-Figure~\ref{fig:pipeline} summarises the pipeline as actually executed. Chapter~1
+\autoref{fig:pipeline} summarises the pipeline as actually executed. Chapter~1
 (base method) covers the whole diagram with the native \emph{geometric} loop
 detection of Bruce-SLAM; chapter~2 (proposed method) replaces \emph{only} the
 candidate detection stage with appearance-based place recognition (Sonar Context
@@ -107,7 +114,7 @@ replaced in chapter~2 (appearance-based loop candidate detection).}
 
 All the numbers in this document use the \textbf{origin-anchored} comparison (also
 called ``first pose''): it is the convention of the published tables on Aracati
-(DISO~[3], ISOPoT~[4]) and the most realistic one operationally — every method starts
+(DISO~\hyperref[bib:diso]{[3]}, ISOPoT~\hyperref[bib:isopot]{[4]}) and the most realistic one operationally — every method starts
 from the same known point, and the metric accumulates the actual drift from this
 start instead of spreading it with an optimal a posteriori fit (Umeyama-style),
 which is discarded here as a protocol choice.
@@ -133,12 +140,12 @@ The ATE is the RMSE of the point-to-point distances
 \item it has \emph{zero free parameter} and is identical for every method, run and
   section — nothing from the ground truth enters the estimate, not even an
   orientation anchor;
-\item it is \emph{stricter} than the published protocol: ISOPoT~[4] re-anchors each
+\item it is \emph{stricter} than the published protocol: ISOPoT~\hyperref[bib:isopot]{[4]} re-anchors each
   section with the magnetometer heading, we never re-fit any orientation. As a
   sanity check, our odometry evaluated in a fixed-heading frame gives
   \textbf{6.00 / 12.62 / 8.44 m} per section, close to the
   \textbf{5.8 / 12.5 / 6.5 m} of the ``odometry alone'' row published by ISOPoT on
-  the same data (§~\ref{sec:compare}).
+  the same data (\autoref{sec:compare}).
 \end{itemize}
 
 \paragraph{b) Sections S1/S2/S3.} DISO evaluates Aracati as 3 sequences of
@@ -166,7 +173,7 @@ e_{\text{rot}} = \frac{1}{|S|} \sum_{i}
 \end{equation}
 This is the metric least sensitive to anchoring conventions, hence the most
 comparable across papers. The ground-truth heading $\theta$ comes from the compass —
-reliable on this dataset (emerged sensor~[4]), but \emph{identical} to the source of
+reliable on this dataset (emerged sensor~\hyperref[bib:isopot]{[4]}), but \emph{identical} to the source of
 $\omega_z$: the rotation error of every ``Odom+Mag'' method (ours included) is
 $\approx 0$ by construction, and the meaningful comparison is on translation.
 
@@ -196,7 +203,7 @@ come directly from them.
 \item \textbf{GT-free odometric chain}: unicycle integration of the \texttt{/cmd\_vel}
   commands + robust unary USBL factors (Cauchy kernel) in the iSAM2 factor graph
   (chapter~1).
-\item \textbf{Appearance-based loop detection}: Sonar Context~[2] re-derived for the
+\item \textbf{Appearance-based loop detection}: Sonar Context~\hyperref[bib:sonarcontext]{[2]} re-derived for the
   low-resolution P900 (density descriptor instead of max-pooling,
   AUC 0.55 $\to$ 0.86), with a geometric gate and a documented threshold calibration
   (chapter~2).
@@ -205,7 +212,7 @@ come directly from them.
   this dataset: start-pinned ATE of \textbf{1.94--2.00 m} over the 44 min mission,
   relative translation error of \textbf{5.0~\%} against 9.69~\% for the best
   published assisted method (ISOPoT), and better values than every published method
-  on \emph{all three} sections (chapter~2, §~\ref{sec:compare}).
+  on \emph{all three} sections (chapter~2, \autoref{sec:compare}).
 \end{enumerate}
 
 Chapter~1 presents the base method (Bruce-SLAM adapted GT-free) and its results;

@@ -1,0 +1,185 @@
+[run_slam] Résultats dans : /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+[0m[INFO] [1784177284.353473135]: Opening /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/BAG_files/holoocean_3d_traj5_noise.bag[0m
+Waiting 0.2 seconds after advertising topics... done.
+
+Hit space to toggle paused, or 's' to step.
+
+** (rviz:203042): WARNING **: 12:48:29.822: atk-bridge: get_device_events_reply: unknown signature
+
+Done.
+[INFO] [1784177285.278880, 0.000000]: Start online sonar feature extraction...
+[INFO] [1784177284.702352, 0.000000]: [dvl_imu_odom] /dvl + /imu -> /direct_sonar/pose (intégration planaire)
+[INFO] [1784177284.730319, 0.000000]: [sonar_bridge] ready — /sonar → /sonar_oculus_node/ping
+[INFO] [1784177288.114567, 1.153290]: [sonar_bridge] 1024 ranges × 512 beams, res=0.0391 m/bin, FOV=120.0°
+[INFO] [1784177284.699950, 0.000000]: [gt_odom_to_pose] /ground_truth (Odometry) -> /pose_gt (PoseStamped)
+SLAM STATUS:  True
+SSM:  False
+NSSM:  True
+SONAR CONTEXT:  False
+USBL FACTORS:  False
+[INFO] [1784177285.547918, 0.000000]: SLAM node is initialized
+[INFO] [1784177285.549498, 0.000000]: Start online slam...
+[INFO] [1784178679.842241, 1392.347224]: Trajectory saved to /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/trajectory.csv
+[INFO] [1784178684.784974, 1392.347224]: Point cloud saved to /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/pointcloud.csv
+[INFO] [1784178684.787140, 1392.347224]: NSSM funnel log saved to /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/nssm_attempts.csv
+[INFO] [1784178684.889117, 1392.347224]: Ground truth saved to /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/groundtruth.csv
+[INFO] [1784178684.955197, 1392.347224]: Odometry saved to /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/odometry.csv
+... logging to /home/nathanrasami/.ros/log/87b11bd4-80d1-11f1-96bc-5ddcbd9e0b41/roslaunch-Natrasami-202960.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/launch/holoocean.launch
+[1mstarted roslaunch server http://localhost:36825/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /bruce/slam/feature_extraction/CFAR/Ngc: 4
+ * /bruce/slam/feature_extraction/CFAR/Ntc: 20
+ * /bruce/slam/feature_extraction/CFAR/Pfa: 0.1
+ * /bruce/slam/feature_extraction/CFAR/alg: SOCA
+ * /bruce/slam/feature_extraction/CFAR/rank: 10
+ * /bruce/slam/feature_extraction/cartesian_mode: False
+ * /bruce/slam/feature_extraction/compressed_images: False
+ * /bruce/slam/feature_extraction/filter/min_points: 5
+ * /bruce/slam/feature_extraction/filter/radius: 1.0
+ * /bruce/slam/feature_extraction/filter/resolution: 0.5
+ * /bruce/slam/feature_extraction/filter/skip: 1
+ * /bruce/slam/feature_extraction/filter/threshold: 30
+ * /bruce/slam/feature_extraction/sonar_context/enable: False
+ * /bruce/slam/feature_extraction/sonar_context/intensity_threshold: 5
+ * /bruce/slam/feature_extraction/sonar_context/num_azimuth: 40
+ * /bruce/slam/feature_extraction/sonar_context/num_range: 40
+ * /bruce/slam/feature_extraction/visualization/color: [0, 165, 255]
+ * /bruce/slam/feature_extraction/visualization/coordinates: polar
+ * /bruce/slam/feature_extraction/visualization/radius: 2
+ * /bruce/slam/slam/enable_slam: True
+ * /bruce/slam/slam/icp_config: /home/nathanrasam...
+ * /bruce/slam/slam/icp_odom_sigmas: [0.1, 0.1, 0.01]
+ * /bruce/slam/slam/keyframe_duration: 1.0
+ * /bruce/slam/slam/keyframe_rotation: 0.2617993877991494
+ * /bruce/slam/slam/keyframe_translation: 0.5
+ * /bruce/slam/slam/min_pcm: 4
+ * /bruce/slam/slam/nssm/cov_samples: 30
+ * /bruce/slam/slam/nssm/enable: True
+ * /bruce/slam/slam/nssm/max_rotation: 1.0471975511965976
+ * /bruce/slam/slam/nssm/max_translation: 10.0
+ * /bruce/slam/slam/nssm/min_points: 50
+ * /bruce/slam/slam/nssm/min_st_sep: 25
+ * /bruce/slam/slam/nssm/source_frames: 5
+ * /bruce/slam/slam/odom_sigmas: [0.1, 0.1, 0.01]
+ * /bruce/slam/slam/pcm_queue_size: 5
+ * /bruce/slam/slam/point_resolution: 0.3
+ * /bruce/slam/slam/prior_sigmas: [0.1, 0.1, 0.01]
+ * /bruce/slam/slam/pz_detection_rate: 0.3
+ * /bruce/slam/slam/pz_samples: 0
+ * /bruce/slam/slam/save_data: True
+ * /bruce/slam/slam/save_fig: False
+ * /bruce/slam/slam/sonar_context/dist_threshold: 0.2
+ * /bruce/slam/slam/sonar_context/dz_gate: 0.0
+ * /bruce/slam/slam/sonar_context/enable: False
+ * /bruce/slam/slam/sonar_context/gate_distance: 10.0
+ * /bruce/slam/slam/sonar_context/knn: 5
+ * /bruce/slam/slam/sonar_context/max_azimuth_shift: 10
+ * /bruce/slam/slam/sonar_context/max_range_shift: 5
+ * /bruce/slam/slam/sonar_context/union: False
+ * /bruce/slam/slam/ssm/enable: False
+ * /bruce/slam/slam/ssm/max_rotation: 0.5235987755982988
+ * /bruce/slam/slam/ssm/max_translation: 3.0
+ * /bruce/slam/slam/ssm/min_points: 50
+ * /bruce/slam/slam/ssm/target_frames: 3
+ * /bruce/slam/slam/usbl/enable: False
+ * /bruce/slam/sonar_bridge/range_m: 40
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /use_sim_time: True
+
+NODES
+  /
+    rosbag_play (rosbag/play)
+    rviz (rviz/rviz)
+  /bruce/slam/
+    dvl_imu_odom (bruce_slam/dvl_imu_odom.py)
+    feature_extraction (bruce_slam/feature_extraction_node.py)
+    gt_odom_to_pose (bruce_slam/gt_odom_to_pose.py)
+    odom_bridge (bruce_slam/odom_bridge_node.py)
+    slam (bruce_slam/slam_node.py)
+    sonar_bridge (bruce_slam/holoocean_sonar_bridge.py)
+
+auto-starting new master
+[1mprocess[master]: started with pid [202983][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/launch/holoocean.launch http://localhost:11311
+[1msetting /run_id to 87b11bd4-80d1-11f1-96bc-5ddcbd9e0b41[0m
+[1mprocess[rosout-1]: started with pid [203008][0m
+started core service [/rosout]
+[1mprocess[rosbag_play-2]: started with pid [203015][0m
+[1mprocess[bruce/slam/gt_odom_to_pose-3]: started with pid [203016][0m
+[1mprocess[bruce/slam/dvl_imu_odom-4]: started with pid [203021][0m
+[1mprocess[bruce/slam/odom_bridge-5]: started with pid [203023][0m
+[1mprocess[bruce/slam/sonar_bridge-6]: started with pid [203024][0m
+[1mprocess[bruce/slam/feature_extraction-7]: started with pid [203025][0m
+[1mprocess[bruce/slam/slam-8]: started with pid [203026][0m
+[1mprocess[rviz-9]: started with pid [203042][0m
+[rviz-9] killing on exit
+[bruce/slam/slam-8] killing on exit
+[bruce/slam/feature_extraction-7] killing on exit
+[bruce/slam/dvl_imu_odom-4] killing on exit
+[bruce/slam/sonar_bridge-6] killing on exit
+[bruce/slam/odom_bridge-5] killing on exit
+[rosbag_play-2] killing on exit
+[bruce/slam/gt_odom_to_pose-3] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
+[31m================================================================================REQUIRED process [rosbag_play-2] has died!
+process has finished cleanly
+log file: /home/nathanrasami/.ros/log/87b11bd4-80d1-11f1-96bc-5ddcbd9e0b41/rosbag_play-2*.log
+Initiating shutdown!
+================================================================================[0m
+[31m[rviz-9] escalating to SIGTERM[0m
+[run_slam] Terminé. Analyse : ./analyse.sh run_holoocean_2026-07-16_124803
+[analyse] /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803
+— holoocean_report.py
+run_holoocean_2026-07-16_124803 : ATE Umeyama 15.06 m (origine 39.46) | DR 0.26 (0.67)
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/carte_finale.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/error_over_time.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/pointcloud_map.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/pointcloud_filtered.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/trajectory_plot.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/trajectory_plot_origine.png
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/trajectory_comparison.png
+— paper_eval.py
+/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/analysis/paper_eval.py:296: UserWarning: Creating legend with loc="best" can be slow with large amounts of data.
+  fig.tight_layout(); fig.savefig(os.path.join(out, f"{label}_cloud_vs_gt.png"), dpi=150)
+/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/analysis/paper_eval.py:309: UserWarning: Creating legend with loc="best" can be slow with large amounts of data.
+  fig.tight_layout(); fig.savefig(os.path.join(out, f"{label}_traj_on_cloud.png"), dpi=150)
+
+===== run_holoocean_2026-07-16_124803 — run_holoocean_2026-07-16_124803 (KF=465, det(R)=+1)
+ATE  : Umeyama SE(2) 15.06 m | premiere-pose 39.46 m | sim(2) echelle 14.66 m (s=1.1559)
+Odom : Umeyama 0.26 m | premiere-pose 0.67 m | RE 0.39 % / 0.001 deg/m
+RE   : translation 70.39 % | rotation 0.304 deg/m (segments 10 %)
+S1   : ATE fp 23.23 m | ATE um 11.71 m | RE 82.73 % / 0.481 deg/m
+S2   : ATE fp 15.67 m | ATE um 7.04 m | RE 79.80 % / 0.261 deg/m
+S3   : ATE fp 6.22 m | ATE um 4.50 m | RE 81.58 % / 0.234 deg/m
+Cap  : med 28.1 deg RMS 34.5 deg (s=+1, beta=54.2 deg)
+Cloud: NN auto 0.478 m | vs cloud-GT med 0.04 m p90 0.09 m (1244905 pts)
+— carte_3d.py (conteneur)
+/sonar_points : std(z) méd 0.00/p90 0.00 | std(x) 10.04 std(y) 12.57 m (auv0, repère véhicule) → pseudo-3D (tranches), EXCLU
+/sonar_vert_points : std(z) méd 6.38/p90 6.42 | std(x) 4.95 std(y) 0.00 m (auv0, repère véhicule) → fan VERTICAL avant, le « + » (1 paroi/faisceau)
+→ carte STRUCTURELLE (fan VERTICAL avant, le « + » (1 paroi/faisceau)) depuis ['/sonar_vert_points'] ; autres sources exclues.
+filtre anti-résidus [SLAM] : -53379 surface, -0 fantômes hors-plan → 626,053 pts
+filtre anti-résidus [GT] : -53800 surface, -10031 fantômes hors-plan → 615,038 pts
+carte : 626,053 pts bruts → 473,557 pts (structurel — fan vertical avant (« + »), 1 paroi/faisceau (voxel 0.2 m))
+carte GT-free vs carte GT (Umeyama) : NN méd 0.879 m | p90 7.451 m
+comblage sonar horizontal : 60,000 pts (bateau + tablier hors portée du profiler)
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/carte_3d.html
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/carte_3d.png/.npy
+— bilan_run.py
+run_holoocean_2026-07-16_124803 : KF=465 ATE=15.06 m | cap méd=28.1° RMS=34.5° (s=+1, β=54°) | cloud 1244905 pts NN=0.478
+-> /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803/bilan_run.png
+[analyse] terminé — fichiers dans /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-16_124803

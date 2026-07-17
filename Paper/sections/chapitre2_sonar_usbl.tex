@@ -5,14 +5,14 @@
 The remaining weak point of chapter~1 is the \textbf{detection} of revisits: the
 covariance-based preselection goes blind as soon as the accumulated uncertainty
 grows. We replace this detection with \textbf{appearance-based} place recognition
-derived from Sonar Context~[2], keeping the whole downstream geometric verification
+derived from Sonar Context~\hyperref[bib:sonarcontext]{[2]}, keeping the whole downstream geometric verification
 (shgo + ICP + PCM) and the USBL anchoring of chapter~1 — a single stage changes in
-figure~\ref{fig:pipeline}.
+\autoref{fig:pipeline}.
 
 \subsection{Descriptor: Sonar Context re-derived for the P900}
 \label{sec:sc-desc}
 
-Sonar Context~[2] encodes the polar sonar image into an azimuth $\times$ range matrix
+Sonar Context~\hyperref[bib:sonarcontext]{[2]} encodes the polar sonar image into an azimuth $\times$ range matrix
 by intensity \emph{max-pooling}. On the Aracati P900 (low resolution, bright seabed,
 saturations), max-pooling saturates everywhere: the descriptor does not discriminate
 (\textbf{AUC 0.55}, measured on a bench of true/false revisit pairs). The retained
@@ -54,17 +54,17 @@ graph, against 82 at 0.60).
 
 \subsection{Geometric verification and anchoring unchanged}
 
-Each retained candidate follows exactly the Bruce-SLAM pipeline~[1]: global shgo
+Each retained candidate follows exactly the Bruce-SLAM pipeline~\hyperref[bib:bruceslam]{[1]}: global shgo
 initialisation (bounds capped at $\pm$20 m — without this cap, the accumulated
 covariance inflates the bounds to $\pm$130 m and the optimiser no longer converges),
-ICP with covariance, then pairwise consistency PCM~[6]. Robustness therefore
+ICP with covariance, then pairwise consistency PCM~\hyperref[bib:pcm]{[6]}. Robustness therefore
 \emph{never} rests on appearance alone. The USBL enters as back-end position factors
 only, with $\sigma_{\text{usbl}} = 1.4$: with numerous loops, the anchor can be
 stiffer than in chapter~1 ($\sigma = 2.5$) — each constraint source has a
 ``stiffness budget'', when one stiffens the other must yield (measured three times,
-in line with the adaptive USBL factor literature~[5]). In the final configuration
+in line with the adaptive USBL factor literature~\hyperref[bib:insusbldvl]{[5]}). In the final configuration
 the odometry never reads the USBL at all — not even for its initial heading
-(§~\ref{sec:protocole}a). We verified this separation directly: the dead-reckoning
+(\autoref{sec:protocole}a). We verified this separation directly: the dead-reckoning
 traces of the runs with and without USBL are bit-identical (rigid check between
 runs: rotation 0.0000°, residual 0.00~mm over 14\,000+ points).
 
@@ -96,12 +96,12 @@ Three readings:
   2.58--10.90 m), an order of magnitude below the odometry (19.2--20.9 m). The
   result does not depend on the seed rule: in runs 1--2 the loops straighten the
   noisy USBL heading seed, in run 3 the frame starts on the measured zero-heading
-  rule (§~\ref{sec:protocole}a) and the loops keep it (residual frame offset 0.1°).
+  rule (\autoref{sec:protocole}a) and the loops keep it (residual frame offset 0.1°).
 \item \textbf{The local metric confirms it}: Trans. 4.73--5.00~\%, repeatable to
   0.3 points across the three runs — and above all against the published methods
-  (§~\ref{sec:compare}).
+  (\autoref{sec:compare}).
 \item \textbf{The map is at 0.07 m} (median) from the true map, p90 0.51 m — the
-  best figure of both chapters (figure~\ref{fig:bsu-cloudgt}).
+  best figure of both chapters (\autoref{fig:bsu-cloudgt}).
 \end{itemize}
 
 \begin{figure}[H]
@@ -125,7 +125,7 @@ against 19.2 m of accumulated odometry.}
 \centering
 \includegraphics[width=\textwidth]{Image/BSU_sections_origine.png}
 \caption{Chapter 2 — sections re-pinned at their start: 1.9--3.7 m,
-without any orientation re-fit (§~\ref{sec:protocole}b).}
+without any orientation re-fit (\autoref{sec:protocole}b).}
 \label{fig:bsu-sections}
 \end{figure}
 
@@ -140,7 +140,7 @@ without any orientation re-fit (§~\ref{sec:protocole}b).}
 \centering
 \includegraphics[width=\textwidth]{Image/BSU_cloud_vs_gt.png}
 \caption{Chapter 2 — estimated map against the ``true'' map
-(§~\ref{sec:protocole}e): median 0.07 m, p90 0.51 m.}
+(\autoref{sec:protocole}e): median 0.07 m, p90 0.51 m.}
 \label{fig:bsu-cloudgt}
 \end{figure}
 
@@ -169,9 +169,9 @@ other.
 \subsection{Comparison with published methods}
 \label{sec:compare}
 
-Same dataset — published rows: Table~I of ISOPoT~[4] (their evaluation toolbox,
+Same dataset — published rows: Table~I of ISOPoT~\hyperref[bib:isopot]{[4]} (their evaluation toolbox,
 sections restarted with the magnetometer heading). Our rows: start-pinned protocol
-of §~\ref{sec:protocole}a, \emph{stricter} (no orientation re-fit anywhere).
+of \autoref{sec:protocole}a, \emph{stricter} (no orientation re-fit anywhere).
 ``Aux'' = auxiliary sensors on top of the sonar.
 
 \begin{table}[H]
@@ -185,12 +185,12 @@ restart each section with the magnetometer heading).}
 \hline
 Aux & Method & S1 & S2 & S3 & Trans. (\%) & Rot. (°/m) \\
 \hline
-None & SONIC~[10] & 36.6 & 113.3 & 69.8 & 137.65 & 2.45 \\
-None & ISOPoT~[4] & 8.8 & 12.7 & 16.7 & 22.76 & 0.99 \\
+None & SONIC~\hyperref[bib:sonic]{[10]} & 36.6 & 113.3 & 69.8 & 137.65 & 2.45 \\
+None & ISOPoT~\hyperref[bib:isopot]{[4]} & 8.8 & 12.7 & 16.7 & 22.76 & 0.99 \\
 Odom+Mag & Odometry alone (reset/section) & 5.8 & 12.5 & 6.5 & 19.07 & \textbf{0.0} \\
-Odom+Mag & DISO~[3] & 5.3 & 6.1 & 10.9 & 13.90 & 0.44 \\
-Odom+Mag & SONIC~[10] & 7.0 & 11.2 & 13.7 & 22.83 & \textbf{0.0} \\
-Odom+Mag & ISOPoT~[4] & \textbf{3.2} & 3.5 & 4.6 & 9.69 & \textbf{0.0} \\
+Odom+Mag & DISO~\hyperref[bib:diso]{[3]} & 5.3 & 6.1 & 10.9 & 13.90 & 0.44 \\
+Odom+Mag & SONIC~\hyperref[bib:sonic]{[10]} & 7.0 & 11.2 & 13.7 & 22.83 & \textbf{0.0} \\
+Odom+Mag & ISOPoT~\hyperref[bib:isopot]{[4]} & \textbf{3.2} & 3.5 & 4.6 & 9.69 & \textbf{0.0} \\
 \hline
 Odom+Mag & Our odometry (fixed-heading frame, check) & 6.00 & 12.62 & 8.44 & — & — \\
 Odom+USBL & \textbf{Adapted Bruce-SLAM (chap.~1, no USBL)} & 2.57 & 5.61 & \textbf{2.80} & 4.83 & 0.069 \\
@@ -199,7 +199,7 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & \textbf{2.36} & \textbf{1.89} &
 \end{tabular}
 \end{table}
 
-\noindent Reading, with the precautions of §~\ref{sec:protocole}:
+\noindent Reading, with the precautions of \autoref{sec:protocole}:
 
 \begin{itemize}
 \item \textbf{On the most robust metric (Trans.~\%), we are ahead}: 4.73--4.83~\%
@@ -214,7 +214,7 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & \textbf{2.36} & \textbf{1.89} &
   from zero.
 \item \textbf{The raw frame is part of the result}: the chapter~1 USBL variant
   reads 8--11 m in this convention because its noisy heading seed is never
-  corrected (§~\ref{sec:chap1-usbl}); with Sonar Context the same convention reads
+  corrected (\autoref{sec:chap1-usbl}); with Sonar Context the same convention reads
   1.94--2.02 m, whether the loops straighten a noisy USBL seed (runs 1--2) or the
   frame starts on the measured zero-heading rule (run 3). The ``Odom+Mag'' methods
   start from a magnetometer heading that never drifts.
@@ -234,7 +234,7 @@ Odom+USBL & \textbf{+ Sonar Context (chap.~2)} & \textbf{2.36} & \textbf{1.89} &
   re-anchoring the heading at each section start, or integrating with the
   continuous compass heading, leaves S3 at 9.0--9.2 m. Finally, none of the
   published methods delivers a map — we deliver trajectory \emph{and} map (0.07 m
-  median, figure~\ref{fig:bsu-cloudgt}).
+  median, \autoref{fig:bsu-cloudgt}).
 \item \textbf{Nature of the methods}: ISOPoT relies on pre-trained networks (TAPNext
   point tracking, ResNet50 descriptors) with GPU inference; our two methods are
   100~\% geometric (CFAR, ICP, factor graph), with no learning, CPU-executable —

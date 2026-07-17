@@ -2,11 +2,11 @@
 \section{Bruce-SLAM adapted to Aracati2017}
 \label{sec:chap1}
 
-This chapter describes the \emph{base} method: the Bruce-SLAM system~[1] made
+This chapter describes the \emph{base} method: the Bruce-SLAM system~\hyperref[bib:bruceslam]{[1]} made
 operational, GT-free, on Aracati2017. The original architecture is kept unchanged;
 the following sections describe what had to be \textbf{added} for it to work —
 on-board odometry and USBL anchoring — then the results under the protocol of
-§~\ref{sec:protocole}.
+\autoref{sec:protocole}.
 
 \subsection{Bruce-SLAM pipeline recap}
 
@@ -14,10 +14,10 @@ The front-end extracts ``structure'' points from each sonar image with a
 \textbf{SOCA-CFAR} detector; successive scans are aggregated into \textbf{keyframes}
 (created beyond a displacement threshold) and registered by sequential \textbf{ICP}
 initialised with the odometry. The back-end is a factor graph optimised with
-\textbf{iSAM2}~[9]. ``Non-sequential'' loop closures (NSSM) are detected
+\textbf{iSAM2}~\hyperref[bib:isam2]{[9]}. ``Non-sequential'' loop closures (NSSM) are detected
 geometrically: preselection by covariance and estimated overlap, global ICP
 initialisation with the \textbf{shgo} optimiser, validation by pairwise consistency
-(\textbf{PCM}~[6]). An SSM module (short-term multi-frame registration) refines the
+(\textbf{PCM}~\hyperref[bib:pcm]{[6]}). An SSM module (short-term multi-frame registration) refines the
 odometry.
 
 \subsection{GT-free odometry: integrating \texttt{/cmd\_vel}}
@@ -31,11 +31,11 @@ commands (planar unicycle model):
 \end{equation}
 with the initial state $(\mathbf{p}_0, \theta_0)$ estimated from the
 course-over-ground of the first USBL fixes (no ground truth). Since $\omega_z$ is
-derived from the compass~[8], the integrated \textbf{heading} is accurate (relative
+derived from the compass~\hyperref[bib:aracati]{[8]}, the integrated \textbf{heading} is accurate (relative
 rotation error $\approx 0$~°/m) but the \textbf{translation} drifts strongly
 (commands $\neq$ actual velocities; currents): \textbf{19.6--21.3 m} of start-pinned
-ATE over the mission (orange curve in figures~\ref{fig:bruce-err} and
-\ref{fig:bsu-err}). The whole point of the back-end is to correct this translation
+ATE over the mission (orange curve in \autoref{fig:bruce-err} and
+\autoref{fig:bsu-err}). The whole point of the back-end is to correct this translation
 without touching the heading.
 
 \subsection{USBL anchoring in the factor graph}
@@ -47,7 +47,7 @@ places, and one must be precise about what is actually enabled:
 \begin{itemize}
 \item \textbf{frame initialisation} (front-end, once): position of the first fix +
   heading from the course-over-ground of the first fixes — this is the seed
-  $(\mathbf{p}_0, \theta_0)$ of §~\ref{sec:odom};
+  $(\mathbf{p}_0, \theta_0)$ of \autoref{sec:odom};
 \item \textbf{continuous dead-reckoning correction} (front-end, causal filter):
   \emph{disabled everywhere} in this document;
 \item \textbf{position factors in the graph} (back-end): the retained mechanism,
@@ -68,14 +68,14 @@ Each fix is associated with the closest keyframe in time ($|t_i - t_k| \le 1$ s,
 where $\Pi$ projects the pose onto $(x, y)$ and $\rho_c$ is the Cauchy kernel
 (outliers saturate instead of pulling the solution).
 
-\subsection{Results — Bruce-SLAM alone (start-pinned protocol, §~\ref{sec:protocole})}
+\subsection{Results — Bruce-SLAM alone (start-pinned protocol, \autoref{sec:protocole})}
 \label{sec:chap1-res}
 
 Two runs per configuration (repeatability), identical sensor chain everywhere
-(odometry of §~\ref{sec:odom}, same configuration files); ``no USBL'' = neither seed
+(odometry of \autoref{sec:odom}, same configuration files); ``no USBL'' = neither seed
 nor factors (fixed-heading start), ``+ USBL'' = seed + back-end factors
-$\sigma = 2.5$. Table~\ref{tab:chap1} gathers both configurations; this section reads
-Bruce-SLAM alone, §~\ref{sec:chap1-usbl} what the USBL anchor changes.
+$\sigma = 2.5$. \autoref{tab:chap1} gathers both configurations; this section reads
+Bruce-SLAM alone, \autoref{sec:chap1-usbl} what the USBL anchor changes.
 
 \begin{table}[H]
 \centering
@@ -101,14 +101,14 @@ With its native loops only (SSM/NSSM), Bruce-SLAM already corrects the odometry 
 order of magnitude:
 \begin{itemize}
 \item from 19.6 m of raw drift down to \textbf{2.58--3.56 m} of start-pinned ATE,
-  without degrading the heading (median 2.2--3.0°) — figures~\ref{fig:bruce-traj}
-  and \ref{fig:bruce-err};
+  without degrading the heading (median 2.2--3.0°) — \autoref{fig:bruce-traj}
+  and \autoref{fig:bruce-err};
 \item per re-pinned section: 2.57 / 5.61 / 2.80 m (run 2,
-  figure~\ref{fig:bruce-sections}) — S2 concentrates the drift, with few revisits to
+  \autoref{fig:bruce-sections}) — S2 concentrates the drift, with few revisits to
   correct it;
 \item the map is correct, not just sharp: point cloud at \textbf{0.09 m} (median)
   from the cloud re-rendered at the ground-truth poses, p90 0.70 m
-  (figures~\ref{fig:bruce-map} and \ref{fig:bruce-cloudgt}).
+  (\autoref{fig:bruce-map} and \autoref{fig:bruce-cloudgt}).
 \end{itemize}
 
 \begin{figure}[H]
@@ -132,7 +132,7 @@ dotted lines: section boundaries.}
 \centering
 \includegraphics[width=\textwidth]{Image/Bruce_sections_origine.png}
 \caption{Bruce-SLAM alone — each section re-pinned in translation at its own start
-(no rotation, §~\ref{sec:protocole}b).}
+(no rotation, \autoref{sec:protocole}b).}
 \label{fig:bruce-sections}
 \end{figure}
 
@@ -149,16 +149,16 @@ dock and the marina pontoons.}
 \includegraphics[width=\textwidth]{Image/Bruce_cloud_vs_gt.png}
 \caption{Bruce-SLAM alone — estimated map against the ``true'' map (same detections
 re-rendered at the ground-truth poses: DGPS position, compass heading —
-§~\ref{sec:protocole}e). Median 0.09 m, p90 0.70 m.}
+\autoref{sec:protocole}e). Median 0.09 m, p90 0.70 m.}
 \label{fig:bruce-cloudgt}
 \end{figure}
 
 \subsection{Adding the USBL anchor}
 \label{sec:chap1-usbl}
 
-The same system with the USBL anchor of §~\ref{sec:usbl} (seed + back-end factors,
-$\sigma = 2.5$) gives figures~\ref{fig:bruce-usbl-traj} to
-\ref{fig:bruce-usbl-sections}, and a start-pinned ATE of \textbf{8.09--10.90 m} —
+The same system with the USBL anchor of \autoref{sec:usbl} (seed + back-end factors,
+$\sigma = 2.5$) gives \autoref{fig:bruce-usbl-traj} to
+\autoref{fig:bruce-usbl-sections}, and a start-pinned ATE of \textbf{8.09--10.90 m} —
 \emph{worse} than Bruce alone. The mechanism is worth stating precisely, because it
 motivates chapter~2:
 
@@ -185,7 +185,7 @@ motivates chapter~2:
 \includegraphics[width=0.72\textwidth]{Image/Bruce_USBL_traj_origine.png}
 \caption{Bruce + USBL $\sigma{=}2.5$ (run 1) — trajectories pinned at the common
 start. The whole trajectory is rotated by the noisy USBL heading seed (ATE 10.90 m
-in the raw frame, §~\ref{sec:chap1-usbl}) — the positions are right relative to the
+in the raw frame, \autoref{sec:chap1-usbl}) — the positions are right relative to the
 fixes, the frame heading is not.}
 \label{fig:bruce-usbl-traj}
 \end{figure}
@@ -203,6 +203,6 @@ heading offset spreads over the whole mission and is never corrected.}
 \includegraphics[width=\textwidth]{Image/Bruce_USBL_sections_origine.png}
 \caption{Bruce + USBL — sections re-pinned at their start: the frame-heading error
 persists inside every section (no orientation is ever re-fitted,
-§~\ref{sec:protocole}b).}
+\autoref{sec:protocole}b).}
 \label{fig:bruce-usbl-sections}
 \end{figure}

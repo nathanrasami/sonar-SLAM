@@ -1,0 +1,46 @@
+[run_slam] Résultats dans : /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-15_141456
+[31m[FATAL] [1784096097.407387939]: Error opening file: /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/BAG_files/holoocean_3d_traj5.bag[0m
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+[0m[INFO] [1784096097.370444067]: Opening /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/BAG_files/holoocean_3d_traj5.bag[0m
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/feature_extraction_node.py", line 4, in <module>
+    from bruce_slam.feature_extraction import FeatureExtraction
+  File "/home/nathanrasami/ros1_ws/src/sonar-SLAM/bruce_slam/src/bruce_slam/feature_extraction.py", line 3, in <module>
+    import cv2
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/slam_node.py", line 5, in <module>
+    from bruce_slam.slam_ros import SLAMNode
+  File "/home/nathanrasami/ros1_ws/src/sonar-SLAM/bruce_slam/src/bruce_slam/slam_ros.py", line 8, in <module>
+    import cv_bridge
+  File "/opt/ros/noetic/lib/python3/dist-packages/cv_bridge/__init__.py", line 6, in <module>
+    from cv_bridge.boost.cv_bridge_boost import cvtColorForDisplay, getCvType
+SystemError: initialization of cv_bridge_boost raised unreported exception
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/odom_bridge_node.py", line 6, in <module>
+    rospy.init_node("odom_bridge_node", log_level=rospy.INFO)
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/client.py", line 323, in init_node
+    raise rospy.exceptions.ROSInitException("init_node interrupted before it could complete")
+rospy.exceptions.ROSInitException: init_node interrupted before it could complete
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/gt_odom_to_pose.py", line 32, in <module>
+    main()
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/gt_odom_to_pose.py", line 24, in main
+    rospy.init_node("gt_odom_to_pose")
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/client.py", line 323, in init_node
+    raise rospy.exceptions.ROSInitException("init_node interrupted before it could complete")
+rospy.exceptions.ROSInitException: init_node interrupted before it could complete
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/dvl_imu_odom.py", line 72, in <module>
+    rospy.init_node("dvl_imu_odom")
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/client.py", line 323, in init_node
+    raise rospy.exceptions.ROSInitException("init_node interrupted before it could complete")
+rospy.exceptions.ROSInitException: init_node interrupted before it could complete
+Traceback (most recent call last):
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/holoocean_sonar_bridge.py", line 71, in <module>
+    main()
+  File "/home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/bruce_slam/scripts/holoocean_sonar_bridge.py", line 62, in main
+    rospy.init_node("holoocean_sonar_bridge")
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/client.py", line 323, in init_node
+    raise rospy.exceptions.ROSInitException("init_node interrupted before it could complete")
+rospy.exceptions.ROSInitException: init_node interrupted before it could complete

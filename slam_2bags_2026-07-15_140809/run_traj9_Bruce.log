@@ -1,0 +1,192 @@
+[run_slam] Résultats dans : /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/results/run_holoocean_2026-07-15_140809
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+[0m[INFO] [1784095691.339988148]: Opening /home/nathanrasami/Documents/Polytech/Stage4A/SLAM/sonar-SLAM/BAG_files/holoocean_3d_traj9.bag[0m
+Waiting 0.2 seconds after advertising topics... done.
+
+Hit space to toggle paused, or 's' to step.
+
+** (rviz:46966): WARNING **: 14:08:37.526: atk-bridge: get_device_events_reply: unknown signature
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-73.067446927475672 > -73.154743006221068). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.983694523739246). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-82.932556080008951 > -83.222323008844796). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-83.835496454419030 > -83.886072125491950). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-39.733404958297641 > -40.560434735262689). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-39.733404958297641 > -40.560434735262689). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-39.733404958297641 > -40.560434735262689). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-39.733404958297641 > -40.560434735262689). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-61.103802299924268 > -61.106130589683858). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-62.878387620089448 > -62.883151702837438). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.218390972950402 > -57.287987915168380). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.194050267811079 > -57.470309248276770). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-57.086626038244091 > -57.347018180211421). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
+/home/nathanrasami/.local/lib/python3.8/site-packages/sklearn/covariance/_robust_covariance.py:186: RuntimeWarning: Determinant has increased; this should not happen: log(det) > log(previous_det) (-32.933014740090151 > -33.331043150001378). You may want to try with a higher value of support_fraction (current value: 0.800).
+  warnings.warn(
