@@ -36,12 +36,20 @@
 - Bruce_USBL archivé (8-11 m origine) : insatisfaisant pour Nathan mais ASSUMÉ (convention
   pure sans re-fit ; l'artefact de seed est expliqué au papier ; options B/C sinon).
 
-## ➡ SUITE : CHAP 3 HOLOOCEAN (nouvelle discussion, branche holoocean)
-- Contenu prévu (mémoire paper-latex-origine) : simulation 2 sonars + profiler, carte 3D,
-  rounds noise R1 vs R2 — matière : runs noise 16-07 (slam_2bags_noise_2026-07-16_114911),
-  baseline dvl 0.13 ×2, HOLOOCEAN_GARDE_FOU.md, branche.md holoocean.
-- Ouvrir la discussion SUR la branche holoocean ; relire PROGRESS + PIEGES + TESTS holoocean
-  avant d'écrire ; skill redaction-nathan à charger AVANT toute rédaction.
+## ✅ CHAP 3 HOLOOCEAN ÉCRIT (17-07, périmètre simplifié par Nathan)
+- Décisions Nathan : partie BRUIT ABANDONNÉE (papier trop long), méthode chap 2 SEULE
+  (pas de comparaison Bruce), présentation détaillée du système 2.5D ; papier désormais
+  SYNCHRONISÉ sur les 6 branches (554a9a7 holoocean + syncs) + règles ignore build LaTeX.
+- Chiffres papier (run BS_9_1 = traj9 propre 15-07) : ATE Umeyama 1.14 m / 443 m (0.26 %),
+  cap méd 0.7° RMS 1.1°, carte 3D 155 284 pts (voxel 0.2 m), NN méd 0.218 m / p90 1.69 m.
+- MESURÉ et dit dans le papier : 0 loop acceptée sur ce run, estimé ≡ DR (écart < 0.1 mm,
+  821/837 KF ≠ = bruit numérique iSAM2) → le chap 3 valide la CHAÎNE 3D, pas les loops.
+- Figures : Holo_carte3d_BS9.png ASPECT RÉEL (set_box_aspect, fini le cube) + Holo_traj_BS9
+  (anglais, convention Umeyama bilan_run répliquée 1.14 ✓) ; 3D interactif dans le PDF
+  REJETÉ (media9 = Acrobat seul, incompatible xelatex) ; compil 25 p PASS (chap 3 = p 20-23).
+- RESTE : dessin UV capteurs par Nathan (placeholder fig. 15) ; relecture globale Nathan
+  (viser ~10 p, actuellement 25) — repasses de style possibles avec Sonnet (compréhension
+  consignée ici + mémoire).
 
 ## 🚨 NON TRANCHÉ (R2) — Bruce/Bruce_U refonte SOUS les champions archivés
 - Mesuré : 88/57 loops natives, torsions 25-30°, USBL AGGRAVE (7.01 vs 3.21 Umeyama).
