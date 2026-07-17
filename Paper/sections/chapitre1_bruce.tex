@@ -48,8 +48,10 @@ places, and one must be precise about what is actually enabled:
 \item \textbf{frame initialisation} (front-end, once): position of the first fix +
   heading from the course-over-ground of the first fixes — this is the seed
   $(\mathbf{p}_0, \theta_0)$ of \autoref{sec:odom};
-\item \textbf{continuous dead-reckoning correction} (front-end, causal filter):
-  \emph{disabled everywhere} in this document;
+\item \textbf{continuous dead-reckoning correction} (front-end): a causal
+  complementary filter pulls the integrated position towards each accepted fix,
+  $\mathbf{p} \mathrel{+}= g\,(\mathbf{u}_i - \mathbf{p})$ (best standalone gain
+  $g = 0.4$, measured offline) — \emph{disabled everywhere} in this document;
 \item \textbf{position factors in the graph} (back-end): the retained mechanism,
   described below.
 \end{itemize}

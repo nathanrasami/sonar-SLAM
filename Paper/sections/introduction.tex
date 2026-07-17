@@ -5,14 +5,11 @@
 \subsection{Context and the ``GT-free'' constraint}
 
 Underwater, neither GPS nor cameras are usable in turbid water: the forward-looking
-sonar (FLS) is often the only dense sensor. Bruce-SLAM~\hyperref[bib:bruceslam]{[1]} demonstrates
-real-time 2D SLAM from an FLS, but deploying it on a third-party real dataset exposes
-implicit assumptions: frame conventions, odometry quality, detectable revisits.
+sonar (FLS) is often the only dense sensor. Bruce-SLAM~\hyperref[bib:bruceslam]{[1]} originally use IMU and DVL, but Aracati2017~\hyperref[bib:aracati]{[8]} has instead a direct command (\texttt{/cmd\_vel}) that is converted to an odometry.
 
 The rule of this work is that \textbf{the final result must be obtainable on a real
-vehicle}. The allowed sensors are the sonar, the on-board odometry and the USBL
-(standard acoustic positioning in operation). The DGPS ground truth
-(\texttt{/pose\_gt}) and any ``laboratory'' sensor are forbidden — ground truth is
+UV}. The allowed sensors are the sonar, the on-board odometry and the USBL. The DGPS ground truth
+(\texttt{/pose\_gt}) is forbidden — ground truth is
 used for evaluation only. One documented nuance: the angular velocity of the
 Aracati2017 on-board odometry is \emph{derived from the vehicle compass} (dataset
 README~\hyperref[bib:aracati]{[8]}) — a compass is a legitimate on-board sensor; the consequence (near-exact
@@ -26,7 +23,7 @@ Marina of Rio Grande (Brazil), LBV300-5 ROV navigating under a floating board
 carrying a DGPS (\emph{position-only} ground truth — no orientation): 
 \textbf{BlueView P900-130} sonar (130° field of view, 50 m range, Cartesian images),
 velocity commands \texttt{/cmd\_vel}, USBL fixes \texttt{/usbl\_point}, compass.
-A 44-minute mission ($\sim$1.5 km) along a T-shaped dock and pontoons. The dataset is
+A 44-minute mission ($\sim$1.5 km) along a T-shaped dock and pontoons (\autoref{fig:aracati}). The dataset is
 known to be difficult (reflection artefacts, overexposed areas, cf.\ the ISOPoT
 analysis~\hyperref[bib:isopot]{[4]}); DISO~\hyperref[bib:diso]{[3]} and ISOPoT~\hyperref[bib:isopot]{[4]} use it as a benchmark, which allows a
 cross-reading of our numbers (\autoref{sec:protocole}).
@@ -38,10 +35,15 @@ cross-reading of our numbers (\autoref{sec:protocole}).
   \label{fig:aracati}
 \end{figure}
 
-\subsection{Pipeline overview}
+\subsection{Pipeline}
 \label{sec:pipeline}
 
-\autoref{fig:pipeline} summarises the pipeline as actually executed. Chapter~1
+\autoref{fig:pipeline} summarises the pipeline as actually executed, with the same
+front-end / back-end split as the original Bruce-SLAM~\hyperref[bib:bruceslam]{[1]}:
+the \textbf{front end} extracts the sonar features and computes the
+\textbf{dead reckoning} that creates the keyframes and initialises the sequential
+ICP; the \textbf{back end} is the iSAM2 factor graph, fed by the sequential
+constraints, the verified loop closures and the USBL position factors. Chapter~1
 (base method) covers the whole diagram with the native \emph{geometric} loop
 detection of Bruce-SLAM; chapter~2 (proposed method) replaces \emph{only} the
 candidate detection stage with appearance-based place recognition (Sonar Context
@@ -63,49 +65,60 @@ and the USBL anchoring are unchanged.
     fl/.style={-stealth, thick, draw=black!70},
     node distance=4mm and 7mm]
 
-  % --- row 1: sonar front-end
+  % --- FRONT END : sonar chain (row 1) + dead reckoning (row 2)
   \node[sensor]            (sonar) at (0,0)     {P900 sonar\\ \tiny 130° polar images};
   \node[box]               (cfar)  at (3.6,0)   {SOCA-CFAR\\ detector};
   \node[box]               (chir)  at (7.2,0)   {Features\\ \tiny retained ``structure'' points};
-  \node[box]               (kf)    at (10.9,0)  {Keyframes\\ \tiny displacement threshold, sequential ICP init.\ odom.};
+  \node[box]               (kf)    at (10.9,0)  {Keyframes\\ \tiny displacement threshold, sequential ICP init.\ by the DR};
+  \node[sensor]            (cmd)   at (0,-1.9)  {\texttt{/cmd\_vel}\\ \tiny $v_x$ on-board, $\omega_z$ compass};
+  \node[box]               (unic)  at (3.6,-1.9) {Dead reckoning\\ \tiny unicycle $\theta_{k+1}{=}\theta_k{+}\omega_z\Delta t$};
+  \node[draw=black!50, dashed, thick, inner sep=2.5mm, rounded corners=2pt,
+        fit=(sonar)(cfar)(chir)(kf)(cmd)(unic),
+        label={[black!60, font=\footnotesize\itshape]north west:front end}] (fe) {};
 
-  % --- row 2: loop detection + verification
-  \node[box]               (nssm)  at (5.4,-2.0) {\textbf{Chap.~1}: candidates by proximity / covariance};
-  \node[chap2]             (sc)    at (5.4,-3.6) {\textbf{Chap.~2}: Sonar Context adapted to the P900\\ \tiny density descriptor + Polar Key kNN + 10 m gate};
-  \node[box, text width=2.4cm] (verif) at (9.2,-2.8) {Verification:\\ shgo $\to$ ICP $\to$ PCM};
-
-  % --- rows 3-4: odometry, USBL, back-end
-  \node[sensor]            (cmd)   at (0,-5.6)  {\texttt{/cmd\_vel}\\ \tiny $v_x$ on-board, $\omega_z$ compass};
-  \node[box]               (unic)  at (3.6,-5.6) {Unicycle integration\\ \tiny $\theta_{k+1}{=}\theta_k{+}\omega_z\Delta t$};
-  \node[sensor]            (usbl)  at (0,-7.4)  {USBL\\ \tiny noisy position fixes};
-  \node[box]               (cauchy) at (3.6,-7.4) {Robust unary factor (Cauchy)\\ \tiny temporal association to KF, position only};
-  \node[box, text width=2.5cm, fill=polytechblue!15] (graph) at (9.2,-6.0)
+  % --- BACK END : loop detection + verification + factor graph + USBL factors
+  \node[box]               (nssm)  at (5.4,-4.3) {\textbf{Chap.~1}: candidates by proximity / covariance};
+  \node[chap2]             (sc)    at (5.4,-5.9) {\textbf{Chap.~2}: Sonar Context adapted to the P900\\ \tiny density descriptor + Polar Key kNN + 10 m gate};
+  \node[box, text width=2.4cm] (verif) at (9.2,-5.1) {Verification:\\ shgo $\to$ ICP $\to$ PCM};
+  \node[box, text width=2.5cm, fill=polytechblue!15] (graph) at (9.2,-7.7)
        {\textbf{iSAM2 factor graph}};
+  \node[box]               (cauchy) at (3.6,-7.7) {Robust unary factor (Cauchy)\\ \tiny temporal association to KF, position only};
+  \node[sensor]            (usbl)  at (0,-9.6)  {USBL\\ \tiny noisy position fixes};
+  \node[draw=black!50, dashed, thick, inner sep=2.5mm, rounded corners=2pt,
+        fit=(nssm)(sc)(verif)(graph)(cauchy),
+        label={[black!60, font=\footnotesize\itshape]south west:back end}] (be) {};
 
   % --- outputs
-  \node[outbox] (traj)  at (13.0,-5.2) {2D trajectory};
-  \node[outbox] (carte) at (13.0,-6.8) {Map (point cloud)};
+  \node[outbox] (traj)  at (13.4,-9.6) {2D trajectory};
+  \node[outbox] (carte) at (9.2,-9.9) {Map (point cloud)};
 
   % --- flows
   \draw[fl] (sonar) -- (cfar);
   \draw[fl] (cfar) -- (chir);
   \draw[fl] (chir) -- (kf);
   \draw[fl] (cmd) -- (unic);
-  \draw[fl] (usbl) -- (cauchy);
-  \draw[fl] (kf.south) |- (nssm.east);
-  \draw[fl] (kf.south) |- (sc.east);
+  \draw[fl] (unic.east) -| ($(kf.south)+(-4mm,0)$);
+  \draw[fl] (usbl.east) -| (cauchy.south);
+  \draw[fl] ($(kf.south)+(4mm,0)$) |- (nssm.east);
+  \draw[fl] ($(kf.south)+(4mm,0)$) |- (sc.east);
   \draw[fl] (nssm.south) |- ($(verif.west)+(0,2mm)$);
   \draw[fl] (sc.east) -- ++(4mm,0) |- ($(verif.west)+(0,-2mm)$);
   \draw[fl] (verif.south) -- (graph.north);
   \draw[fl] (kf.east) -- ++(4mm,0) |- ($(graph.east)+(4mm,1mm)$) -- ($(graph.east)+(0,1mm)$);
-  \draw[fl] (unic.east) -- ($(graph.west)+(0,1mm)$);
-  \draw[fl] (cauchy.east) -- ++(3mm,0) |- ($(graph.west)+(0,-2mm)$);
-  \draw[fl] ($(graph.north east)!0.5!(graph.east)$) -| ($(traj.west)+(-2mm,0)$) -- (traj.west);
-  \draw[fl] ($(graph.south east)!0.5!(graph.east)$) -| ($(carte.west)+(-2mm,0)$) -- (carte.west);
+  \draw[fl] (cauchy.east) -- ($(graph.west)+(0,0)$);
+  \draw[fl] ($(graph.east)+(0,-1mm)$) -- ++(4mm,0) |- (traj.west);
+  \draw[fl] (graph.south) -- (carte.north);
 \end{tikzpicture}
-\caption{Pipeline as actually executed. Grey: allowed on-board sensors (never the
-ground truth). Dark blue: common pipeline (chapter~1). Light blue: the only stage
-replaced in chapter~2 (appearance-based loop candidate detection).}
+\caption{Pipeline as actually executed, front-end / back-end split of the original
+system. Grey: allowed on-board sensors (never the ground truth). Dark blue: common
+pipeline (chapter~1). Light blue: the only stage replaced in chapter~2
+(appearance-based loop candidate detection). The sequential factors of the graph
+are the dead-reckoning deltas between keyframes. The USBL acts in the back end
+only (robust position factors); its two possible front-end roles — seeding the
+frame at $t_0$ (used in chapter~1) and continuously correcting the dead reckoning
+(complementary filter) — are kept out: enabling the front-end correction together
+with the back-end factors is a contradictory double anchoring (measured $\times$3
+ATE degradation, \autoref{sec:usbl}).}
 \label{fig:pipeline}
 \end{figure}
 
@@ -114,10 +127,9 @@ replaced in chapter~2 (appearance-based loop candidate detection).}
 
 All the numbers in this document use the \textbf{origin-anchored} comparison (also
 called ``first pose''): it is the convention of the published tables on Aracati
-(DISO~\hyperref[bib:diso]{[3]}, ISOPoT~\hyperref[bib:isopot]{[4]}) and the most realistic one operationally — every method starts
+(DISO~\hyperref[bib:diso]{[3]}, ISOPoT~\hyperref[bib:isopot]{[4]}) and the most realistic one — every method starts
 from the same known point, and the metric accumulates the actual drift from this
-start instead of spreading it with an optimal a posteriori fit (Umeyama-style),
-which is discarded here as a protocol choice.
+start instead of spreading it with an optimal a posteriori fit (Umeyama-style).
 
 \paragraph{a) Start-pinned ATE.} The estimated trajectory and the ground truth are
 both translated so that they start at $(0,0)$. \emph{No rotation is fitted, on
@@ -202,11 +214,11 @@ come directly from them.
 \begin{enumerate}
 \item \textbf{GT-free odometric chain}: unicycle integration of the \texttt{/cmd\_vel}
   commands + robust unary USBL factors (Cauchy kernel) in the iSAM2 factor graph
-  (chapter~1).
+  (\autoref{sec:chap1}).
 \item \textbf{Appearance-based loop detection}: Sonar Context~\hyperref[bib:sonarcontext]{[2]} re-derived for the
   low-resolution P900 (density descriptor instead of max-pooling,
   AUC 0.55 $\to$ 0.86), with a geometric gate and a documented threshold calibration
-  (chapter~2).
+  (\autoref{sec:chap2}).
 \item \textbf{Explicit evaluation protocol} (start-pinned, zero fit, per section;
   RE; map metric) and \textbf{controlled comparison} with the published methods on
   this dataset: start-pinned ATE of \textbf{1.94--2.00 m} over the 44 min mission,
