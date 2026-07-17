@@ -1,0 +1,157 @@
+%!TEX root = main.tex
+\documentclass{article}
+\usepackage[english]{babel}
+\usepackage[table, dvipsnames]{xcolor}
+%\usepackage[T1]{fontenc}
+% Intégration de la police Gilroy
+\usepackage{fontspec}
+% Définition de la police principale Gilroy
+\setmainfont{Gilroy}[
+Path = fonts/,
+Extension = .otf,
+UprightFont = *-Light,
+BoldFont = *-Bold,
+ItalicFont = *-LightItalic,
+BoldItalicFont = *-BoldItalic
+]
+% Définition d'une variante SemiBold (optionnel)
+\newfontfamily\gilroysemibold{Gilroy}[
+Path = fonts/,
+Extension = .otf,
+UprightFont = *-SemiBold,
+ItalicFont = *-SemiBoldItalic
+]
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{matlab-prettifier}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{siunitx}
+\usepackage[left=2cm, right=2cm, bottom=2cm, top=3cm, headheight=3cm, headsep=1cm, heightrounded=true]{geometry}
+\graphicspath{{./images/}}
+\AddToHook{cmd/section/before}{\clearpage} % next page à chaque \section
+\setlength{\parindent}{0.75cm}
+\usepackage{enumitem}
+\usepackage{comment}
+\usepackage{float}
+\usepackage{subcaption}
+\renewcommand{\listfigurename}{List of plots}
+\renewcommand{\listtablename}{Tables}
+\usepackage{setspace}
+\onehalfspacing
+\pagestyle{fancyplain}
+\renewcommand\plainheadrulewidth{.4pt}
+\fancyhead[L]{\includegraphics[scale=0.5]{Image/PolytechNantesB.png}}
+%\fancyhead[R]{\includegraphics[scale=0.4]{Image/LMJL_logo_jeanleray.jpg}} % logo a droite
+
+% Packages pour la page de couverture avec carrés Polytech
+%\usepackage[dvipsnames, table]{xcolor}
+% J'avais des soucis sur linux je l'ai mis en haut (max)
+% Couleurs personnalisées - DÉPLACÉES ICI AVANT [table]
+\definecolor{polytechblue}{RGB}{0,60,120}
+\definecolor{polytechlight}{RGB}{40,120,200}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning}
+\usepackage{anyfontsize}
+
+\usepackage{sectsty}
+% Section en bleu foncé
+\sectionfont{\color{polytechblue}}
+% Subsection en bleu clair
+\subsectionfont{\color{polytechlight}}
+%\usepackage[table]{xcolor} % pour les couleurs dans les tableaux
+% J'avais des soucis sur linux je l'ai mis en haut (max)
+\usepackage{array} % paske on a des pb de tableau
+\usepackage{tabularx} % pour essayer avec un autre type de tableau
+
+\usepackage{pdflscape} % pour mettre une page en paysage
+
+\usepackage{tcolorbox} % pour avoir des beaux tableaux
+\tcbuselibrary{skins, breakable}
+
+% Couleurs pour les Work Packages
+\definecolor{wpBlue}{RGB}{0,60,120}
+\definecolor{wpLightBlue}{RGB}{40,120,200}
+
+% Environnement WPBox : {titre}{responsable}{couleur}
+\newenvironment{WPBox}[3]{%
+  \begin{tcolorbox}[
+    colback=#3!10,
+    colframe=#3,
+    fonttitle=\bfseries,
+    title={#1 \hfill \textit{Responsable : #2}},
+    breakable
+  ]
+}{%
+  \end{tcolorbox}
+}
+
+% Environnement SubWPBox : {titre}{couleur}
+\newenvironment{SubWPBox}[2]{%
+  \begin{tcolorbox}[
+    colback=#2!5,
+    colframe=#2!60,
+    fonttitle=\bfseries\small,
+    title={#1},
+    left=3mm, right=3mm, top=1mm, bottom=1mm,
+    breakable
+  ]
+}{%
+  \end{tcolorbox}
+}
+
+\usepackage{comment} % pour faire des commentaires tout beau
+
+\usepackage{subcaption}
+% --- DÉBUT CONFIGURATION CODE C ---
+\usepackage{listings}
+
+% Définition des couleurs style "IDE"
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Configuration du style pour le C
+\lstdefinestyle{monstyleC}{
+	backgroundcolor=\color{backcolour},   
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{magenta},
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codepurple},
+	basicstyle=\ttfamily\footnotesize, % Police machine à écrire
+	breakatwhitespace=false,         
+	breaklines=true,                 
+	captionpos=b,                    
+	keepspaces=true,                 
+	numbers=left,                    % Numéros de ligne à gauche
+	numbersep=5pt,                  
+	showspaces=false,                
+	showstringspaces=false,
+	showtabs=false,                  
+	tabsize=2,
+	language=C                       % Spécifie que c'est du C
+}
+
+\lstset{style=monstyleC}
+% --- FIN CONFIGURATION CODE C ---
+
+\lstdefinestyle{styleTexte}{
+	backgroundcolor=\color{backcolour},   % Garde le fond gris défini précédemment
+	basicstyle=\ttfamily\footnotesize\color{black}, % Police machine à écrire, taille réduite, couleur NOIRE
+	keywordstyle=\color{black},           % Force les mots-clés en noir
+	commentstyle=\color{black},           % Force les commentaires en noir
+	stringstyle=\color{black},            % Force les chaînes en noir
+	identifierstyle=\color{black},        % Force tout le reste en noir
+	breaklines=true,                      % Retour à la ligne automatique
+	columns=fixed,                        % Garde l'alignement vertical strict
+	numbers=none,                         % Pas de numéros de ligne
+	frame=none,                           % Pas de cadre
+	escapeinside={(*@}{@*)},
+	showstringspaces=false                % Ne pas montrer les espaces
+}

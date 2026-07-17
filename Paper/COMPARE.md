@@ -22,8 +22,13 @@ champion σ1.4 + Sonar Context). Chiffres publiés : Table I d'ISOPoT, Table II 
 
 ⚠ Deux limites permanentes de la comparaison : (1) leurs sections = 3 séquences séparées
 redémarrées, les nôtres = tiers temporels d'une mission continue (frontières non publiées) ;
-(2) l'ATE ancré dépend énormément de l'ancre de départ — mesuré chez nous : 8.6 → 1.9 m selon
-la longueur de corde utilisée pour fixer le cap initial (on utilise 15 m partout).
+(2) **Convention FINALE (décision Nathan 2026-07-17) : TRANSLATION PURE** — GT et estimé
+commencent tous deux à (0,0), AUCUNE rotation ajustée, zéro paramètre, zéro GT (le repère
+absolu est une SORTIE du système : seed = 1er fix USBL + route-fond = équivalent GT-free
+d'un /initialpose). Protocole PLUS SÉVÈRE que les publiés (ISOPoT ré-ancre ses sections au
+magnétomètre, nous jamais). Check : notre odométrie en repère à cap fixe = 6.00/12.62/8.44
+vs leur ligne « Odometry alone » 5.8/12.5/6.5. Historique : corde 15 m puis fit 15 % de
+poses ABANDONNÉS le 17-07 — chiffres ci-dessous recalculés.
 
 ---
 
@@ -31,8 +36,10 @@ la longueur de corde utilisée pour fixer le cap initial (on utilise 15 m partou
 
 - **Métrique la plus robuste (Trans. %) : nous devant.** BSU **5.0 %** vs ISOPoT-assisté 9.69 %,
   DISO 13.9 %, meilleur publié.
-- **ATE ancré par section : partagé.** ISOPoT-assisté gagne S1 (3.2 m) ; **nous gagnons S2
-  (BSU 2.38 m) et S3 (Bruce 1.75 m)**. Il n'est PAS meilleur sur les 3 sections.
+- **ATE par section : BSU DEVANT PARTOUT.** 2.22/2.46/2.65 vs ISOPoT-assisté 3.2/3.5/4.6 —
+  meilleur sur LES TROIS sections, avec un protocole plus sévère (aucun re-fit d'orientation
+  chez nous). **Global épinglé départ = 1.94-2.00 m sur 44 min, ×2 runs** (eux n'ont pas de
+  global : sections reset).
 - Notre point faible S1 est identifié : peu de boucles détectées en début de mission + seed de
   cap USBL (course-over-ground) bruité au départ → en métrique ancrée, ce cap initial fait
   tourner toute la section. En Umeyama, S1 BSU = 1.78 m (la forme est bonne).
@@ -72,8 +79,10 @@ Meilleur de chaque colonne en **gras**. Lignes publiées = Table I d'ISOPoT (leu
 | Odom+Mag | DISO | 5.3 | 6.1 | 10.9 | 13.90 | 0.44 |
 | Odom+Mag | SONIC | 7.0 | 11.2 | 13.7 | 22.83 | **0.0** |
 | Odom+Mag | ISOPoT | **3.2** | 3.5 | 4.6 | 9.69 | **0.0** |
-| Odom+USBL | **Bruce** (nous) | 4.79 | 3.55 | **1.75** | 23.63¹ | 0.057 |
-| Odom+USBL | **Bruce_Sonar_USBL** (nous) | 5.13 | **2.38** | 4.42 | **5.00** | 0.090 |
+| Odom+Mag | Notre odométrie (repère cap fixe, check protocole) | 6.00 | 12.62 | 8.44 | — | — |
+| Odom+USBL | **Bruce** (nous, sans USBL, run 2) | 2.57 | 5.61 | 2.80 | 4.83 | 0.069 |
+| Odom+USBL | **Bruce_Sonar_USBL** (nous, run 1) | **2.22** | **2.46** | **2.65** | **5.00** | 0.090 |
+| Odom+USBL | *(BSU global épinglé 44 min : **1.94-2.00 m** ×2 runs — pas d'équivalent publié ; Bruce+USBL seul = 8-11 m, cap du seed jamais corrigé → c'est SC qui répare)* | | | | | |
 
 ¹ ARTEFACT DE SEED, mesuré sur 4 runs (07-06) : le cap initial (course-over-ground des premiers
 fixes USBL, bruités) tire un offset β différent à chaque run, et sur Bruce rien ne le corrige

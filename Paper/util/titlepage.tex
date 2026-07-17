@@ -1,0 +1,75 @@
+%!TEX root = main.tex
+% Page de titre
+\begin{titlepage}
+\thispagestyle{empty}
+
+% Inclusion du fond avec carrés bleus
+\input{util/background.tex}
+
+% Contenu de la page de titre
+\begin{tikzpicture}[remember picture,overlay]
+
+    % Logo Polytech en haut à droite
+    \node[anchor=north east,xshift=-1.5cm,yshift = -1cm] at (current page.north east) {
+        \includegraphics[width=0.3\textwidth]{Image/Polytech.png}
+    };
+
+    % Titre à gauche (en gras)
+    \node[anchor=north west,xshift=1.5cm,yshift=-6cm] at (current page.north west) {
+        \begin{minipage}{80cm}
+            \color{black}
+            \fontsize{34}{38}\selectfont\bfseries
+            Underwater sonar SLAM \\ without ground truth
+        \end{minipage}
+    };
+
+        % Sous titre (en gras)
+    \node[anchor=north west,xshift=1.5cm,yshift=-10cm] at (current page.north west) {
+        \begin{minipage}{80cm}
+            \color{black}
+            \fontsize{20}{28}\selectfont
+            Bruce-SLAM adaptation, Sonar Context place recognition \\ and USBL anchoring on the Aracati2017 dataset
+        \end{minipage}
+    };
+
+    % Auteur
+    \node[anchor=north west,xshift=1.5cm,yshift=-13cm] at (current page.north west) {
+        \begin{minipage}{10cm}
+            \color{black}
+            \fontsize{15}{19}\selectfont\bfseries
+            Nathan RASAMIJAONA
+        \end{minipage}
+    };
+
+    % Date à droite (en gras)
+    \node[anchor=north east,xshift=-1.5cm,yshift=-12cm] at (current page.north east) {
+    	\color{black}
+    	\fontsize{13}{19}\selectfont
+    	{\bfseries Written:} July 16, 2026
+    };
+
+    \node[anchor=north east,xshift=-1.5cm,yshift=-12.5cm] at (current page.north east) {
+    	\color{black}
+    	\fontsize{13}{19}\selectfont
+    	{\bfseries Last modified:} \today
+    };
+
+
+    % Formation en bas à gauche
+    \node[anchor=south west,xshift=1.5cm,yshift=5cm] at (current page.south west) {
+        \begin{minipage}{11cm}
+            \color{black}
+            \fontsize{15}{19}\selectfont
+            \textbf{Electronics and Digital \\ Technologies Department – Polytech Nantes}\\
+            \textbf{4th-year internship – 2026}\\[0.3cm]
+        \end{minipage}
+    };
+
+    % Logo Nantes Université en bas à gauche
+    \node[anchor=south west,xshift=2.5cm,yshift=1cm] at (current page.south west) {
+        \includegraphics[height=2cm]{Image/Nantes_univ.png}
+    };
+
+\end{tikzpicture}
+
+\end{titlepage}
