@@ -11,3 +11,18 @@ __pycache__/
 .ros/
 *.bag
 DISO/Thirdparty/
+
+# --- Paper/ (LaTeX) : sources + figures + config VERSIONNÉES, build ignoré
+!Paper/Image/*.png
+!Paper/.vscode/
+!Paper/.vscode/**
+Paper/*.aux
+Paper/*.log
+Paper/*.out
+Paper/*.toc
+Paper/*.lof
+Paper/*.fls
+Paper/*.fdb_latexmk
+Paper/*.synctex.gz
+Paper/main.pdf
+Paper/util/*.aux
