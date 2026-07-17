@@ -1,0 +1,54 @@
+%!TEX root = main.tex
+% background.tex - Fond avec carrés Polytech
+
+% Définition des couleurs Polytech
+\definecolor{polytechblue}{RGB}{0,156,221}
+\definecolor{polytechdarkblue}{RGB}{0,74,117}
+
+\begin{tikzpicture}[remember picture,overlay]
+    % Fond blanc
+    \fill[white] (current page.south west) rectangle (current page.north east);
+    
+    % Carrés avec transparence et espacement de 0.2cm
+    % Ligne du haut
+    \fill[polytechblue,opacity=0.15] ([xshift=1cm,yshift=-2cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.25] ([xshift=3.4cm,yshift=-2cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.15] ([xshift=4.6cm,yshift=-2cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Deuxième ligne
+    \fill[polytechblue,opacity=0.2] ([xshift=3.4cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.3] ([xshift=4.6cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Troisième ligne (centre gauche)
+    \fill[polytechblue,opacity=0.15] ([xshift=4.6cm,yshift=-4.6cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.25] ([xshift=5.8cm,yshift=-4.6cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.2] ([xshift=7cm,yshift=-4.6cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Zone centrale avec plus de carrés
+    \fill[polytechblue,opacity=0.2] ([xshift=8.2cm,yshift=-2cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.3] ([xshift=7cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.25] ([xshift=8.2cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.15] ([xshift=9.4cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Ligne médiane
+    \fill[polytechblue,opacity=0.2] ([xshift=7cm,yshift=-5.8cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.25] ([xshift=8.2cm,yshift=-5.8cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.3] ([xshift=9.4cm,yshift=-5.8cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.15] ([xshift=10.6cm,yshift=-5.8cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Zone droite
+    \fill[polytechblue,opacity=0.2] ([xshift=10.6cm,yshift=-4.6cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.15] ([xshift=11.8cm,yshift=-4.6cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.25] ([xshift=9.4cm,yshift=-7cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Carré isolé coin droit
+    \fill[polytechblue,opacity=0.2] ([xshift=13cm,yshift=-3.4cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Bas droite
+    \fill[polytechblue,opacity=0.15] ([xshift=9.4cm,yshift=-8.2cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.3] ([xshift=10.6cm,yshift=-7cm]current page.north west) rectangle ++(1cm,1cm);
+    \fill[polytechblue,opacity=0.2] ([xshift=11.8cm,yshift=-7cm]current page.north west) rectangle ++(1cm,1cm);
+    
+    % Carré isolé extrême droite
+    \fill[polytechblue,opacity=0.25] ([xshift=15cm,yshift=-5.8cm]current page.north west) rectangle ++(1cm,1cm);
+\end{tikzpicture}
