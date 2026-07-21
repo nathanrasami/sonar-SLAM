@@ -1,5 +1,32 @@
 # PROGRESS — état au 2026-07-06 (soir) — mémoire native + COMPARE.md + caves validée
 
+## 🧪 TEST CONFIG AUTO-TUNE (nuit 20→21-07, branche Bruce) — REJETÉE, yaml restauré
+- Contexte : outil externe (autre projet) annonçait un « champion » Bruce à 1.99 m origine
+  via auto-tune (CHAMPION_CONFIG.md à la racine, 15 params back-end). Testé DANS notre repo.
+- Journal R3 : `slam_aracati.yaml` édité (backup scratchpad + git-clean avant), 15 champs
+  appliqués (odom_sigmas, icp_odom_sigmas, point_resolution, ssm/nssm ×10, pcm_queue 7,
+  **min_pcm 4→2**), 2 runs `SSM=true NSSM=true USBL=false`, puis **yaml RESTAURÉ**
+  (`git checkout`, vérifié : min_pcm 4, odom [0.2,0.2,0.02], point_res 0.5). Rien committé.
+- RÉSULTAT (2 runs, cohérents entre eux, tous deux MAUVAIS) :
+  | | origine | Umeyama | loops | carte NN |
+  |---|---|---|---|---|
+  | auto-tune run 1 | **10.38** | 3.07 | 77 | 0.13 |
+  | auto-tune run 2 | **14.03** | 3.53 | 82 | 0.12 |
+  | témoin stock Bruce archivé | 2.58–3.56 | 1.88–2.07 | 142–162 | ~0.09 |
+- VERDICT : le config auto-tune s'effondre chez nous (10–14 m), PIRE que le stock et loin
+  du 1.99 annoncé — ET au-delà du « pire 3.21 » que l'outil prétendait. Confirme que ton
+  2.58 stock n'est PAS de l'overfitting (question de Nathan : réfutée par mesure).
+- Mécanisme probable (NON confirmé) : le config sur-pondère l'odométrie cmd_vel (odom_sigma
+  translation ↓ 0.2→0.10, icp_odom_sigma ↑ 0.1→0.25 = moins de confiance au sonar) → il
+  jette les corrections sonar qui rattrapent la dérive 19.57 m. Carte propre + moins de loops
+  (77–82 < 162) → PAS de fausses loops (hypothèse min_pcm=2 affaiblie).
+- 🚨 NON TRANCHÉ pour demain : pourquoi 1.99 chez EUX vs 10–14 chez NOUS, même bag/params ?
+  Candidats : (a) divergence de code build externe ↔ branche Bruce, (b) leur 1.99 = tirage
+  RNG non reproductible (multistabilité), (c) convention d'éval différente côté outil.
+  À élucider avec eux (leur environnement) — pas résoluble depuis notre repo seul.
+- Runs de test marqués `_AUTOTUNE_TEST` dans results/ (ne pas confondre avec runs papier).
+
+
 ## 🧠 MÉMOIRE REFONDUE (07-06 soir) — claude-mem SUPPRIMÉ, natif en place
 - claude-mem v13 installé puis **supprimé le soir même** : ses hooks bloquaient les réponses
   (worker port 37700 muet → CLI en attente infinie). Nettoyage TOTAL fait (machine + 5 branches).
